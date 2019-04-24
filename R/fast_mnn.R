@@ -18,7 +18,7 @@ NULL
 #' \code{\link[scran]{fastMNN}} are stored in the \code{tool} slot, accessible with
 #' \code{\link[Seurat]{Tool}}
 #'
-#' @importFrom Seurat DefaultAssay SelectIntegrationFeatures
+#' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures
 #' as.SingleCellExperiment CreateDimReducObject Tool<-
 #'
 #' @export

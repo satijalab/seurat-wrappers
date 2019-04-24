@@ -2,6 +2,7 @@
 
 export(RunFastMNN)
 import(BiocManager)
+importFrom(Seurat,"DefaultAssay<-")
 importFrom(Seurat,"Tool<-")
 importFrom(Seurat,CreateDimReducObject)
 importFrom(Seurat,DefaultAssay)
