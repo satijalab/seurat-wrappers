@@ -10,10 +10,12 @@ Authors@R: c(
 Description: What the package does (one paragraph).
 License: What license it uses
 Depends:
-    R (>= 3.5.0),
-    BiocManager
+    R (>= 3.5.0)
 Imports:
-    Seurat (>= 3.0.0)
+    BiocManager,
+    remotes,
+    Seurat (>= 3.0.0),
+    utils
 Collate:
     'internal.R'
     'fast_mnn.R'
