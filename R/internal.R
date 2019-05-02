@@ -72,3 +72,17 @@ CheckPackage <- function(package, repository, ...) {
     stop("Unable to find package ", package, ", please install", call. = FALSE)
   }
 }
+
+# Check if a matrix is empty
+#
+# Takes a matrix and asks if it's empty (either 0x0 or 1x1 with a value of NA)
+#
+# @param x A matrix
+#
+# @return Whether or not \code{x} is empty
+#
+IsMatrixEmpty <- function(x) {
+  matrix.dims <- dim(x = x)
+  matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
+  return(all(matrix.dims == 0) || matrix.na)
+}
