@@ -19,7 +19,7 @@ NULL
 #' \code{\link[Seurat]{Tool}}
 #'
 #' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures
-#' as.SingleCellExperiment CreateDimReducObject Tool<-
+#' as.SingleCellExperiment CreateDimReducObject Tool<- LogSeuratCommand
 #'
 #' @export
 #'
@@ -79,5 +79,6 @@ RunFastMNN <- function(
   )
   out$corrected <- NULL
   Tool(object = integrated) <- out
+  object <- LogSeuratCommand(object = object)
   return(integrated)
 }
