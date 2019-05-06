@@ -9,10 +9,12 @@ Authors@R: c(
   )
 Description: What the package does (one paragraph).
 License: What license it uses
+Remotes: MacoskoLab/liger
 Depends:
     R (>= 3.5.0)
 Imports:
     BiocManager,
+    liger,
     remotes,
     Seurat (>= 3.0.0),
     utils

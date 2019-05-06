@@ -7,9 +7,9 @@
 \usage{
 \method{optimizeALS}{Seurat}(object, k, assay = NULL,
   split.by = "orig.ident", lambda = 5, thresh = 1e-04,
-  max.iters = 100, reduction.name = "", reduction.key = "",
-  nrep = 1, H.init = NULL, W.init = NULL, V.init = NULL,
-  rand.seed = 1, print.obj = FALSE, ...)
+  max.iters = 100, reduction.name = "iNMF_raw",
+  reduction.key = "riNMF_", nrep = 1, H.init = NULL, W.init = NULL,
+  V.init = NULL, rand.seed = 1, print.obj = FALSE, ...)
 }
 \arguments{
 \item{object}{A merged Seurat object}
