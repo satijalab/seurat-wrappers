@@ -47,14 +47,28 @@ optimizeALS.Seurat <- function(
   if (IsMatrixEmpty(x = GetAssayData(object = object, slot = 'scale.data'))) {
     stop("Data is unscaled, splease scale before running", call. = FALSE)
   }
-  scale.data <- sapply(
-    X = SplitObject(object = object, split.by = split.by),
-    FUN = GetAssayData,
-    slot = 'scale.data',
-    assay = assay,
-    simplify = FALSE
+  # scale.data <- sapply(
+  #   X = SplitObject(object = object, split.by = split.by),
+  #   FUN = GetAssayData,
+  #   slot = 'scale.data',
+  #   assay = assay,
+  #   simplify = FALSE
+  # )
+  if (is.character(x = split.by) && length(x = split.by) == 1) {
+    split.by <- object[[split.by]]
+  }
+  split.cells <- split(x = colnames(x = object), f = split.by)
+  scale.data <- lapply(
+    X = split.cells,
+    FUN = function(x) {
+      return(t(x = GetAssayData(
+        object = object,
+        slot = 'scale.data',
+        assay = assay
+      )[, x]))
+    }
   )
-  scale.data <- sapply(X = scale.data, FUN = t, simplify = FALSE)
+  # scale.data <- sapply(X = scale.data, FUN = t, simplify = FALSE)
   out <- optimizeALS(
     object = scale.data,
     k = k,
@@ -232,7 +246,7 @@ quantileAlignSNF.Seurat <- function(
     assay = DefaultAssay(object = object[[reduction]]),
     key = reduction.key
   )
-  out <- as.data.frame(x = out[which(x = names(x = out) != 'H.norm')])
+  out <- as.data.frame(x = out[names(x = out) != 'H.norm'])
   object[[colnames(x = out)]] <- out
   Idents(object = object) <- 'clusters'
   object <- LogSeuratCommand(object = object)

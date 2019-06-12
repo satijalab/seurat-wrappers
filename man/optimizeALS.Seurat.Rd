@@ -14,16 +14,16 @@
 \arguments{
 \item{object}{A merged Seurat object}
 
-\item{k}{Inner dimension of factorization (number of factors). Run suggestK to determine 
-appropriate value; a general rule of thumb is that a higher k will be needed for datasets with 
+\item{k}{Inner dimension of factorization (number of factors). Run suggestK to determine
+appropriate value; a general rule of thumb is that a higher k will be needed for datasets with
 more sub-structure.}
 
 \item{assay}{Assay to use, defaults to the default assay of the first object}
 
 \item{split.by}{Attribute for splitting, defaults to "orig.ident"}
 
-\item{lambda}{Regularization parameter. Larger values penalize dataset-specific effects more 
-strongly (ie. alignment should increase as lambda increases). Run suggestLambda to determine 
+\item{lambda}{Regularization parameter. Larger values penalize dataset-specific effects more
+strongly (ie. alignment should increase as lambda increases). Run suggestLambda to determine
 most appropriate value for balancing dataset alignment and agreement (default 5.0).}
 
 \item{thresh}{Convergence threshold. Convergence occurs when |obj0-obj|/(mean(obj0,obj)) < thresh.
@@ -35,7 +35,7 @@ most appropriate value for balancing dataset alignment and agreement (default 5.
 
 \item{reduction.key}{Key for resulting DimReduc}
 
-\item{nrep}{Number of restarts to perform (iNMF objective function is non-convex, so taking the 
+\item{nrep}{Number of restarts to perform (iNMF objective function is non-convex, so taking the
 best objective from multiple successive initializations is recommended). For easier
 reproducibility, this increments the random seed by 1 for each consecutive restart, so future
 factorizations of the same dataset can be run with one rep if necessary. (default 1)}
