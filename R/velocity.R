@@ -2,9 +2,6 @@
 #'
 NULL
 
-#' Create a Seurat object from a list of matricies
-#'
-#' @inheritParams Seurat::as.Seurat
 #' @inheritParams Seurat::CreateSeuratObject
 #' @param default.assay Name or index of matrix to use as default assay;
 #' defaults to name of first matrix in list
@@ -13,12 +10,27 @@ NULL
 #' @importFrom utils txtProgressBar packageVersion setTxtProgressBar
 #' @importFrom Seurat as.Seurat CreateAssayObject Key<- CreateSeuratObject
 #'
+#' @details
+#' The \code{list} method for \code{\link[Seurat]{as.Seurat}} takes a named list
+#' of matrices (dense or sparse) and creates a single \code{Seurat} object where
+#' each matrix is its own assay. The names of the list are taken to be the names
+#' of the assays. If not present, assays will be named as "Assay#" where "#" is
+#' the index number in the list of matrices. Objects will be constructed as follows:
+#' \itemize{
+#'   \item By default, all matrices are assumed to be raw counts and will be stored
+#'   in the \code{counts} slot. This can be changed to store in the matrix in the
+#'   \code{data} slot instead. The \code{slot} parameter is vectorized, so different
+#'   matrices can be stored in either \code{counts} or \code{data}
+#'   \item For any and all matrices designated as \code{counts}, the \code{min.cells}
+#'   and \code{min.features} filtering will be applied. These parameters are vectorized,
+#'   so different filterings can be applied to different matrices
+#'   \item No extra information (eg. \code{project}) can be provided to
+#'   \code{\link[Seurat]{CreateSeuratObject}}
+#' }
+#'
+#' @rdname as.Seurat.extras
 #' @export
 #' @method as.Seurat list
-#'
-#' @seealso \code{\link[Seurat]{as.Seurat}}
-#'
-#' @aliases as.Seurat
 #'
 as.Seurat.list <- function(
   x,
@@ -33,7 +45,7 @@ as.Seurat.list <- function(
     stop("All values must be either a matrix or dgCMatrix", call. = FALSE)
   }
   names(x = x) <- names(x = x) %||% rep_len(x = '', length.out = length(x = x))
-  names(x = x)[nchar(x = names(x = x)) == 0] <- paste0('potato', which(x = nchar(x = names(x = x)) == 0))
+  names(x = x)[nchar(x = names(x = x)) == 0] <- paste0('Assay', which(x = nchar(x = names(x = x)) == 0))
   if (is.numeric(x = default.assay)) {
     default.assay <- names(x = x)[default.assay]
   }

@@ -14,11 +14,13 @@ Depends:
     R (>= 3.5.0)
 Imports:
     BiocManager,
+    igraph,
     liger,
     remotes,
     Seurat (>= 3.0.0),
     utils
 Collate:
+    'conos.R'
     'internal.R'
     'fast_mnn.R'
     'liger.R'
