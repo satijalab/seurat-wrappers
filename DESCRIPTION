@@ -1,14 +1,14 @@
-Package: seurat.wrappers
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Package: SeuratWrappers
+Title: Community-Provided Methods and Extensions for the Seurat Object
+Version: 0..0.9010
 Authors@R: c(
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
   person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897'))
   )
-Description: What the package does (one paragraph).
-License: What license it uses
+Description: Seurat ...
+License: GPL-3 | file LICENSE
 Remotes: MacoskoLab/liger
 Depends:
     R (>= 3.5.0)
@@ -30,4 +30,7 @@ LazyData: true
 RoxygenNote: 6.1.1
 Suggests:
     conos,
-    scran
+    scran,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
