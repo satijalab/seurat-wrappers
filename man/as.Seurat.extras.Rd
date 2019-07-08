@@ -54,7 +54,7 @@ to the resulting Seurat object as follows:
   object. It will be named "\code{DefaultAssay(SeuratObject)}_\code{method}"
   \item If an embedding is present in the \code{embedding} field as a
   \code{\link{matrix}}, it will be stored as a \code{DimReduc} object with the
-  name \code{reduction} and a key value of "\code{tolower(reduction)}_"
+  name \code{reduction} and a key value of "\code{toupper(reduction)}_"
   \item If the length of the \code{clusters} field is greater than zero,
   clustering information (\code{groups} field) will be added to object metadata.
   Extra information (\code{result} field) will be added to miscellaneous data
