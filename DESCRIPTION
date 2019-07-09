@@ -15,7 +15,7 @@ Depends:
 Imports:
     BiocManager,
     igraph,
-    liger,
+    liger (>= 0.4.2),
     remotes,
     Seurat (>= 3.0.0),
     utils
@@ -30,7 +30,4 @@ LazyData: true
 RoxygenNote: 6.1.1
 Suggests:
     conos,
-    scran,
-    knitr,
-    rmarkdown
-VignetteBuilder: knitr
+    scran
