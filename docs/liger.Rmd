@@ -18,7 +18,6 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-library(SeuratData)
 ```
 
 This document serves to showcase running the [LIGER](https://github.com/MacoskoLab/liger) integration workflow on a `Seurat` object. To do this, we need three packages: [Seurat](https://satijalab.org/seurat/) for preprocessing the data, LIGER for the generic defintions and underlying methods, and [SeuratWrappers](https://github.com/satijalab/seurat.wrappers) for the `Seurat`-object methods for LIGER's generics. We also need [SeuratData](https://github.com/satijalab/seurat-data) to load in datasets for this vignette.
