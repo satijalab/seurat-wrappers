@@ -2,13 +2,13 @@
 title: "Integrating Seurat objects using LIGER"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
-  html_document:
-    df_print: kable
-    theme: united
   github_document:
     html_preview: true
     toc: true
     toc_depth: 3
+  html_document:
+    df_print: kable
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
