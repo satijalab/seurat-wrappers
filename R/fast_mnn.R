@@ -34,9 +34,6 @@ RunFastMNN <- function(
   verbose = TRUE,
   ...
 ) {
-  # if (!requireNamespace(package = 'scran', quietly = TRUE)) {
-  #   stop("Please install scran for fastMNN")
-  # }
   CheckPackage(package = 'scran', repository = 'bioconductor')
   if (!all(sapply(X = object.list, FUN = inherits, what = 'Seurat'))) {
     stop("'object.list' must be a list of Seurat objects", call. = FALSE)
@@ -79,6 +76,6 @@ RunFastMNN <- function(
   )
   out$corrected <- NULL
   Tool(object = integrated) <- out
-  object <- LogSeuratCommand(object = object)
+  integrated <- LogSeuratCommand(object = integrated)
   return(integrated)
 }
