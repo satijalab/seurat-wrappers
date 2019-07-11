@@ -15,7 +15,7 @@ NULL
 #' per-dataset feature loadings matrices stored in the \code{tool} slot, accessible with
 #' \code{\link[Seurat]{Tool}}
 #'
-#' @importFrom liger optimizeALS
+# @importFrom liger optimizeALS
 #' @importFrom Seurat DefaultAssay SplitObject GetAssayData VariableFeatures
 #' CreateDimReducObject Tool<- LogSeuratCommand
 #'
@@ -23,9 +23,9 @@ NULL
 #' @seealso \code{\link[liger]{optimizeALS}} \code{\link[Seurat]{Tool}}
 #'
 #' @export
-#' @method optimizeALS Seurat
+# @method optimizeALS Seurat
 #'
-optimizeALS.Seurat <- function(
+RunOptimizeALS <- function(
   object,
   k,
   assay = NULL,
@@ -43,17 +43,11 @@ optimizeALS.Seurat <- function(
   print.obj = FALSE,
   ...
 ) {
+  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
   assay <- assay %||% DefaultAssay(object = object)
   if (IsMatrixEmpty(x = GetAssayData(object = object, slot = 'scale.data'))) {
     stop("Data is unscaled, splease scale before running", call. = FALSE)
   }
-  # scale.data <- sapply(
-  #   X = SplitObject(object = object, split.by = split.by),
-  #   FUN = GetAssayData,
-  #   slot = 'scale.data',
-  #   assay = assay,
-  #   simplify = FALSE
-  # )
   if (is.character(x = split.by) && length(x = split.by) == 1) {
     split.by <- object[[split.by]]
   }
@@ -69,7 +63,7 @@ optimizeALS.Seurat <- function(
     }
   )
   # scale.data <- sapply(X = scale.data, FUN = t, simplify = FALSE)
-  out <- optimizeALS(
+  out <- liger::optimizeALS(
     object = scale.data,
     k = k,
     lambda = lambda,
@@ -105,22 +99,22 @@ optimizeALS.Seurat <- function(
 #' Generate shared factor neighborhood graph
 #'
 #' @inheritParams liger::SNF
-#' @inheritParams optimizeALS.Seurat
+#' @inheritParams RunOptimizeALS
 #' @param reduction Name of reduction to use
 #'
 #' @return A Seurat object with the SNF list stored in the \code{tool} slot,
 #' accessible with \code{\link[Seurat]{Tool}}
 #'
-#' @importFrom liger SNF
+# @importFrom liger SNF
 #' @importFrom Seurat SplitObject Embeddings Tool<- LogSeuratCommand
 #'
 #' @aliases SNF
 #' @seealso \code{\link[liger]{SNF}} \code{\link[Seurat]{Tool}}
 #'
 #' @export
-#' @method SNF Seurat
+# @method SNF Seurat
 #'
-SNF.Seurat <- function(
+RunSNF <- function(
   object,
   split.by = 'orig.ident',
   reduction = 'iNMF_raw',
@@ -132,6 +126,7 @@ SNF.Seurat <- function(
   small.clust.thresh = knn_k,
   ...
 ) {
+  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
   cells <- sapply(
     X = SplitObject(object = object, split.by = split.by),
     FUN = colnames,
@@ -144,7 +139,7 @@ SNF.Seurat <- function(
       return(Embeddings(object = object[[reduction]])[x, ])
     }
   )
-  snf <- SNF(
+  snf <- liger::SNF(
     object = embeddings,
     dims.use = dims.use,
     dist.use = dist.use,
@@ -161,8 +156,8 @@ SNF.Seurat <- function(
 
 #' Run quantileAlignSNF on a Seurat object
 #'
-#' @inheritParams SNF.Seurat
-#' @inheritParams optimizeALS.Seurat
+#' @inheritParams RunSNF
+#' @inheritParams RunOptimizeALS
 #' @inheritParams liger::quantileAlignSNF
 #' @param recalc.snf Recalculate \code{\link{SNF}}
 #' @param ... Arguments passed to other methods, and to
@@ -172,7 +167,7 @@ SNF.Seurat <- function(
 #' @return A Seurat object with embeddings from \code{\link[liger]{quantileAlignSNF}}
 #' stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
 #'
-#' @importFrom liger quantileAlignSNF
+# @importFrom liger quantileAlignSNF
 #' @importFrom Seurat Tool SplitObject Embeddings CreateDimReducObject
 #' DefaultAssay Tool<- Idents<- LogSeuratCommand
 #'
@@ -180,9 +175,9 @@ SNF.Seurat <- function(
 #' @seealso \code{\link[liger]{quantileAlignSNF}}
 #'
 #' @export
-#' @method quantileAlignSNF Seurat
+# @method quantileAlignSNF Seurat
 #'
-quantileAlignSNF.Seurat <- function(
+RunQuantileAlignSNF <- function(
   object,
   split.by = 'orig.ident',
   reduction = 'iNMF_raw',
@@ -201,8 +196,9 @@ quantileAlignSNF.Seurat <- function(
   print.align.summary = FALSE,
   ...
 ) {
+  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
   if (recalc.snf || is.null(x = Tool(object = object, slot = 'SNF'))) {
-    object <- SNF(object = object, ...)
+    object <- RunSNF(object = object, ...)
   }
   embeddings <- sapply(
     X = SplitObject(object = object, split.by = split.by),
@@ -225,7 +221,7 @@ quantileAlignSNF.Seurat <- function(
   if (is.character(x = ref_dataset) && !ref_dataset %in% names(x = embeddings)) {
     stop("Cannot find reference dataset '", ref_dataset, "' in the split", call. = FALSE)
   }
-  out <- quantileAlignSNF(
+  out <- liger::quantileAlignSNF(
     object = embeddings,
     snf = Tool(object = object, slot = 'SNF'),
     cell.names = colnames(x = object),

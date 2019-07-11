@@ -1,6 +1,6 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.0.0.9010
+Version: 0.0.0.9020
 Authors@R: c(
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
@@ -15,7 +15,6 @@ Depends:
 Imports:
     BiocManager,
     igraph,
-    liger (>= 0.4.2),
     remotes,
     Seurat (>= 3.0.0),
     utils
@@ -30,4 +29,5 @@ LazyData: true
 RoxygenNote: 6.1.1
 Suggests:
     conos,
+    liger (>= 0.4.2),
     scran
