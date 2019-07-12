@@ -2,18 +2,19 @@
 title: "Integration of datasets using Conos"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
+  html_document:
+    df_print: kable
+    theme: united
   github_document:
     html_preview: true
     toc: true
     toc_depth: 3
-  html_document:
-    df_print: kable
-    theme: united
 ---
 
 This vigettte demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
-Wiring together large single-cell RNA-seq sample collections.
+*Wiring together large single-cell RNA-seq sample collections.*
+
 Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
 bioRxiv, 2019
 DOI: https://www.biorxiv.org/content/10.1101/460246v1
@@ -30,8 +31,11 @@ knitr::opts_chunk$set(
 ```
 
 Prerequisites to install: 
+
 * [Seurat](https://satijalab.org/seurat/install) 
-* [Conos](https://github.com/hms-dbmi/conos) for the integration methods, and [SeuratWrappers](https://github.com/satijalab/seurat.wrappers) for the Conos &rarr; Seurat conversion. We also need [SeuratData](https://github.com/satijalab/seurat-data) to load in datasets for this vignette.
+* [Conos](https://github.com/hms-dbmi/conos)
+* [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
 
 ```{r packages}
 library(conos)
