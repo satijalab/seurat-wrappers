@@ -48,55 +48,85 @@ library(SeuratWrappers)
 
 ### Systematic comparative analysis of human PBMC
 
-To learn more about this dataset, type `?broad` 
+To learn more about this dataset, type `?pbmcsca` 
 
-```{r broad, results='hide', cache=TRUE}
-#InstallData("broad")
-data("broad")
-broad.panel <- SplitObject(broad, split.by = 'Method')
-for(i in 1:length(broad.panel)) {
-  broad.panel[[i]] <- NormalizeData(broad.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+```{r pbmcsca, results='hide', cache=TRUE}
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca.panel <- SplitObject(pbmcsca, split.by = 'Method')
+for (i in 1:length(pbmcsca.panel)) {
+  pbmcsca.panel[[i]] <- NormalizeData(pbmcsca.panel[[i]], verbose = FALSE) %>% FindVariableFeatures(verbose = FALSE) %>% ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
 }
-broad.con <- Conos$new(broad.panel)
-broad.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
-broad.con$findCommunities()
-broad.con$embedGraph()
-broad <- as.Seurat(broad.con)
-DimPlot(broad, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+pbmcsca.con <- Conos$new(pbmcsca.panel)
+pbmcsca.con$buildGraph(
+  k = 15,
+  k.self = 5,
+  space='PCA',
+  ncomps = 30,
+  n.odgenes = 2000,
+  matching.method = 'mNN',
+  metric = 'angular',
+  score.component.variance = TRUE,
+  verbose = TRUE
+)
+pbmcsca.con$findCommunities()
+pbmcsca.con$embedGraph()
+pbmcsca <- as.Seurat(pbmcsca.con)
+DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
 ```
 
 ### Interferon-stimulated and control PBMC
 
 To learn more about this dataset, type `?ifnb` 
 
-```{r immune_stim, results='hide', cache=TRUE}
-#InstallData("immune")
-data("immune")
-immune.panel <- SplitObject(immune, split.by = 'stim')
-for(i in 1:length(immune.panel)) {
-  immune.panel[[i]] <- NormalizeData(immune.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+```{r infb, results='hide', cache=TRUE}
+InstallData("infb")
+data("infb")
+infb.panel <- SplitObject(infb, split.by = 'stim')
+for (i in 1:length(infb.panel)) {
+  infb.panel[[i]] <- NormalizeData(infb.panel[[i]], verbose = FALSE) %>% FindVariableFeatures(verbose = FALSE) %>% ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
 }
-immune.con <- Conos$new(immune.panel)
-immune.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
-immune.con$findCommunities()
-immune.con$embedGraph()
-immune <- as.Seurat(immune.con)
-DimPlot(immune, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+infb.con <- Conos$new(infb.panel)
+infb.con$buildGraph(
+  k = 15,
+  k.self = 5,
+  space = 'PCA',
+  ncomps = 30,
+  n.odgenes = 2000,
+  matching.method = 'mNN',
+  metric = 'angular',
+  score.component.variance = TRUE,
+  verbose = TRUE
+)
+infb.con$findCommunities()
+infb.con$embedGraph()
+infb <- as.Seurat(infb.con)
+DimPlot(infb, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
 ```
 
 ### 8 human pancreatic islet datasets
 
-To learn more about this dataset, type `?panc` 
+To learn more about this dataset, type `?panc8` 
 
 ```{r pancreas, results='hide', cache=TRUE}
-#InstallData("panc8")
+InstallData("panc8")
 data("panc8")
 panc8.panel <- SplitObject(panc8, split.by = 'replicate')
-for(i in 1:length(panc8.panel)) {
-  panc8.panel[[i]] <- NormalizeData(panc8.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+for (i in 1:length(panc8.panel)) {
+  panc8.panel[[i]] <- NormalizeData(panc8.panel[[i]], verbose = FALSE) %>% FindVariableFeatures(verbose = FALSE) %>% ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
 }
 panc8.con <- Conos$new(panc8.panel)
-panc8.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+panc8.con$buildGraph(
+  k = 15,
+  k.self = 5,
+  space = 'PCA',
+  ncomps = 30,
+  n.odgenes = 2000,
+  matching.method = 'mNN',
+  metric = 'angular',
+  score.component.variance = TRUE,
+  verbose = TRUE
+)
 panc8.con$findCommunities()
 panc8.con$embedGraph()
 panc8 <- as.Seurat(panc8.con)
