@@ -1,0 +1,100 @@
+---
+title: "Integration of datasets using Conos"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+  html_document:
+    df_print: kable
+    theme: united
+---
+
+This vigettte demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
+
+Wiring together large single-cell RNA-seq sample collections.
+Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
+bioRxiv, 2019
+DOI: https://www.biorxiv.org/content/10.1101/460246v1
+GitHub: https://github.com/hms-dbmi/conos
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+Prerequisites to install: 
+* [Seurat](https://satijalab.org/seurat/install) 
+* [Conos](https://github.com/hms-dbmi/conos) for the integration methods, and [SeuratWrappers](https://github.com/satijalab/seurat.wrappers) for the Conos &rarr; Seurat conversion. We also need [SeuratData](https://github.com/satijalab/seurat-data) to load in datasets for this vignette.
+
+```{r packages}
+library(conos)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+## {.tabset .tabset-pills}
+
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?broad` 
+
+```{r broad, results='hide', cache=TRUE}
+#InstallData("broad")
+data("broad")
+broad.panel <- SplitObject(broad, split.by = 'Method')
+for(i in 1:length(broad.panel)) {
+  broad.panel[[i]] <- NormalizeData(broad.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+}
+broad.con <- Conos$new(broad.panel)
+broad.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+broad.con$findCommunities()
+broad.con$embedGraph()
+broad <- as.Seurat(broad.con)
+DimPlot(broad, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+```
+
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb` 
+
+```{r immune_stim, results='hide', cache=TRUE}
+#InstallData("immune")
+data("immune")
+immune.panel <- SplitObject(immune, split.by = 'stim')
+for(i in 1:length(immune.panel)) {
+  immune.panel[[i]] <- NormalizeData(immune.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+}
+immune.con <- Conos$new(immune.panel)
+immune.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+immune.con$findCommunities()
+immune.con$embedGraph()
+immune <- as.Seurat(immune.con)
+DimPlot(immune, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+```
+
+### 8 human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc` 
+
+```{r pancreas, results='hide', cache=TRUE}
+#InstallData("panc8")
+data("panc8")
+panc8.panel <- SplitObject(panc8, split.by = 'replicate')
+for(i in 1:length(panc8.panel)) {
+  panc8.panel[[i]] <- NormalizeData(panc8.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+}
+panc8.con <- Conos$new(panc8.panel)
+panc8.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+panc8.con$findCommunities()
+panc8.con$embedGraph()
+panc8 <- as.Seurat(panc8.con)
+DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident"), label = TRUE, legend = "none")
+```
