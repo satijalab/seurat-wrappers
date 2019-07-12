@@ -13,12 +13,11 @@ output:
 
 This vigettte demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
-*Wiring together large single-cell RNA-seq sample collections.*
-
-Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
-bioRxiv, 2019
-DOI: https://www.biorxiv.org/content/10.1101/460246v1
-GitHub: https://github.com/hms-dbmi/conos
+**Wiring together large single-cell RNA-seq sample collections.**  
+Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko  
+bioRxiv, 2019  
+DOI: https://www.biorxiv.org/content/10.1101/460246v1  
+GitHub: https://github.com/hms-dbmi/conos  
 
 
 ```{r setup, include=FALSE}
@@ -48,48 +47,54 @@ library(SeuratWrappers)
 
 ### Systematic comparative analysis of human PBMC
 
-To learn more about this dataset, type `?broad` 
+To learn more about this dataset, type `?pbmcsca` 
 
-```{r broad, results='hide', cache=TRUE}
-#InstallData("broad")
-data("broad")
-broad.panel <- SplitObject(broad, split.by = 'Method')
-for(i in 1:length(broad.panel)) {
-  broad.panel[[i]] <- NormalizeData(broad.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+```{r pbmcsca, results='hide', cache=TRUE}
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca.panel <- SplitObject(pbmcsca, split.by = 'Method')
+for(i in 1:length(pbmcsca.panel)) {
+  pbmcsca.panel[[i]] <- NormalizeData(pbmcsca.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
 }
-broad.con <- Conos$new(broad.panel)
-broad.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
-broad.con$findCommunities()
-broad.con$embedGraph()
-broad <- as.Seurat(broad.con)
-DimPlot(broad, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+pbmcsca.con <- Conos$new(pbmcsca.panel)
+pbmcsca.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+pbmcsca.con$findCommunities()
+pbmcsca.con$embedGraph()
+pbmcsca <- as.Seurat(pbmcsca.con)
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident", "CellType"), label = FALSE, ncol = 3)
 ```
 
 ### Interferon-stimulated and control PBMC
 
 To learn more about this dataset, type `?ifnb` 
 
-```{r immune_stim, results='hide', cache=TRUE}
-#InstallData("immune")
-data("immune")
-immune.panel <- SplitObject(immune, split.by = 'stim')
-for(i in 1:length(immune.panel)) {
-  immune.panel[[i]] <- NormalizeData(immune.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
+```{r ifnb_stim, results='hide', cache=TRUE}
+InstallData("ifnb")
+data("ifnb")
+ifnb.panel <- SplitObject(ifnb, split.by = 'stim')
+for(i in 1:length(ifnb.panel)) {
+  ifnb.panel[[i]] <- NormalizeData(ifnb.panel[[i]], verbose = F) %>% FindVariableFeatures(verbose=F) %>% ScaleData(verbose=F) %>% RunPCA(verbose=F)
 }
-immune.con <- Conos$new(immune.panel)
-immune.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
-immune.con$findCommunities()
-immune.con$embedGraph()
-immune <- as.Seurat(immune.con)
-DimPlot(immune, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+ifnb.con <- Conos$new(ifnb.panel)
+ifnb.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, matching.method='mNN', metric='angular', score.component.variance=TRUE, verbose=TRUE)
+ifnb.con$findCommunities()
+ifnb.con$embedGraph()
+ifnb <- as.Seurat(ifnb.con)
+#replace when metadata avail
+ifnb$CellType <- Idents(ifnb)
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident", "CellType"), label = FALSE, ncol = 3)
 ```
 
 ### 8 human pancreatic islet datasets
 
-To learn more about this dataset, type `?panc` 
+To learn more about this dataset, type `?panc8` 
 
 ```{r pancreas, results='hide', cache=TRUE}
-#InstallData("panc8")
+InstallData("panc8")
 data("panc8")
 panc8.panel <- SplitObject(panc8, split.by = 'replicate')
 for(i in 1:length(panc8.panel)) {
@@ -100,5 +105,9 @@ panc8.con$buildGraph(k=15, k.self=5, space='PCA', ncomps=30, n.odgenes=2000, mat
 panc8.con$findCommunities()
 panc8.con$embedGraph()
 panc8 <- as.Seurat(panc8.con)
-DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident"), label = TRUE, legend = "none")
+#replace when metadata avail
+panc8$CellType <- Idents(panc8)
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident","CellType"), label = FALSE, ncol = 3)
 ```
