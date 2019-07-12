@@ -107,6 +107,9 @@ as.Seurat.Conos <- function(
       }
     }
   }
+  if (verbose) {
+    close(con = pb)
+  }
   # Add miscellaneous information
   if (length(x = x$misc) > 0) {
     if (verbose) {

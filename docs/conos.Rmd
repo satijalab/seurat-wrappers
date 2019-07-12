@@ -62,7 +62,7 @@ pbmcsca.con <- Conos$new(pbmcsca.panel)
 pbmcsca.con$buildGraph(
   k = 15,
   k.self = 5,
-  space='PCA',
+  space = 'PCA',
   ncomps = 30,
   n.odgenes = 2000,
   matching.method = 'mNN',
