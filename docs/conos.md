@@ -1,13 +1,26 @@
 Integration of datasets using Conos
 ================
-Compiled: July 09, 2019
+Compiled: July 12, 2019
 
 -   [](#section)
-    -   [PBMC](#pbmc)
-    -   [Immune/Stim](#immunestim)
-    -   [Pancreas](#pancreas)
+    -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
+    -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
+    -   [8 human pancreatic islet datasets](#human-pancreatic-islet-datasets)
 
-This document serves to showcase Seurat/Conos interoperability. To do this, we need three packages: [Seurat](https://satijalab.org/seurat/) for preprocessing the data, [Conos](https://github.com/hms-dbmi/conos) for the integration methods, and [SeuratWrappers](https://github.com/satijalab/seurat.wrappers) for the Conos → Seurat conversion. We also need [SeuratData](https://github.com/satijalab/seurat-data) to load in datasets for this vignette.
+This vigettte demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
+
+> *Wiring together large single-cell RNA-seq sample collections.* Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko bioRxiv, 2019.
+>
+> doi: <https://doi.org/10.1101/460246>
+>
+> GitHub: <https://github.com/hms-dbmi/conos>
+
+Prerequisites to install:
+
+-   [Seurat](https://satijalab.org/seurat/install)
+-   [Conos](https://github.com/hms-dbmi/conos)
+-   [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+-   [SeuratData](https://github.com/satijalab/seurat-data)
 
 ``` r
 library(conos)
@@ -16,64 +29,70 @@ library(SeuratData)
 library(SeuratWrappers)
 ```
 
-### PBMC
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?pbmcsca`
 
 ``` r
-data("broad")
-broad.panel <- SplitObject(broad, split.by = "Method")
-broad.panel <- sapply(X = broad.panel, FUN = NormalizeData, simplify = FALSE, USE.NAMES = TRUE)
-broad.panel <- sapply(X = broad.panel, FUN = FindVariableFeatures, simplify = FALSE, USE.NAMES = TRUE)
-broad.panel <- sapply(X = broad.panel, FUN = ScaleData, simplify = FALSE, USE.NAMES = TRUE)
-broad.panel <- sapply(X = broad.panel, FUN = RunPCA, verbose = FALSE, simplify = FALSE, USE.NAMES = TRUE)
-broad.panel <- sapply(X = broad.panel, FUN = FindNeighbors, dims = 1:30, simplify = FALSE, USE.NAMES = TRUE)
-broad.panel <- sapply(X = broad.panel, FUN = FindClusters, simplify = FALSE, USE.NAMES = TRUE)
-broad.con <- Conos$new(broad.panel)
-broad.con$buildGraph(space = "PCA", score.component.variance = TRUE)
-broad.con$findCommunities()
-broad.con$embedGraph()
-broad <- as.Seurat(broad.con)
-DimPlot(broad, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca.panel <- SplitObject(pbmcsca, split.by = "Method")
+for (i in 1:length(pbmcsca.panel)) {
+    pbmcsca.panel[[i]] <- NormalizeData(pbmcsca.panel[[i]]) %>% FindVariableFeatures() %>% ScaleData() %>% 
+        RunPCA(verbose = FALSE)
+}
+pbmcsca.con <- Conos$new(pbmcsca.panel)
+pbmcsca.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes = 2000, matching.method = "mNN", 
+    metric = "angular", score.component.variance = TRUE, verbose = TRUE)
+pbmcsca.con$findCommunities()
+pbmcsca.con$embedGraph()
+pbmcsca <- as.Seurat(pbmcsca.con)
+DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
 ```
 
-![](conos_files/figure-markdown_github/broad-1.png)
+![](conos_files/figure-markdown_github/pbmcsca-1.png)
 
-### Immune/Stim
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb`
 
 ``` r
-data("immune")
-immune.panel <- SplitObject(immune, split.by = "stim")
-immune.panel <- sapply(X = immune.panel, FUN = NormalizeData, simplify = FALSE, USE.NAMES = TRUE)
-immune.panel <- sapply(X = immune.panel, FUN = FindVariableFeatures, simplify = FALSE, USE.NAMES = TRUE)
-immune.panel <- sapply(X = immune.panel, FUN = ScaleData, simplify = FALSE, USE.NAMES = TRUE)
-immune.panel <- sapply(X = immune.panel, FUN = RunPCA, verbose = FALSE, simplify = FALSE, USE.NAMES = TRUE)
-immune.panel <- sapply(X = immune.panel, FUN = FindNeighbors, simplify = FALSE, USE.NAMES = TRUE)
-immune.panel <- sapply(X = immune.panel, FUN = FindClusters, simplify = FALSE, USE.NAMES = TRUE)
-immune.con <- Conos$new(immune.panel)
-immune.con$buildGraph(space = "PCA", score.component.variance = TRUE)
-immune.con$findCommunities()
-immune.con$embedGraph()
-immune <- as.Seurat(immune.con)
-DimPlot(immune, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+InstallData("ifnb")
+data("ifnb")
+ifnb.panel <- SplitObject(ifnb, split.by = "stim")
+for (i in 1:length(ifnb.panel)) {
+    ifnb.panel[[i]] <- NormalizeData(ifnb.panel[[i]]) %>% FindVariableFeatures() %>% ScaleData() %>% 
+        RunPCA(verbose = FALSE)
+}
+ifnb.con <- Conos$new(ifnb.panel)
+ifnb.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes = 2000, matching.method = "mNN", 
+    metric = "angular", score.component.variance = TRUE, verbose = TRUE)
+ifnb.con$findCommunities()
+ifnb.con$embedGraph()
+ifnb <- as.Seurat(ifnb.con)
+DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
 ```
 
-![](conos_files/figure-markdown_github/immune_stim-1.png)
+![](conos_files/figure-markdown_github/ifnb-1.png)
 
-### Pancreas
+### 8 human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc8`
 
 ``` r
+InstallData("panc8")
 data("panc8")
-panc.panel <- SplitObject(panc8, spit.by = "replicate")
-panc.panel <- sapply(X = panc.panel, FUN = NormalizeData, simplify = FALSE, USE.NAMES = TRUE)
-panc.panel <- sapply(X = panc.panel, FUN = FindVariableFeatures, simplify = FALSE, USE.NAMES = TRUE)
-panc.panel <- sapply(X = panc.panel, FUN = ScaleData, simplify = FALSE, USE.NAMES = TRUE)
-panc.panel <- sapply(X = panc.panel, FUN = RunPCA, verbose = FALSE, simplify = FALSE, USE.NAMES = TRUE)
-panc.panel <- sapply(X = panc.panel, FUN = FindNeighbors, simplify = FALSE, USE.NAMES = TRUE)
-panc.panel <- sapply(X = panc.panel, FUN = FindClusters, simplify = FALSE, USE.NAMES = TRUE)
-panc.con <- Conos$new(panc.panel)
-panc.con$buildGraph(space = "PCA", score.component.variance = TRUE)
-panc.con$findCommunities()
-panc.con$embedGraph()
-panc8 <- as.Seurat(panc.con)
+panc8.panel <- SplitObject(panc8, split.by = "replicate")
+for (i in 1:length(panc8.panel)) {
+    panc8.panel[[i]] <- NormalizeData(panc8.panel[[i]]) %>% FindVariableFeatures() %>% ScaleData() %>% 
+        RunPCA(verbose = FALSE)
+}
+panc8.con <- Conos$new(panc8.panel)
+panc8.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes = 2000, matching.method = "mNN", 
+    metric = "angular", score.component.variance = TRUE, verbose = TRUE)
+panc8.con$findCommunities()
+panc8.con$embedGraph()
+panc8 <- as.Seurat(panc8.con)
 DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident"), label = TRUE, legend = "none")
 ```
 
