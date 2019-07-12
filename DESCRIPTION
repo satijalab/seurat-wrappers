@@ -19,6 +19,7 @@ Imports:
     Seurat (>= 3.0.0),
     utils
 Collate:
+    'alra.R'
     'conos.R'
     'internal.R'
     'fast_mnn.R'
