@@ -1,0 +1,101 @@
+---
+title: "Running fastMNN on Seurat objects"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+  df_print: kable
+theme: united
+github_document:
+  html_preview: true
+toc: true
+toc_depth: 3
+---
+  
+This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and commands are based off of the [fastMNN help page](https://rdrr.io/github/LTLA/batchelor/man/fastMNN.html). If you use fastMNN, please cite:
+  
+**Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors**  
+Laleh Haghverdi, Aaron T L Lun, Michael D Morgan & John C Marioni  
+Nature Biotechnology, 2018  
+Manuscript: https://www.nature.com/articles/nbt.4091  
+GitHub: https://github.com/MarioniLab/scran  
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+Prerequisites to install: 
+  
+* [Seurat](https://satijalab.org/seurat/install) 
+* [scran](https://bioconductor.org/packages/release/bioc/html/scran.html) 
+* [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
+
+```{r packages}
+library(scran)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+## {.tabset .tabset-pills}
+
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?pbmcsca` 
+
+```{r pbmcsca, results='hide', cache=TRUE}
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca <- NormalizeData(pbmcsca)
+pbmcsca <- FindVariableFeatures(pbmcsca)
+pbmcsca <- RunFastMNN(object.list = SplitObject(pbmcsca, split.by = 'Method'))
+pbmcsca <- RunUMAP(pbmcsca, reduction = 'mnn', dims = 1:30)
+pbmcsca <- FindNeighbors(pbmcsca, reduction = 'mnn', dims = 1:30) %>% FindClusters()
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(pbmcsca, group.by = c('Method', 'idents',"CellType"),label = FALSE, ncol = 3) 
+```
+
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb` 
+
+```{r ifnb_stim, results='hide', cache=TRUE}
+InstallData("ifnb")
+data("ifnb")
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- RunFastMNN(object.list = SplitObject(ifnb, split.by = 'stim'))
+ifnb <- RunUMAP(ifnb, reduction = 'mnn', dims = 1:30)
+ifnb <- FindNeighbors(ifnb, reduction = 'mnn', dims = 1:30) %>% FindClusters()
+#replace when metadata is in
+ifnb$CellType <- ifnb$seurat_clusters
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(ifnb, group.by = c('stim', 'idents', 'CellType'), label = FALSE,ncol = 3)
+```
+
+### 8 human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc8` 
+
+```{r pancreas, results='hide', cache=TRUE}
+InstallData("panc8")
+data("panc8")
+panc8 <- NormalizeData(panc8)
+panc8 <- FindVariableFeatures(panc8)
+panc8 <- RunFastMNN(object.list = SplitObject(panc8, split.by = 'replicate'))
+panc8 <- RunUMAP(panc8, reduction = 'mnn', dims = 1:30)
+panc8 <- FindNeighbors(panc8, reduction = 'mnn', dims = 1:30) %>% FindClusters()
+#replace when metadata is in
+panc8$CellType <- panc8$seurat_clusters
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(panc8, group.by = c('replicate', 'idents', 'CellType'),label = FALSE, ncol = 3) 
+```

@@ -6,7 +6,7 @@ NULL
 #'
 #' @param object.list A list of Seurat objects
 #' @param assay Assay to use, defaults to the default assay of the first object
-#' @param nfeatures Number of features to return
+#' @param features Either a list of features to use when calculating batch correction, or a number (2000 by default) of variable features to select.
 #' @param reduction.name Name to store resulting DimReduc object as
 #' @param reduction.key Key for resulting DimReduc
 #' @param verbose Print messages from \code{\link[Seurat]{SelectIntegrationFeatures}}
@@ -28,9 +28,9 @@ NULL
 RunFastMNN <- function(
   object.list,
   assay = NULL,
-  nfeatures = 2000,
+  features = 2000,
   reduction.name = 'mnn',
-  reduction.key = 'DIM_',
+  reduction.key = 'mnn_',
   verbose = TRUE,
   ...
 ) {
@@ -45,11 +45,16 @@ RunFastMNN <- function(
   for (i in 1:length(x = object.list)) {
     DefaultAssay(object = object.list[[i]]) <- assay
   }
-  features <- SelectIntegrationFeatures(
-    object.list = object.list,
-    nfeatures = nfeatures,
-    verbose = verbose
-  )
+  if (is.numeric(x = features)) {
+    if (verbose) {
+      message(paste("Computing", features, "integration features"))
+    }
+    features <- SelectIntegrationFeatures(
+      object.list = object.list,
+      nfeatures = features,
+      assay = rep(assay,length(object.list))
+    )
+  }
   objects.sce <- lapply(
     X = object.list,
     FUN = function(x, f) {
@@ -69,6 +74,7 @@ RunFastMNN <- function(
     )
   )
   rownames(x = out$corrected) <- colnames(x = integrated)
+  colnames(out$corrected) <- paste0(reduction.key,1:ncol(out$corrected))
   integrated[[reduction.name]] <- CreateDimReducObject(
     embeddings = out$corrected,
     assay = DefaultAssay(object = integrated),
