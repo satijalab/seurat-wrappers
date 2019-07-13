@@ -4,8 +4,8 @@
 \alias{RunFastMNN}
 \title{Run fastMNN}
 \usage{
-RunFastMNN(object.list, assay = NULL, nfeatures = 2000,
-  reduction.name = "mnn", reduction.key = "DIM_", verbose = TRUE,
+RunFastMNN(object.list, assay = NULL, features = 2000,
+  reduction.name = "mnn", reduction.key = "mnn_", verbose = TRUE,
   ...)
 }
 \arguments{
@@ -13,7 +13,7 @@ RunFastMNN(object.list, assay = NULL, nfeatures = 2000,
 
 \item{assay}{Assay to use, defaults to the default assay of the first object}
 
-\item{nfeatures}{Number of features to return}
+\item{features}{Either a list of features to use when calculating batch correction, or a number (2000 by default) of variable features to select.}
 
 \item{reduction.name}{Name to store resulting DimReduc object as}
 
