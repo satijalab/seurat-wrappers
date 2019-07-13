@@ -2,21 +2,22 @@
 title: "Zero-preserving imputation with ALRA"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
+  github_document:
+    html_preview: false
+    toc: false
   html_document:
-  df_print: kable
-theme: united
-github_document:
-  html_preview: true
-toc: true
-toc_depth: 3
+    df_print: kable
+    theme: united
 ---
   
 This vigettte demonstrates how to run ALRA on Seurat objects, which aims to recover missing values in scRNA-seq data through imputation. If you use ALRA, please cite:
-  
-**Zero-preserving imputation of scRNA-seq data using low-rank approximation**  
-George C. Linderman, Jun Zhao, Yuval Kluger
-Manuscript: https://www.biorxiv.org/content/10.1101/397588v1
-GitHub: https://github.com/KlugerLab/ALRA
+
+> *Zero-preserving imputation of scRNA-seq data using low-rank approximation*
+> George C. Linderman, Jun Zhao, Yuval Kluger
+> biorxiv, 2018.
+>
+> doi: https://doi.org/10.1101/397588
+> GitHub: https://github.com/KlugerLab/ALRA
 
 
 ```{r setup, include=FALSE}
@@ -24,7 +25,9 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  fig.height = 20,
+  fig.width = 16
 )
 ```
 
@@ -43,32 +46,26 @@ library(dplyr)
 
 ### scRNA-seq imputation on pbmc3k
 
-To learn more about this dataset, type `?pbmcsca` 
+To learn more about this dataset, type `?pbmc3k` 
 
 ```{r sctransform, results='hide', cache=TRUE}
 InstallData("pbmc3k")
 data("pbmc3k")
-
 # Initial processing and visualization
 pbmc3k <- SCTransform(pbmc3k) %>% RunPCA() %>% RunUMAP(dims = 1:30)
-
-```
-```{r runalra, results='hide', cache=TRUE}
 # run ALRA, creates alra assay of imputed values
 pbmc3k <- RunALRA(pbmc3k)
 ```
 
-```{r explore, results='hide', cache=TRUE, out.height = 8, fig.height = 20, fig.width = 16}
+<!-- out.height = 8, fig.height = 20, fig.width = 16 -->
+
+```{r explore, results='hide', cache=TRUE}
 # visualize original and imputed values
-pbmc3k <- NormalizeData(pbmc3k,assay = 'RNA')
-genes_to_plot <- c("CD3D","MS4A1","CD8A","GZMK","NCAM1","FCGR3A")
-
+pbmc3k <- NormalizeData(pbmc3k, assay = 'RNA')
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'NCAM1', 'FCGR3A')
 DefaultAssay(pbmc3k) <- 'RNA'
-plot1 <- FeaturePlot(pbmc3k,genes_to_plot,ncol = 2)
-
+plot1 <- FeaturePlot(pbmc3k, features.plot, ncol = 2)
 DefaultAssay(pbmc3k) <- 'alra'
-plot2 <- FeaturePlot(pbmc3k,genes_to_plot,ncol = 2,cols = c('lightgrey','red'))
-
-CombinePlots(list(plot1,plot2),ncol = 1)
-
+plot2 <- FeaturePlot(pbmc3k, features.plot, ncol = 2, cols = c('lightgrey','red'))
+CombinePlots(list(plot1, plot2), ncol = 1)
 ```
