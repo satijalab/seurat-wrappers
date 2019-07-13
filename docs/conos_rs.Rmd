@@ -16,7 +16,7 @@ This vigettte demonstrates the use of the Conos package in Seurat. Commands and 
 **Wiring together large single-cell RNA-seq sample collections.**  
 Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko  
 bioRxiv, 2019  
-DOI: https://www.biorxiv.org/content/10.1101/460246v1  
+Manuscript: https://www.biorxiv.org/content/10.1101/460246v1  
 GitHub: https://github.com/hms-dbmi/conos  
 
 

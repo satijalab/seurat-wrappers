@@ -1,0 +1,106 @@
+---
+title: "Running fastMNN on Seurat objects"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+  df_print: kable
+theme: united
+github_document:
+  html_preview: true
+toc: true
+toc_depth: 3
+---
+  
+This vigettte demonstrates how to run LIGER on Seurat objects. Parameters and commands are based off of the [LIGER tutorial](https://macoskolab.github.io/liger/liger-vignette.html). If you use LIGER, please cite:
+  
+**Single-Cell Multi-omic Integration Compares and Contrasts Features of Brain Cell Identity**  
+Joshua Welch, Velina Kozareva, Ashley Ferreira, Charles Vanderburg, Carly Martin, Evan Z.Macosko  
+Manuscript: https://www.sciencedirect.com/science/article/pii/S0092867419305045
+GitHub: https://github.com/MacoskoLab/liger
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+Prerequisites to install: 
+  
+* [Seurat](https://satijalab.org/seurat/install) 
+* [LIGER](https://github.com/MacoskoLab/liger) 
+* [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
+
+```{r packages}
+library(liger)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+## {.tabset .tabset-pills}
+
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?pbmcsca` 
+
+```{r pbmcsca, results='hide', cache=TRUE}
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca <- NormalizeData(pbmcsca)
+pbmcsca <- FindVariableFeatures(pbmcsca)
+pbmcsca <- ScaleData(pbmcsca, split.by = 'Method', do.center = FALSE)
+pbmcsca <- RunOptimizeALS(pbmcsca, k = 20, lambda = 5, split.by = 'Method')
+pbmcsca <- RunQuantileAlignSNF(pbmcsca, split.by = 'Method')
+pbmcsca <- RunUMAP(pbmcsca, dims = 1:ncol(pbmcsca[['iNMF']]), reduction = 'iNMF')
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(pbmcsca, group.by = c('Method', 'idents',"CellType"),label = FALSE, ncol = 3) 
+```
+
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb` 
+
+```{r ifnb_stim, results='hide', cache=TRUE}
+InstallData("ifnb")
+data("ifnb")
+ifnb <- subset(ifnb,downsample=1000)
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- ScaleData(ifnb, split.by = 'stim', do.center = FALSE)
+ifnb <- RunOptimizeALS(ifnb, k = 20, lambda = 5, split.by = 'stim')
+ifnb <- RunQuantileAlignSNF(ifnb, split.by = 'stim')
+ifnb <- RunUMAP(ifnb, dims = 1:ncol(ifnb[['iNMF']]), reduction = 'iNMF')
+#replace when metadata is in
+ifnb$CellType <- Idents(ifnb)
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(ifnb, group.by = c('stim', 'ident', 'CellType'), label = FALSE,ncol = 3)
+```
+
+### 8 human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc8` 
+
+```{r pancreas, results='hide', cache=TRUE}
+InstallData("panc8")
+data("panc8")
+panc8 <- NormalizeData(panc8)
+panc8 <- FindVariableFeatures(panc8)
+panc8 <- ScaleData(panc8, split.by = 'stim', do.center = FALSE)
+panc8 <- RunOptimizeALS(panc8, k = 20, lambda = 5, split.by = 'stim')
+panc8 <- RunQuantileAlignSNF(panc8, split.by = 'Method')
+panc8 <- RunUMAP(panc8, dims = 1:ncol(panc8[['iNMF']]), reduction = 'iNMF')
+panc8 <- FindNeighbors(panc8, reduction = 'iNMF', dims = 1:ncol(panc8[['iNMF']])) %>% FindClusters()
+#replace when metadata is in
+panc8$CellType <- Idents(panc8)
+panc8$CellType <- panc8$seurat_clusters
+```
+```{r,out.height = 4, fig.height = 5, fig.width = 16}
+DimPlot(panc8, group.by = c('replicate', 'idents', 'CellType'),label = FALSE, ncol = 3) 
+```
