@@ -137,7 +137,9 @@ RunSNF <- function(
     X = cells,
     FUN = function(x) {
       return(Embeddings(object = object[[reduction]])[x, ])
-    }
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
   )
   snf <- liger::SNF(
     object = embeddings,
@@ -197,8 +199,14 @@ RunQuantileAlignSNF <- function(
   ...
 ) {
   CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
-  if (recalc.snf || is.null(x = Tool(object = object, slot = 'SNF'))) {
-    object <- RunSNF(object = object, ...)
+  if (recalc.snf || is.null(x = Tool(object = object, slot = 'RunSNF'))) {
+    object <- RunSNF(
+      object = object,
+      split.by = split.by,
+      reduction = reduction,
+      center = center,
+      ...
+    )
   }
   embeddings <- sapply(
     X = SplitObject(object = object, split.by = split.by),
@@ -223,7 +231,7 @@ RunQuantileAlignSNF <- function(
   }
   out <- liger::quantileAlignSNF(
     object = embeddings,
-    snf = Tool(object = object, slot = 'SNF'),
+    snf = Tool(object = object, slot = 'RunSNF'),
     cell.names = colnames(x = object),
     ref_dataset = ref_dataset,
     prune.thresh = prune.thresh,
