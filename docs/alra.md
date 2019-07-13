@@ -4,9 +4,15 @@ Compiled: July 13, 2019
 
 This vigettte demonstrates how to run ALRA on Seurat objects, which aims to recover missing values in scRNA-seq data through imputation. If you use ALRA, please cite:
 
-> *Zero-preserving imputation of scRNA-seq data using low-rank approximation* George C. Linderman, Jun Zhao, Yuval Kluger biorxiv, 2018.
+> *Zero-preserving imputation of scRNA-seq data using low-rank approximation*
 >
-> doi: <https://doi.org/10.1101/397588> GitHub: <https://github.com/KlugerLab/ALRA>
+> George C. Linderman, Jun Zhao, Yuval Kluger
+>
+> biorxiv, 2018.
+>
+> doi: <https://doi.org/10.1101/397588>
+>
+> GitHub: <https://github.com/KlugerLab/ALRA>
 
 Prerequisites to install:
 
