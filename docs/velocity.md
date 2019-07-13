@@ -1,8 +1,16 @@
 Estimating RNA Velocity using Seurat
 ================
-Compiled: July 12, 2019
+Compiled: July 13, 2019
 
 This vignette demonstrates analysing RNA Velocity quantifications stored in a Seurat object. Parameters are based off of the [RNA Velocity tutorial](http://pklab.med.harvard.edu/velocyto/notebooks/R/SCG71.nb.html). If you use velocyto in your work, please cite:
+
+> *RNA velocity of single cells*
+>
+> Gioele La Manno, Ruslan Soldatov, Amit Zeisel, Emelie Braun, Hannah Hochgerner, Viktor Petukhov, Katja Lidschreiber, Maria E. Kastriti, Peter Lönnerberg, Alessandro Furlan, Jean Fan, Lars E. Borm, Zehua Liu, David van Bruggen, Jimin Guo, Xiaoling He, Roger Barker, Erik Sundström, Gonçalo Castelo-Branco, Patrick Cramer, Igor Adameyko, Sten Linnarsson & Peter V. Kharchenko
+>
+> doi: [10.1038/s41586-018-0414-6](https://doi.org/10.1038/s41586-018-0414-6)
+>
+> Website: <https://velocyto.org>
 
 Prerequisites to install:
 
@@ -17,6 +25,7 @@ library(seurat.wrappers)
 ```
 
 ``` r
+# If you don't have velocyto's example mouse bone marrow dataset, download with the CURL command
 # curl::curl_download(url = 'http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom', destfile
 # = '~/Downloads/SCG71.loom')
 ldat <- ReadVelocity(file = "~/Downloads/SCG71.loom")
