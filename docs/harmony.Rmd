@@ -2,30 +2,36 @@
 title: "Integration of datasets using Harmony"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
-  html_document:
-    df_print: kable
-    theme: united
   github_document:
     html_preview: true
     toc: true
     toc_depth: 3
+  html_document:
+    df_print: kable
+    theme: united
 ---
 
 This vigettte demonstrates the use of the Harmony package in Seurat. Commands and parameters are based off of the [Harmony use page](https://github.com/immunogenomics/harmony). If you use Harmony in your work, please cite:
 
-**Fast, sensitive, and flexible integration of single cell data with Harmony**  
-Ilya Korsunsky, Jean Fan, Kamil Slowikowski, Fan Zhang, Kevin Wei, Yuriy Baglaenko, Michael Brenner, Po-Ru Loh, Soumya Raychaudhuri  
-bioRxiv, 2019  
-DOI: https://www.biorxiv.org/content/10.1101/461954v2  
-GitHub: https://github.com/immunogenomics/harmony  
-
+> *Fast, sensitive, and flexible integration of single cell data with Harmony*
+>
+> Ilya Korsunsky, Jean Fan, Kamil Slowikowski, Fan Zhang, Kevin Wei, Yuriy Baglaenko, Michael Brenner, Po-Ru Loh, Soumya Raychaudhuri
+>
+> bioRxiv, 2019
+>
+> doi: [10.1101/461954v2](https://www.biorxiv.org/content/10.1101/461954v2)
+>
+> GitHub: https://github.com/immunogenomics/harmony
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  out.height = 4,
+  fig.height = 5,
+  fig.width = 16
 )
 ```
 
@@ -52,13 +58,11 @@ To learn more about this dataset, type `?pbmcsca`
 ```{r pbmcsca, results='hide', cache=TRUE}
 InstallData("pbmcsca")
 data("pbmcsca")
-pbmcsca <- NormalizeData(pbmcsca) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
+pbmcsca <- NormalizeData(pbmcsca) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
 pbmcsca <- RunHarmony(pbmcsca, group.by.vars = 'Method')
 pbmcsca <- RunUMAP(pbmcsca, reduction = 'harmony', dims = 1:30)
 pbmcsca <- FindNeighbors(pbmcsca, reduction = 'harmony', dims = 1:30) %>% FindClusters()
-```
-```{r,out.height = 4, fig.height = 5, fig.width = 16}
-DimPlot(pbmcsca, group.by = c('Method', 'ident',"CellType"),label = FALSE, ncol = 3) 
+DimPlot(pbmcsca, group.by = c('Method', 'ident',"CellType"), ncol = 3) 
 ```
 
 ### Interferon-stimulated and control PBMC
@@ -68,31 +72,23 @@ To learn more about this dataset, type `?ifnb`
 ```{r ifnb_stim, results='hide', cache=TRUE}
 InstallData("ifnb")
 data("ifnb")
-ifnb <- NormalizeData(ifnb) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
+ifnb <- NormalizeData(ifnb) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
 ifnb <- RunHarmony(ifnb, group.by.vars = 'stim')
 ifnb <- RunUMAP(ifnb, reduction = 'harmony', dims = 1:30)
 ifnb <- FindNeighbors(ifnb, reduction = 'harmony', dims = 1:30) %>% FindClusters()
-#replace when metadata avail
-ifnb$CellType <- Idents(ifnb)
-```
-```{r,out.height = 4, fig.height = 5, fig.width = 16}
-DimPlot(ifnb, group.by = c("stim", "ident", "CellType"), label = FALSE, ncol=3)
+DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-### 8 human pancreatic islet datasets
+### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8` 
 
 ```{r pancreas, results='hide', cache=TRUE}
 InstallData("panc8")
 data("panc8")
-panc8 <- NormalizeData(panc8) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
+panc8 <- NormalizeData(panc8) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
 panc8 <- RunHarmony(panc8, group.by.vars = 'replicate')
 panc8 <- RunUMAP(panc8, reduction = 'harmony', dims = 1:30)
 panc8 <- FindNeighbors(panc8, reduction = 'harmony', dims = 1:30) %>% FindClusters()
-#replace when metadata avail
-panc8$CellType <- Idents(panc8)
-```
-```{r,out.height = 4, fig.height = 5, fig.width = 16}
-DimPlot(panc8, group.by = c("replicate", "ident","CellType"), label = FALSE, ncol=3)
+DimPlot(panc8, group.by = c("replicate", "ident","celltype"), ncol = 3)
 ```
