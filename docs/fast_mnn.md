@@ -1,11 +1,23 @@
 Running fastMNN on Seurat Objects
 ================
-Compiled: July 10, 2019
+Compiled: July 13, 2019
 
 -   [](#section)
-    -   [PBMC](#pbmc)
-    -   [Immune/Stim](#immunestim)
-    -   [Pancreas](#pancreas)
+    -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
+    -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
+    -   [8 human pancreatic islet datasets](#human-pancreatic-islet-datasets)
+
+This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and commands are based off of the [fastMNN help page](https://rdrr.io/github/LTLA/batchelor/man/fastMNN.html). If you use fastMNN, please cite:
+
+> *Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors*
+>
+> Laleh Haghverdi, Aaron T L Lun, Michael D Morgan & John C Marioni
+>
+> Nature Biotechnology, 2018
+>
+> doi: [10.1038/nbt.4091](https://doi.org/10.1038/nbt.4091)
+>
+> Bioconductor: <https://bioconductor.org/packages/release/bioc/html/scran.html>
 
 ``` r
 library(Seurat)
@@ -13,44 +25,56 @@ library(SeuratData)
 library(SeuratWrappers)
 ```
 
-### PBMC
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?pbmcsca`
 
 ``` r
-data("broad")
-broad <- NormalizeData(broad)
-broad <- FindVariableFeatures(broad)
-broad <- ScaleData(broad, split.by = "Method")
-broad <- RunFastMNN(object.list = SplitObject(broad, split.by = "Method"))
-broad <- RunUMAP(broad, reduction = "mnn", dims = 1:30)
-DimPlot(broad, group.by = "Method", label = TRUE) + NoLegend()
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca <- NormalizeData(pbmcsca)
+pbmcsca <- FindVariableFeatures(pbmcsca)
+pbmcsca <- RunFastMNN(object.list = SplitObject(pbmcsca, split.by = "Method"))
+pbmcsca <- RunUMAP(pbmcsca, reduction = "mnn", dims = 1:30)
+pbmcsca <- FindNeighbors(pbmcsca, reduction = "mnn", dims = 1:30)
+pbmcsca <- FindClusters(pbmcsca)
+DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/broad-1.png)
+<img src="fast_mnn_files/figure-markdown_github/pbmcsca-1.png" height="4" />
 
-### Immune/Stim
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb`
 
 ``` r
-data("immune")
-immune <- NormalizeData(immune)
-immune <- FindVariableFeatures(immune)
-immune <- ScaleData(immune, split.by = "stim")
-immune <- RunFastMNN(object.list = SplitObject(immune, split.by = "stim"))
-immune <- RunUMAP(immune, reduction = "mnn", dims = 1:30)
-DimPlot(immune, group.by = "stim", label = TRUE) + NoLegend()
+InstallData("ifnb")
+data("ifnb")
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- RunFastMNN(object.list = SplitObject(ifnb, split.by = "stim"))
+ifnb <- RunUMAP(ifnb, reduction = "mnn", dims = 1:30)
+ifnb <- FindNeighbors(ifnb, reduction = "mnn", dims = 1:30)
+ifnb <- FindClusters(ifnb)
+DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/immune_stim-1.png)
+<img src="fast_mnn_files/figure-markdown_github/ifnb_stim-1.png" height="4" />
 
-### Pancreas
+### 8 human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc8`
 
 ``` r
+InstallData("panc8")
 data("panc8")
 panc8 <- NormalizeData(panc8)
 panc8 <- FindVariableFeatures(panc8)
-panc8 <- ScaleData(panc8, split.by = "replicate")
 panc8 <- RunFastMNN(object.list = SplitObject(panc8, split.by = "replicate"))
 panc8 <- RunUMAP(panc8, reduction = "mnn", dims = 1:30)
-DimPlot(panc8, group.by = "replicate", label = TRUE) + NoLegend()
+panc8 <- FindNeighbors(panc8, reduction = "mnn", dims = 1:30)
+panc8 <- FindClusters(panc8)
+DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/pancreas-1.png)
+<img src="fast_mnn_files/figure-markdown_github/pancreas-1.png" height="4" />
