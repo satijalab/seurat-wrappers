@@ -75,7 +75,7 @@ ifnb <- FindClusters(ifnb)
 DimPlot(ifnb, group.by = c('stim', 'ident', 'seurat_annotations'), ncol = 3)
 ```
 
-### 8 human pancreatic islet datasets
+### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8` 
 

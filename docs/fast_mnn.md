@@ -1,11 +1,11 @@
 Running fastMNN on Seurat Objects
 ================
-Compiled: July 13, 2019
+Compiled: July 14, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
     -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
-    -   [8 human pancreatic islet datasets](#human-pancreatic-islet-datasets)
+    -   [Eight human pancreatic islet datasets](#eight-human-pancreatic-islet-datasets)
 
 This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and commands are based off of the [fastMNN help page](https://rdrr.io/github/LTLA/batchelor/man/fastMNN.html). If you use fastMNN, please cite:
 
@@ -61,7 +61,7 @@ DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 
 <img src="fast_mnn_files/figure-markdown_github/ifnb_stim-1.png" height="4" />
 
-### 8 human pancreatic islet datasets
+### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8`
 
