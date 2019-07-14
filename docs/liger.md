@@ -1,13 +1,30 @@
 Integrating Seurat objects using LIGER
 ================
-Compiled: July 10, 2019
+Compiled: July 13, 2019
 
 -   [](#section)
-    -   [PBMC](#pbmc)
-    -   [Immune/Stim](#immunestim)
-    -   [Pancreas](#pancreas)
+    -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
+    -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
+    -   [Eight human pancreatic islet datasets](#eight-human-pancreatic-islet-datasets)
 
-This document serves to showcase running the [LIGER](https://github.com/MacoskoLab/liger) integration workflow on a `Seurat` object. To do this, we need three packages: [Seurat](https://satijalab.org/seurat/) for preprocessing the data, LIGER for the generic defintions and underlying methods, and [SeuratWrappers](https://github.com/satijalab/seurat.wrappers) for the `Seurat`-object methods for LIGER's generics. We also need [SeuratData](https://github.com/satijalab/seurat-data) to load in datasets for this vignette.
+This vigettte demonstrates how to run LIGER on Seurat objects. Parameters and commands are based off of the [LIGER tutorial](https://macoskolab.github.io/liger/liger-vignette.html). If you use LIGER, please cite:
+
+> *Single-Cell Multi-omic Integration Compares and Contrasts Features of Brain Cell Identity*
+>
+> Joshua Welch, Velina Kozareva, Ashley Ferreira, Charles Vanderburg, Carly Martin, Evan Z.Macosko
+>
+> Cell, 2019.
+>
+> doi: [10.1016/j.cell.2019.05.006](https://doi.org/10.1016/j.cell.2019.05.006)
+>
+> GitHub: <https://github.com/MacoskoLab/liger>
+
+Prerequisites to install:
+
+-   [Seurat](https://satijalab.org/seurat/install)
+-   [LIGER](https://github.com/MacoskoLab/liger)
+-   [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+-   [SeuratData](https://github.com/satijalab/seurat-data)
 
 ``` r
 library(liger)
@@ -18,48 +35,57 @@ library(SeuratWrappers)
 
 In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for \(k\) and \(lambda\) were selected on a previous analysis of this dataset contained in a `liger` object instead.
 
-### PBMC
+### Systematic comparative analysis of human PBMC
+
+To learn more about this dataset, type `?pbmcsca`
 
 ``` r
-data("broad")
-broad <- subset(broad, subset = nFeature_RNA > 200)
-broad <- NormalizeData(broad)
-broad <- FindVariableFeatures(broad, nfeatures = 14000)
-broad <- ScaleData(broad, split.by = "Method", do.center = FALSE)
-broad <- optimizeALS(broad, k = 20, lambda = 5, split.by = "Method")
-broad <- quantileAlignSNF(broad, split.by = "Method")
-broad <- RunUMAP(broad, dims = 1:ncol(broad[["iNMF"]]), reduction = "iNMF")
-DimPlot(broad, group.by = c("Method", "ident"), label = TRUE, legend = "none")
+InstallData("pbmcsca")
+data("pbmcsca")
+pbmcsca <- NormalizeData(pbmcsca)
+pbmcsca <- FindVariableFeatures(pbmcsca)
+pbmcsca <- ScaleData(pbmcsca, split.by = "Method", do.center = FALSE)
+pbmcsca <- RunOptimizeALS(pbmcsca, k = 20, lambda = 5, split.by = "Method")
+pbmcsca <- RunQuantileAlignSNF(pbmcsca, split.by = "Method")
+pbmcsca <- RunUMAP(pbmcsca, dims = 1:ncol(pbmcsca[["iNMF"]]), reduction = "iNMF")
+DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/broad-1.png)
+<img src="liger_files/figure-markdown_github/pbmcsca-1.png" height="4" />
 
-### Immune/Stim
+### Interferon-stimulated and control PBMC
+
+To learn more about this dataset, type `?ifnb`
 
 ``` r
-data("immune")
-immune <- NormalizeData(immune)
-immune <- FindVariableFeatures(immune, nfeatures = 4000)
-immune <- ScaleData(immune, split.by = "stim", do.center = FALSE)
-immune <- optimizeALS(immune, k = 21, lambda = 3, split.by = "stim")
-immune <- quantileAlignSNF(immune, split.by = "stim")
-immune <- RunUMAP(immune, dims = 1:ncol(immune[["iNMF"]]), reduction = "iNMF")
-DimPlot(immune, group.by = c("stim", "ident"), label = TRUE, legend = "none")
+InstallData("ifnb")
+data("ifnb")
+ifnb <- subset(ifnb, downsample = 1000)
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- ScaleData(ifnb, split.by = "stim", do.center = FALSE)
+ifnb <- RunOptimizeALS(ifnb, k = 20, lambda = 5, split.by = "stim")
+ifnb <- RunQuantileAlignSNF(ifnb, split.by = "stim")
+ifnb <- RunUMAP(ifnb, dims = 1:ncol(ifnb[["iNMF"]]), reduction = "iNMF")
+DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/immune_stim-1.png)
+<img src="liger_files/figure-markdown_github/ifnb-1.png" height="4" />
 
-### Pancreas
+### Eight human pancreatic islet datasets
+
+To learn more about this dataset, type `?panc8`
 
 ``` r
+InstallData("panc8")
 data("panc8")
 panc8 <- NormalizeData(panc8)
-panc8 <- FindVariableFeatures(panc8, nfeatures = 13000)
+panc8 <- FindVariableFeatures(panc8)
 panc8 <- ScaleData(panc8, split.by = "replicate", do.center = FALSE)
-panc8 <- optimizeALS(panc8, k = 25, lambda = 5, split.by = "replicate")
-panc8 <- quantileAlignSNF(panc8, split.by = "replicate")
+panc8 <- RunOptimizeALS(panc8, k = 20, lambda = 5, split.by = "replicate")
+panc8 <- RunQuantileAlignSNF(panc8, split.by = "replicate")
 panc8 <- RunUMAP(panc8, dims = 1:ncol(panc8[["iNMF"]]), reduction = "iNMF")
-DimPlot(panc8, group.by = c("replicate", "ident"), label = TRUE, legend = "none")
+DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/pancreas-1.png)
+<img src="liger_files/figure-markdown_github/pancreas-1.png" height="4" />
