@@ -1,17 +1,21 @@
 Integration of datasets using Conos
 ================
-Compiled: July 12, 2019
+Compiled: July 13, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
     -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
-    -   [8 human pancreatic islet datasets](#human-pancreatic-islet-datasets)
+    -   [Eight human pancreatic islet datasets](#eight-human-pancreatic-islet-datasets)
 
-This vigettte demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
+This vignette demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
-> *Wiring together large single-cell RNA-seq sample collections.* Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko bioRxiv, 2019.
+> *Wiring together large single-cell RNA-seq sample collections.*
 >
-> doi: <https://doi.org/10.1101/460246>
+> Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
+>
+> bioRxiv, 2019.
+>
+> doi: [10.1101/460246](https://doi.org/10.1101/460246)
 >
 > GitHub: <https://github.com/hms-dbmi/conos>
 
@@ -47,10 +51,10 @@ pbmcsca.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes
 pbmcsca.con$findCommunities()
 pbmcsca.con$embedGraph()
 pbmcsca <- as.Seurat(pbmcsca.con)
-DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](conos_files/figure-markdown_github/pbmcsca-1.png)
+<img src="conos_files/figure-markdown_github/pbmcsca-1.png" height="4" />
 
 ### Interferon-stimulated and control PBMC
 
@@ -70,12 +74,12 @@ ifnb.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes = 
 ifnb.con$findCommunities()
 ifnb.con$embedGraph()
 ifnb <- as.Seurat(ifnb.con)
-DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](conos_files/figure-markdown_github/ifnb-1.png)
+<img src="conos_files/figure-markdown_github/ifnb-1.png" height="4" />
 
-### 8 human pancreatic islet datasets
+### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8`
 
@@ -93,7 +97,7 @@ panc8.con$buildGraph(k = 15, k.self = 5, space = "PCA", ncomps = 30, n.odgenes =
 panc8.con$findCommunities()
 panc8.con$embedGraph()
 panc8 <- as.Seurat(panc8.con)
-DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident"), label = TRUE, legend = "none")
+DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](conos_files/figure-markdown_github/pancreas-1.png)
+<img src="conos_files/figure-markdown_github/pancreas-1.png" height="4" />

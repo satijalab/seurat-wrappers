@@ -14,10 +14,12 @@ output:
 This vignette demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
 > *Wiring together large single-cell RNA-seq sample collections.*
+>
 > Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
+>
 > bioRxiv, 2019.
 >
-> doi: https://doi.org/10.1101/460246
+> doi: [10.1101/460246](https://doi.org/10.1101/460246)
 >
 > GitHub: https://github.com/hms-dbmi/conos
 
@@ -27,7 +29,10 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  out.height = 4,
+  fig.height = 5,
+  fig.width = 16
 )
 ```
 
@@ -73,7 +78,7 @@ pbmcsca.con$buildGraph(
 pbmcsca.con$findCommunities()
 pbmcsca.con$embedGraph()
 pbmcsca <- as.Seurat(pbmcsca.con)
-DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident"), label = TRUE, legend = "none")
+DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident", 'CellType'), ncol = 3)
 ```
 
 ### Interferon-stimulated and control PBMC
@@ -102,10 +107,10 @@ ifnb.con$buildGraph(
 ifnb.con$findCommunities()
 ifnb.con$embedGraph()
 ifnb <- as.Seurat(ifnb.con)
-DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident"), label = TRUE, legend = "none")
+DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident", 'seurat_annotations'), ncol = 3)
 ```
 
-### 8 human pancreatic islet datasets
+### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8` 
 
@@ -131,5 +136,5 @@ panc8.con$buildGraph(
 panc8.con$findCommunities()
 panc8.con$embedGraph()
 panc8 <- as.Seurat(panc8.con)
-DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident"), label = TRUE, legend = "none")
+DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident", 'celltype'), ncol = 3)
 ```
