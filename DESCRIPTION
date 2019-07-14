@@ -14,9 +14,14 @@ Depends:
     R (>= 3.5.0)
 Imports:
     BiocManager,
+    cowplot,
+    ggplot2,
     igraph,
+    Matrix,
     remotes,
+    rsvd,
     Seurat (>= 3.0.0),
+    stats,
     utils
 Collate:
     'alra.R'
