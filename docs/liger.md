@@ -1,6 +1,6 @@
 Integrating Seurat objects using LIGER
 ================
-Compiled: July 13, 2019
+Compiled: July 15, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
