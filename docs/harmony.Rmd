@@ -1,7 +1,7 @@
 ---
 title: "Integration of datasets using Harmony"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
-output: 
+output:
   github_document:
     html_preview: true
     toc: true
@@ -9,6 +9,9 @@ output:
   html_document:
     df_print: kable
     theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
 ---
 
 This vigettte demonstrates the use of the Harmony package in Seurat. Commands and parameters are based off of the [Harmony use page](https://github.com/immunogenomics/harmony). If you use Harmony in your work, please cite:
@@ -28,20 +31,17 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE,
-  out.height = 4,
-  fig.height = 5,
-  fig.width = 16
+  warning = FALSE
 )
 ```
 
-Prerequisites to install: 
+Prerequisites to install:
 
-* [Seurat](https://satijalab.org/seurat/install) 
+* [Seurat](https://satijalab.org/seurat/install)
 * [Harmony](https://github.com/immunogenomics/harmony)
-* [SeuratData](https://github.com/satijalab/seurat-data) 
+* [SeuratData](https://github.com/satijalab/seurat-data)
 
-Note that SeuratWrappers is not necessary, as the wrapper functions were generously provided by the Harmony authors, and are included when installing Harmony. 
+Note that SeuratWrappers is not necessary, as the wrapper functions were generously provided by the Harmony authors, and are included when installing Harmony.
 
 ```{r packages}
 library(harmony)
@@ -53,7 +53,7 @@ library(SeuratData)
 
 ### Systematic comparative analysis of human PBMC
 
-To learn more about this dataset, type `?pbmcsca` 
+To learn more about this dataset, type `?pbmcsca`
 
 ```{r pbmcsca, results='hide', cache=TRUE}
 InstallData("pbmcsca")
@@ -62,12 +62,12 @@ pbmcsca <- NormalizeData(pbmcsca) %>% FindVariableFeatures() %>% ScaleData() %>%
 pbmcsca <- RunHarmony(pbmcsca, group.by.vars = 'Method')
 pbmcsca <- RunUMAP(pbmcsca, reduction = 'harmony', dims = 1:30)
 pbmcsca <- FindNeighbors(pbmcsca, reduction = 'harmony', dims = 1:30) %>% FindClusters()
-DimPlot(pbmcsca, group.by = c('Method', 'ident',"CellType"), ncol = 3) 
+DimPlot(pbmcsca, group.by = c('Method', 'ident',"CellType"), ncol = 3)
 ```
 
 ### Interferon-stimulated and control PBMC
 
-To learn more about this dataset, type `?ifnb` 
+To learn more about this dataset, type `?ifnb`
 
 ```{r ifnb_stim, results='hide', cache=TRUE}
 InstallData("ifnb")
@@ -81,7 +81,7 @@ DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 
 ### Eight human pancreatic islet datasets
 
-To learn more about this dataset, type `?panc8` 
+To learn more about this dataset, type `?panc8`
 
 ```{r pancreas, results='hide', cache=TRUE}
 InstallData("panc8")
