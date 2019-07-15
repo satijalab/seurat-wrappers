@@ -3,7 +3,7 @@ title: "Integration of datasets using Harmony"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
   github_document:
-    html_preview: false
+    html_preview: true
     toc: true
     toc_depth: 3
     fig_width: 16
