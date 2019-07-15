@@ -1,6 +1,6 @@
 Running fastMNN on Seurat Objects
 ================
-Compiled: July 14, 2019
+Compiled: July 15, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
@@ -41,7 +41,7 @@ pbmcsca <- FindClusters(pbmcsca)
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-<img src="fast_mnn_files/figure-markdown_github/pbmcsca-1.png" height="4" />
+![](fast_mnn_files/figure-markdown_github/pbmcsca-1.png)
 
 ### Interferon-stimulated and control PBMC
 
@@ -59,7 +59,7 @@ ifnb <- FindClusters(ifnb)
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-<img src="fast_mnn_files/figure-markdown_github/ifnb_stim-1.png" height="4" />
+![](fast_mnn_files/figure-markdown_github/ifnb_stim-1.png)
 
 ### Eight human pancreatic islet datasets
 
@@ -77,4 +77,4 @@ panc8 <- FindClusters(panc8)
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-<img src="fast_mnn_files/figure-markdown_github/pancreas-1.png" height="4" />
+![](fast_mnn_files/figure-markdown_github/pancreas-1.png)
