@@ -21,7 +21,7 @@ This vignette demonstrates the use of the Conos package in Seurat. Commands and 
 >
 > Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
 >
-> bioRxiv, 2019.
+> Nature Methods, 2019.
 >
 > doi: [10.1038/s41592-019-0466-z](https://doi.org/10.1038/s41592-019-0466-z)
 >
