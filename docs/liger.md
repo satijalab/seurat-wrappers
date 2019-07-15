@@ -51,7 +51,7 @@ pbmcsca <- RunUMAP(pbmcsca, dims = 1:ncol(pbmcsca[["iNMF"]]), reduction = "iNMF"
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-<img src="liger_files/figure-markdown_github/pbmcsca-1.png" height="4" />
+![](liger_files/figure-markdown_github/pbmcsca-1.png)
 
 ### Interferon-stimulated and control PBMC
 
@@ -70,7 +70,7 @@ ifnb <- RunUMAP(ifnb, dims = 1:ncol(ifnb[["iNMF"]]), reduction = "iNMF")
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-<img src="liger_files/figure-markdown_github/ifnb-1.png" height="4" />
+![](liger_files/figure-markdown_github/ifnb-1.png)
 
 ### Eight human pancreatic islet datasets
 
@@ -88,4 +88,4 @@ panc8 <- RunUMAP(panc8, dims = 1:ncol(panc8[["iNMF"]]), reduction = "iNMF")
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-<img src="liger_files/figure-markdown_github/pancreas-1.png" height="4" />
+![](liger_files/figure-markdown_github/pancreas-1.png)

@@ -32,10 +32,7 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE,
-  out.height = 4,
-  fig.height = 5,
-  fig.width = 16
+  warning = FALSE
 )
 ```
 
