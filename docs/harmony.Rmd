@@ -3,9 +3,10 @@ title: "Integration of datasets using Harmony"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
   github_document:
-    html_preview: true
+    html_preview: false
     toc: true
     toc_depth: 3
+    fig_width: 16
   html_document:
     df_print: kable
     theme: united
