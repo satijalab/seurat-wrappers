@@ -1,6 +1,6 @@
 Integration of datasets using Conos
 ================
-Compiled: July 13, 2019
+Compiled: July 15, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
@@ -9,13 +9,13 @@ Compiled: July 13, 2019
 
 This vignette demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
-> *Wiring together large single-cell RNA-seq sample collections.*
+> *Joint analysis of heterogeneous single-cell RNA-seq dataset collections*
 >
 > Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
 >
 > bioRxiv, 2019.
 >
-> doi: [10.1101/460246](https://doi.org/10.1101/460246)
+> doi: [10.1038/s41592-019-0466-z](https://doi.org/10.1038/s41592-019-0466-z)
 >
 > GitHub: <https://github.com/hms-dbmi/conos>
 
@@ -54,7 +54,7 @@ pbmcsca <- as.Seurat(pbmcsca.con)
 DimPlot(pbmcsca, reduction = "largeVis", group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-<img src="conos_files/figure-markdown_github/pbmcsca-1.png" height="4" />
+![](conos_files/figure-markdown_github/pbmcsca-1.png)
 
 ### Interferon-stimulated and control PBMC
 
@@ -77,7 +77,7 @@ ifnb <- as.Seurat(ifnb.con)
 DimPlot(ifnb, reduction = "largeVis", group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-<img src="conos_files/figure-markdown_github/ifnb-1.png" height="4" />
+![](conos_files/figure-markdown_github/ifnb-1.png)
 
 ### Eight human pancreatic islet datasets
 
@@ -100,4 +100,4 @@ panc8 <- as.Seurat(panc8.con)
 DimPlot(panc8, reduction = "largeVis", group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-<img src="conos_files/figure-markdown_github/pancreas-1.png" height="4" />
+![](conos_files/figure-markdown_github/pancreas-1.png)

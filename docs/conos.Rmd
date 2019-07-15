@@ -6,20 +6,24 @@ output:
     html_preview: true
     toc: true
     toc_depth: 3
+    fig_width: 16
   html_document:
     df_print: kable
     theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
 ---
 
 This vignette demonstrates the use of the Conos package in Seurat. Commands and parameters are based off of the [Conos tutorial](https://github.com/hms-dbmi/conos/blob/master/vignettes/walkthrough.md). If you use Conos in your work, please cite:
 
-> *Wiring together large single-cell RNA-seq sample collections.*
+> *Joint analysis of heterogeneous single-cell RNA-seq dataset collections*
 >
 > Nikolas Barkas, Viktor Petukhov, Daria Nikolaeva, Yaroslav Lozinsky, Samuel Demharter, Konstantin Khodosevich, Peter V. Kharchenko
 >
 > bioRxiv, 2019.
 >
-> doi: [10.1101/460246](https://doi.org/10.1101/460246)
+> doi: [10.1038/s41592-019-0466-z](https://doi.org/10.1038/s41592-019-0466-z)
 >
 > GitHub: https://github.com/hms-dbmi/conos
 
@@ -29,10 +33,7 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = FALSE,
-  out.height = 4,
-  fig.height = 5,
-  fig.width = 16
+  warning = FALSE
 )
 ```
 
