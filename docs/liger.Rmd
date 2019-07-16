@@ -77,7 +77,6 @@ To learn more about this dataset, type `?ifnb`
 ```{r ifnb, results='hide'}
 InstallData("ifnb")
 data("ifnb")
-ifnb <- subset(ifnb, downsample = 1000)
 ifnb <- NormalizeData(ifnb)
 ifnb <- FindVariableFeatures(ifnb)
 ifnb <- ScaleData(ifnb, split.by = 'stim', do.center = FALSE)

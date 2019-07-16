@@ -1,6 +1,6 @@
 Integrating Seurat objects using LIGER
 ================
-Compiled: July 15, 2019
+Compiled: July 16, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
@@ -33,7 +33,7 @@ library(SeuratData)
 library(SeuratWrappers)
 ```
 
-In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for *k* and *l**a**m**b**d**a* were selected on a previous analysis of this dataset contained in a `liger` object instead.
+In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for \(k\) and \(lambda\) were selected on a previous analysis of this dataset contained in a `liger` object instead.
 
 ### Systematic comparative analysis of human PBMC
 
@@ -60,7 +60,6 @@ To learn more about this dataset, type `?ifnb`
 ``` r
 InstallData("ifnb")
 data("ifnb")
-ifnb <- subset(ifnb, downsample = 1000)
 ifnb <- NormalizeData(ifnb)
 ifnb <- FindVariableFeatures(ifnb)
 ifnb <- ScaleData(ifnb, split.by = "stim", do.center = FALSE)
