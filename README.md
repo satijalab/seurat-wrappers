@@ -9,7 +9,7 @@ Individual method vignettes can be found in the [`docs/`](https://github.com/sat
 Installation can be accomplished through [devtools](https://cran.r-project.org/package=devtools)
 
 ```R
-devtools::install_github('satijalab/seurat.wrappers')
+devtools::install_github('satijalab/seurat-wrappers')
 ```
 
 ## Method Listing
