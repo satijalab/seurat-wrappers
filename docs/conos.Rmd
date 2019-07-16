@@ -41,7 +41,7 @@ Prerequisites to install:
 
 * [Seurat](https://satijalab.org/seurat/install)
 * [Conos](https://github.com/hms-dbmi/conos)
-* [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 * [SeuratData](https://github.com/satijalab/seurat-data) 
 
 ```{r packages}

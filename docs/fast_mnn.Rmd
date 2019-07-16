@@ -36,6 +36,12 @@ knitr::opts_chunk$set(
 )
 ```
 
+Prerequisites to install: 
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+
 ```{r packages}
 library(Seurat)
 library(SeuratData)

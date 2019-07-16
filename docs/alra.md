@@ -1,6 +1,6 @@
 Zero-preserving imputation with ALRA
 ================
-Compiled: July 13, 2019
+Compiled: July 15, 2019
 
 This vigettte demonstrates how to run ALRA on Seurat objects, which aims to recover missing values in scRNA-seq data through imputation. If you use ALRA, please cite:
 
@@ -17,7 +17,7 @@ This vigettte demonstrates how to run ALRA on Seurat objects, which aims to reco
 Prerequisites to install:
 
 -   [Seurat](https://satijalab.org/seurat/install)
--   [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+-   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 -   [SeuratData](https://github.com/satijalab/seurat-data)
 
 ``` r

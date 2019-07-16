@@ -19,6 +19,12 @@ This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and 
 >
 > Bioconductor: <https://bioconductor.org/packages/release/bioc/html/scran.html>
 
+Prerequisites to install:
+
+-   [Seurat](https://satijalab.org/seurat/install)
+-   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+-   [SeuratData](https://github.com/satijalab/seurat-data)
+
 ``` r
 library(Seurat)
 library(SeuratData)

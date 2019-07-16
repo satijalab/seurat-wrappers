@@ -40,7 +40,7 @@ Prerequisites to install:
 
 * [Seurat](https://satijalab.org/seurat/install) 
 * [LIGER](https://github.com/MacoskoLab/liger) 
-* [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 * [SeuratData](https://github.com/satijalab/seurat-data) 
 
 ```{r packages}

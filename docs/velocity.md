@@ -1,6 +1,6 @@
 Estimating RNA Velocity using Seurat
 ================
-Compiled: July 13, 2019
+Compiled: July 15, 2019
 
 This vignette demonstrates analysing RNA Velocity quantifications stored in a Seurat object. Parameters are based off of the [RNA Velocity tutorial](http://pklab.med.harvard.edu/velocyto/notebooks/R/SCG71.nb.html). If you use velocyto in your work, please cite:
 
@@ -16,12 +16,12 @@ Prerequisites to install:
 
 -   [Seurat](https://satijalab.org/seurat/install)
 -   [velocyto.R](https://github.com/velocyto-team/velocyto.R)
--   [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+-   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 
 ``` r
 library(Seurat)
 library(velocyto.R)
-library(seurat.wrappers)
+library(SeuratWrappers)
 ```
 
 ``` r

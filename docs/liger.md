@@ -23,7 +23,7 @@ Prerequisites to install:
 
 -   [Seurat](https://satijalab.org/seurat/install)
 -   [LIGER](https://github.com/MacoskoLab/liger)
--   [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+-   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 -   [SeuratData](https://github.com/satijalab/seurat-data)
 
 ``` r
@@ -33,7 +33,7 @@ library(SeuratData)
 library(SeuratWrappers)
 ```
 
-In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for \(k\) and \(lambda\) were selected on a previous analysis of this dataset contained in a `liger` object instead.
+In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for *k* and *l**a**m**b**d**a* were selected on a previous analysis of this dataset contained in a `liger` object instead.
 
 ### Systematic comparative analysis of human PBMC
 

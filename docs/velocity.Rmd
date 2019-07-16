@@ -35,12 +35,12 @@ Prerequisites to install:
 
  - [Seurat](https://satijalab.org/seurat/install)
  - [velocyto.R](https://github.com/velocyto-team/velocyto.R)
- - [SeuratWrappers](https://github.com/satijalab/seurat.wrappers)
+ - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 
 ```{r packages}
 library(Seurat)
 library(velocyto.R)
-library(seurat.wrappers)
+library(SeuratWrappers)
 ```
 
 ```{r load_data, results='hide', cache=TRUE}
