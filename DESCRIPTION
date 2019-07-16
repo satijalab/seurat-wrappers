@@ -8,7 +8,10 @@ Authors@R: c(
   person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
   person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897'))
   )
-Description: Seurat ...
+Description: SeuratWrappers is a collection of community-provided methods and
+    extensions for Seurat, curated by the Satija Lab at NYGC. These methods
+    comprise functionality not presently found in Seurat, and are able to be
+    updated much more frequently.
 License: GPL-3 | file LICENSE
 Remotes: MacoskoLab/liger
 Depends:
