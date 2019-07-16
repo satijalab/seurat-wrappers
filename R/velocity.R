@@ -7,6 +7,7 @@ NULL
 #' defaults to name of first matrix in list
 #' @param slot Name of slot to store matrix in; choose from 'counts' or 'data'
 #'
+#' @importFrom methods new
 #' @importFrom utils txtProgressBar packageVersion setTxtProgressBar
 #' @importFrom Seurat as.Seurat CreateAssayObject Key<- CreateSeuratObject
 #'

@@ -46,7 +46,7 @@ NULL
 # choose from 'bioconductor', 'github', or 'cran'
 # @param ... Extra parameters passed to BiocManager::install, remotes::install_github, or install.packages, depending on \code{repository}
 #
-#' @importFrom utils install.packages
+#' @importFrom utils menu install.packages
 #
 CheckPackage <- function(package, repository, ...) {
   if (!requireNamespace(package = basename(path = package), quietly = TRUE)) {
