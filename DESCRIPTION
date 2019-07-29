@@ -27,13 +27,19 @@ Imports:
     rsvd,
     Seurat (>= 3.0.0),
     stats,
-    utils
+    utils,
+    dplyr
 Collate:
     'alra.R'
     'conos.R'
     'internal.R'
     'fast_mnn.R'
     'liger.R'
+    'make_hexbin.R'
+    'make_hexbin_label.R'
+    'plot_hexbin_density.R'
+    'plot_hexbin_gene.R'
+    'plot_hexbin_meta.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
