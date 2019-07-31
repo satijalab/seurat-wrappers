@@ -17,10 +17,3 @@ jobs:
         displayName: 'Installing R'
       - script: Rscript -e "install.packages('Seurat')"
         displayName: 'Installing Seurat'
-      - task: CacheBeta@0
-        inputs:
-          key: |
-            DESCRIPTION
-            r-base:3.5-xenial
-          path: $(R_LIBS_USER)
-        displayName: 'Caching Packages'
