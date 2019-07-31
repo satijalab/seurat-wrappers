@@ -10,7 +10,7 @@ steps:
       sudo apt-get update
       sudo dpkg --configure -a
       sudo apt-get install -f
-      sudo apt-get install -y r-base-dev libhdf5-dev libcurl4-openssl-dev libssl-dev
+      sudo apt-get install -y r-base-core r-base-dev libhdf5-dev libcurl4-openssl-dev libssl-dev
     displayName: 'Install R and other dependencies'
   - bash: R --slave --no-save --no-restore -e "install.packages('Seurat', repos = 'https://cloud.r-project.org')"
     displayName: 'Install Seurat'
