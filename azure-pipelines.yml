@@ -15,6 +15,8 @@ jobs:
           mkdir -p ${R_LIBS_USER}
           sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
         displayName: 'Installing R'
+      - script: Rscript -e "install.packages('Seurat')"
+        displayName: 'Installing Seurat'
       - task: CacheBeta@0
         inputs:
           key: |
@@ -22,5 +24,3 @@ jobs:
             r-base:3.5-xenial
           path: $(R_LIBS_USER)
         displayName: 'Caching Packages'
-      - script: Rscript -e "install.packages('Seurat')"
-        displayName: 'Installing Seurat'
