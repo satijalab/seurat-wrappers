@@ -1,18 +1,26 @@
 # Build and test changes to SeuratWrappers
+# Inspired by Jim Hester's Azure Pipelines tests
+# https://github.com/jimhester/azuretest
 
-pool:
-  vmImage: 'ubuntu-16.04'
-
-steps:
-  - bash: |
-      sudo apt-get update && sudo apt-get upgrade -y
-      sudo dpkg --configure -a
-      sudo apt-get install -f
-      echo "deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/" | sudo tee --append /etc/apt/sources.list
-      sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
-      sudo apt-get update
-      sudo apt-get autoclean && sudo apt-get autoremove -y && sudo apt-get clear cache
-      sudo apt-get install -y r-base-core r-base-dev libhdf5-dev libcurl4-openssl-dev libssl-dev
-    displayName: 'Install R and other dependencies'
-  - bash: R --slave --no-save --no-restore -e "install.packages('Seurat', repos = 'https://cloud.r-project.org')"
-    displayName: 'Install Seurat'
+jobs:
+  - job: 'Linux'
+    pool:
+      vmImage: 'ubuntu-16.04'
+    variables:
+      R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
+    container: rstudio/r-base:3.5-xenial
+    steps:
+      - script: |
+          echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
+          mkdir -p ${R_LIBS_USER}
+          sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
+        displayName: 'Installing R'
+      - task: CacheBeta@0
+        inputs:
+          key: |
+            DESCRIPTION
+            r-base:3.5-xenial
+          path: $(R_LIBS_USER)
+        displayName: 'Caching Packages'
+      - script: Rscript -e "install.packages('Seurat')"
+        displayName: 'Installing Seurat'
