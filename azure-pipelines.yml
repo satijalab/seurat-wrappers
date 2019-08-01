@@ -15,5 +15,12 @@ jobs:
           mkdir -p ${R_LIBS_USER}
           sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
         displayName: 'Installing R'
-      - script: Rscript -e "install.packages('Seurat')"
-        displayName: 'Installing Seurat'
+      - script: |
+          Rscript -e "install.packages('Seurat')"
+          Rscript -e "install.packages('rmarkdown')"
+          Rscript -e "install.packages('devtools')"
+        displayName: 'Installing Seurat, Rmarkdown, and devtools'
+      - script: |
+          echo "$(pwd -P)"
+          ls -l
+        displayName: "Testing some stuff"
