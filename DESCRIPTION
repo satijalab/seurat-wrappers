@@ -13,7 +13,11 @@ Description: SeuratWrappers is a collection of community-provided methods and
     comprise functionality not presently found in Seurat, and are able to be
     updated much more frequently.
 License: GPL-3 | file LICENSE
-Remotes: MacoskoLab/liger
+Remotes: MacoskoLab/liger,
+    hms-dbmi/conos,
+    immunogenomics/harmony,
+    satijalab/seruat-data,
+    velocyto-team/velocyto.R
 Depends:
     R (>= 3.5.0)
 Imports:
@@ -41,5 +45,7 @@ RoxygenNote: 6.1.1
 Suggests:
     conos,
     liger (>= 0.4.2),
+    harmony,
     scran,
+    SeuratData,
     velocyto.R

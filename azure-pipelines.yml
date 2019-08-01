@@ -15,19 +15,11 @@ jobs:
           mkdir -vp ${R_LIBS_USER}
           sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
         displayName: 'Install R'
-      - task: CacheBeta@0
-        inputs:
-          key:
-            ./DESCRIPTION
-            R_3.5
-          path: $(R_LIBS_USER)
-          cacheHitVar: CACHE_RESTORED
-        displayName: 'Cache packages'
       - script: |
           Rscript -e "install.packages('Seurat')"
           Rscript -e "install.packages('rmarkdown')"
           Rscript -e "install.packages('devtools')"
         displayName: 'Install Seurat, Rmarkdown, and devtools'
         condition: ne(variables.CACHE_RESTORED, 'true')
-      # - script: Rscript -e "devtools::install(dependencies = TRUE)"
-      #   displayName: "Install SeuratWrappers"
+      - script: Rscript -e "devtools::install(dependencies = TRUE)"
+        displayName: "Install SeuratWrappers"
