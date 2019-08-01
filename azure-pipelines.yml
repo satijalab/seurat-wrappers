@@ -12,15 +12,20 @@ jobs:
     steps:
       - script: |
           echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
-          mkdir -p ${R_LIBS_USER}
+          mkdir -vp ${R_LIBS_USER}
           sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
-        displayName: 'Installing R'
+        displayName: 'Install R'
+      - task: CacheBeta@0
+        key:
+          ./DESCRIPTION
+          R_3.5
+        path: $(R_LIBS_USER)
+        cacheHitVar: CACHE_RESTORED
       - script: |
           Rscript -e "install.packages('Seurat')"
           Rscript -e "install.packages('rmarkdown')"
           Rscript -e "install.packages('devtools')"
-        displayName: 'Installing Seurat, Rmarkdown, and devtools'
-      - script: |
-          echo "$(pwd -P)"
-          ls -l
-        displayName: "Testing some stuff"
+        displayName: 'Install Seurat, Rmarkdown, and devtools'
+        condition: ne(variables.CACHE_RESTORED, 'true')
+      # - script: Rscript -e "devtools::install(dependencies = TRUE)"
+      #   displayName: "Install SeuratWrappers"
