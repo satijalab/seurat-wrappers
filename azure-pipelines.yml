@@ -16,11 +16,12 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev
         displayName: 'Install R'
       - task: CacheBeta@0
-        key:
-          ./DESCRIPTION
-          R_3.5
-        path: $(R_LIBS_USER)
-        cacheHitVar: CACHE_RESTORED
+        inputs:
+          key:
+            ./DESCRIPTION
+            R_3.5
+          path: $(R_LIBS_USER)
+          cacheHitVar: CACHE_RESTORED
       - script: |
           Rscript -e "install.packages('Seurat')"
           Rscript -e "install.packages('rmarkdown')"
