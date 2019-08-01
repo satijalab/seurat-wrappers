@@ -22,6 +22,7 @@ jobs:
             R_3.5
           path: $(R_LIBS_USER)
           cacheHitVar: CACHE_RESTORED
+        displayName: 'Cache packages'
       - script: |
           Rscript -e "install.packages('Seurat')"
           Rscript -e "install.packages('rmarkdown')"
