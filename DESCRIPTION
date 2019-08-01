@@ -16,7 +16,7 @@ License: GPL-3 | file LICENSE
 Remotes: MacoskoLab/liger,
     hms-dbmi/conos,
     immunogenomics/harmony,
-    satijalab/seruat-data,
+    satijalab/seurat-data,
     velocyto-team/velocyto.R
 Depends:
     R (>= 3.5.0)
