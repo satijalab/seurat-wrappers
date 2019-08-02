@@ -13,7 +13,7 @@ jobs:
       - script: |
           echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
           mkdir -vp ${R_LIBS_USER}
-          sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev libpng-dev
+          sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev libpng-dev libhdf5-dev
         displayName: 'Install R'
       - script: |
           Rscript -e "install.packages('Seurat')"
