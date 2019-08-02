@@ -20,11 +20,9 @@ jobs:
           Rscript -e "install.packages('rmarkdown')"
           Rscript -e "install.packages('devtools')"
         displayName: 'Install Seurat, Rmarkdown, and devtools'
-        condition: ne(variables.CACHE_RESTORED, 'true')
       - script: |
           Rscript -e "install.packages('BiocManager')"
           Rscript -e "BiocManager::install(c('pcaMethods', 'scran'))"
-         displayName: "Install Bioconductor dependencies"
-         condition: ne(variables.CACHE_RESTORED, 'true')
+        displayName: "Install Bioconductor dependencies"
       - script: Rscript -e "devtools::install(dependencies = TRUE)"
         displayName: "Install SeuratWrappers"
