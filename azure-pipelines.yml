@@ -26,3 +26,5 @@ jobs:
         displayName: "Install Bioconductor dependencies"
       - script: Rscript -e "devtools::install(dependencies = TRUE)"
         displayName: "Install SeuratWrappers"
+      - script: bash test-vignettes.sh
+        displayName: "Test Vignettes"
