@@ -17,10 +17,10 @@ SATIJA_BRANCH="$(Rscript -e "cat(Seurat:::RandomName())")"
 (set -x; git fetch https://github.com/satijalab/seurat-wrappers +master:"${SATIJA_BRANCH}")
 
 #   Get the branch for this PR
-PR_BRANCH="$(git branch | grep '*' | cut -f 2 -d ' ')"
+PR_HASH="$(set -x; git log -n1 --format=format:'%H')"
 
 #   Get differences between files
-declare -a DIFFS=($(git diff --name-only "${PR_BRANCH}" "${SATIJA_BRANCH}"))
+declare -a DIFFS=($(set -x; git diff --name-only "${PR_HASH}" "${SATIJA_BRANCH}"))
 
 #   Figure out which files have corresponding Rmds
 declare -a DIFF_RMDS=()
