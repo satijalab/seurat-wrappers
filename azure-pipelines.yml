@@ -26,7 +26,7 @@ jobs:
         displayName: "Install Bioconductor dependencies"
       - script: |
           sudo apt-get install -y python3-dev python3-pip
-	  pip3 install umap-learn
+          pip3 install umap-learn
         displayName: "Install python dependencies"
       - script: Rscript -e "devtools::install(dependencies = TRUE)"
         displayName: "Install SeuratWrappers"
