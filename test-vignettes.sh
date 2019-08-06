@@ -63,10 +63,12 @@ elif [[ ${#MISSING[@]} -gt 0 ]]; then
     #   Yes, but some source files changed and we couldn't find a vignette
     echo -e "WARNING: Missing vignettes for the following source files:" >&2
     for MV in ${MISSING[@]}; do echo -e "\t${MV}" >&2; done
-else [[ ${#DIFF_RMDS[@]} -eq 0 ]];
+elif [[ ${#DIFF_RMDS[@]} -eq 0 ]]; then
     #   No, and no source files changed
     echo "No changed vignettes" >&2
     exit 0
+else
+    :
 fi
 
 #   Filter our changed vignettes list to only unique vignettes
@@ -74,5 +76,5 @@ declare -a UNIQ_DIFFS=($(echo ${DIFF_RMDS[@]} | tr ' ' '\n' | sort | uniq))
 for I in $(seq 1 ${#UNIQ_DIFFS[@]}); do
     TFILE="${UNIQ_DIFFS[$((${I} - 1))]}"
     echo "Testing vignette ${TFILE} (vignette ${I} of ${#UNIQ_DIFFS[@]})" >&2
-    (set -x; echo "Rscript -e rmarkdown::render('${TFILE}', output_format = 'all')")
+    (set -x; Rscript -e "rmarkdown::render('${TFILE}', output_format = 'all')")
 done
