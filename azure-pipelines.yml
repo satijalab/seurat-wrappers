@@ -32,3 +32,5 @@ jobs:
         displayName: "Install SeuratWrappers"
       - script: bash test-vignettes.sh
         displayName: "Test Vignettes"
+      - publish: $(System.DefaultWorkingDirectory)/test-build/
+        artifact: Vignettes

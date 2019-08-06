@@ -71,10 +71,13 @@ else
     :
 fi
 
+#   Store new vignettes in test-build dir
+mkdir test-build
+
 #   Filter our changed vignettes list to only unique vignettes
 declare -a UNIQ_DIFFS=($(echo ${DIFF_RMDS[@]} | tr ' ' '\n' | sort | uniq))
 for I in $(seq 1 ${#UNIQ_DIFFS[@]}); do
     TFILE="${UNIQ_DIFFS[$((${I} - 1))]}"
     echo "Testing vignette ${TFILE} (vignette ${I} of ${#UNIQ_DIFFS[@]})" >&2
-    (set -x; Rscript -e "rmarkdown::render('${TFILE}', output_format = 'all')")
+    (set -x; Rscript -e "rmarkdown::render('${TFILE}', output_format = 'all', output_dir = 'test-build')")
 done
