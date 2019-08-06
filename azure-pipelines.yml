@@ -24,6 +24,8 @@ jobs:
           Rscript -e "install.packages('BiocManager')"
           Rscript -e "BiocManager::install(c('pcaMethods', 'scran'))"
         displayName: "Install Bioconductor dependencies"
+      - script: pip install umap-learn
+        displayName: "Install python dependencies"
       - script: Rscript -e "devtools::install(dependencies = TRUE)"
         displayName: "Install SeuratWrappers"
       - script: bash test-vignettes.sh
