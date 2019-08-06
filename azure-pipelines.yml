@@ -1,0 +1,30 @@
+# Build and test changes to SeuratWrappers
+# Inspired by Jim Hester's Azure Pipelines tests
+# https://github.com/jimhester/azuretest
+
+jobs:
+  - job: 'Linux'
+    pool:
+      vmImage: 'ubuntu-16.04'
+    variables:
+      R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
+    container: rstudio/r-base:3.5-xenial
+    steps:
+      - script: |
+          echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
+          mkdir -vp ${R_LIBS_USER}
+          sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev libpng-dev libhdf5-dev libboost-all-dev git
+        displayName: 'Install R'
+      - script: |
+          Rscript -e "install.packages('Seurat')"
+          Rscript -e "install.packages('rmarkdown')"
+          Rscript -e "install.packages('devtools')"
+        displayName: 'Install Seurat, Rmarkdown, and devtools'
+      - script: |
+          Rscript -e "install.packages('BiocManager')"
+          Rscript -e "BiocManager::install(c('pcaMethods', 'scran'))"
+        displayName: "Install Bioconductor dependencies"
+      - script: Rscript -e "devtools::install(dependencies = TRUE)"
+        displayName: "Install SeuratWrappers"
+      - script: bash test-vignettes.sh
+        displayName: "Test Vignettes"
