@@ -57,10 +57,10 @@ Prerequisites to install that are not available via `install.packages`:
 ```{r load-libraries, message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
-library(schex)
 library(ggplot2)
 library(ggrepel)
 theme_set(theme_classic())
+library(schex)
 ```
 
 ## Setup single cell data
@@ -159,14 +159,14 @@ plotting this.
 #### Calculate hexagon cell representation
 
 First, I will calculate the hexagon cell representation for each cell for
-a specified dimension reduction representation. I decide to use `nbins=35` which
+a specified dimension reduction representation. I decide to use `nbins=40` which
 specifies that I divide my x range into 40 bins. Note that this might be a 
 parameter that you want to play around with depending on the number of cells/
 nuclei in your dataset. Generally, for more cells/nuclei, `nbins` should be 
 increased.
 
 ```{r calc-hexbin}
-pbmc <- make_hexbin(pbmc, nbins = 35, 
+pbmc <- make_hexbin(pbmc, nbins = 40, 
                            dimension_reduction = "UMAP")
 ```
 

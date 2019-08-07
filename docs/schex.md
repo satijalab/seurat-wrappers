@@ -1,6 +1,6 @@
 Using schex with Seurat
 ================
-Compiled: July 30, 2019
+Compiled: August 07, 2019
 
 This vigettte demonstrates how to run schex on Seurat objects, which aims to provide better plots. If you use schex, please cite:
 
@@ -10,7 +10,7 @@ This vigettte demonstrates how to run schex on Seurat objects, which aims to pro
 >
 > doi: [0.1242/dev.173807](https://doi.org/0.1242/dev.173807)
 >
-> Website: <https://github.com/SaskiaFreytag/schex>
+> Github: <https://github.com/SaskiaFreytag/schex>
 
 Reduced dimension plotting is one of the essential tools for the analysis of single cell data. However, as the number of cells/nuclei in these these plots increases, the usefulness of these plots decreases. Many cells are plotted on top of each other obscuring information, even when taking advantage of transparency settings. This package provides binning strategies of cells/nuclei into hexagon cells. Plotting summarized information of all cells/nuclei in their respective hexagon cells presents information without obstructions. The package seemlessly works with the two most common object classes for the storage of single cell data; `SingleCellExperiment` from the [SingleCellExperiment](https://bioconductor.org/packages/3.9/bioc/html/SingleCellExperiment.html) package and `Seurat` from the [Seurat](https://satijalab.org/seurat/) package. In this vignette I will be presenting the use of `schex` for `Seurat` objects.
 
@@ -25,10 +25,10 @@ Prerequisites to install that are not available via `install.packages`:
 ``` r
 library(Seurat)
 library(SeuratData)
-library(schex)
 library(ggplot2)
 library(ggrepel)
 theme_set(theme_classic())
+library(schex)
 ```
 
 Setup single cell data
@@ -110,10 +110,10 @@ At this stage in the workflow we usually would like to plot aspects of our data 
 
 #### Calculate hexagon cell representation
 
-First, I will calculate the hexagon cell representation for each cell for a specified dimension reduction representation. I decide to use `nbins=35` which specifies that I divide my x range into 40 bins. Note that this might be a parameter that you want to play around with depending on the number of cells/ nuclei in your dataset. Generally, for more cells/nuclei, `nbins` should be increased.
+First, I will calculate the hexagon cell representation for each cell for a specified dimension reduction representation. I decide to use `nbins=40` which specifies that I divide my x range into 40 bins. Note that this might be a parameter that you want to play around with depending on the number of cells/ nuclei in your dataset. Generally, for more cells/nuclei, `nbins` should be increased.
 
 ``` r
-pbmc <- make_hexbin(pbmc, nbins = 35, dimension_reduction = "UMAP")
+pbmc <- make_hexbin(pbmc, nbins = 40, dimension_reduction = "UMAP")
 ```
 
 #### Plot number of cells/nuclei in each hexagon cell
