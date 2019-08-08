@@ -8,22 +8,12 @@ jobs:
       vmImage: 'ubuntu-16.04'
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
-    container: rstudio/r-base:3.5-xenial
+    container: satijalab/seurat-wrappers:latest
     steps:
       - script: |
           echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
           mkdir -vp ${R_LIBS_USER}
-          sudo apt-get update && sudo apt-get install -y libxml2-dev libssl-dev libpng-dev libhdf5-dev libboost-all-dev git
-        displayName: 'Install R'
-      - script: |
-          Rscript -e "install.packages('Seurat')"
-          Rscript -e "install.packages('rmarkdown')"
-          Rscript -e "install.packages('devtools')"
-        displayName: 'Install Seurat, Rmarkdown, and devtools'
-      - script: |
-          Rscript -e "install.packages('BiocManager')"
-          Rscript -e "BiocManager::install(c('pcaMethods', 'scran'))"
-        displayName: "Install Bioconductor dependencies"
+        displayName: 'Setup R Library'
       - script: Rscript -e "devtools::install(dependencies = TRUE)"
         displayName: "Install SeuratWrappers"
       - script: bash test-vignettes.sh
