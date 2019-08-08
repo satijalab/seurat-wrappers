@@ -3,25 +3,25 @@ title: "Using schex with Seurat"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
   github_document:
-  html_preview: true
-toc: false
-html_document:
-  df_print: kable
-theme: united
+    html_preview: true
+    toc: false
+  html_document:
+    df_print: kable
+    theme: united
 ---
-  
-  This vigettte demonstrates how to run schex on Seurat objects, 
+
+This vigettte demonstrates how to run schex on Seurat objects, 
 which aims to provide better plots. If you use schex, please cite:
-  
-  > *Single cell transcriptomics reveals spatial and temporal dynamics
+
+> *Single cell transcriptomics reveals spatial and temporal dynamics
 > of gene expression in the developing mouse spinal cord*
-  >
-  > Delile, Julien, Teresa Rayon, Manuela Melchionda, Amelia Edwards, James 
+>
+> Delile, Julien, Teresa Rayon, Manuela Melchionda, Amelia Edwards, James 
 > Briscoe, and Andreas Sagner.
 >
-  > doi: [0.1242/dev.173807](https://doi.org/0.1242/dev.173807)
+> doi: [0.1242/dev.173807](https://doi.org/0.1242/dev.173807)
 >
-  > Github: https://github.com/SaskiaFreytag/schex
+> Github: https://github.com/SaskiaFreytag/schex
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -50,8 +50,8 @@ this vignette I will be presenting the use of `schex` for `Seurat` objects.
 ## Load libraries
 
 Prerequisites to install that are not available via `install.packages`: 
-  
-  * [schex](https://github.com/SaskiaFreytag/schex)
+
+* [schex](https://github.com/SaskiaFreytag/schex)
 * [SeuratData](https://github.com/satijalab/seurat-data) 
 
 ```{r load-libraries, message=FALSE, warning=FALSE}
@@ -61,10 +61,9 @@ library(ggplot2)
 library(ggrepel)
 theme_set(theme_classic())
 library(schex)
-library(dplyr)
 ```
 
-## Setup single-cell data
+## Setup single cell data
 
 In order to demonstrate the capabilities of the schex package, I will use the
 a dataset of Peripheral Blood Mononuclear Cells (PBMC) freely available from 
@@ -82,11 +81,12 @@ outlined in the [Seurat vignette](https://satijalab.org/seurat/v3.0/pbmc3k_tutor
 I will then calculate various dimension 
 reductions and cluster the data, as also outlined in the vignette.
 
+## Standard pre-processing workflow
+
 ```{r preprocess}
 pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 pbmc %>% subset(subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5) %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE) %>% RunUMAP(dims = 1:10) %>% FindNeighbors(dims = 1:10) %>% FindClusters(resolution = 0.5, verbose = FALSE) -> pbmc
 ```
-
 
 ## Plotting single cell data
 
@@ -101,12 +101,12 @@ First, I will calculate the hexagon cell representation for each cell for
 a specified dimension reduction representation. I decide to use `nbins=40` which
 specifies that I divide my x range into 40 bins. Note that this might be a 
 parameter that you want to play around with depending on the number of cells/
-  nuclei in your dataset. Generally, for more cells/nuclei, `nbins` should be 
+nuclei in your dataset. Generally, for more cells/nuclei, `nbins` should be 
 increased.
 
 ```{r calc-hexbin}
 pbmc <- make_hexbin(pbmc, nbins = 40, 
-                    dimension_reduction = "UMAP")
+                           dimension_reduction = "UMAP")
 ```
 
 #### Plot number of cells/nuclei in each hexagon cell
@@ -140,7 +140,7 @@ positions for factor variables. These can be overlayed with the package
 label_df <- make_hexbin_label(pbmc, col="RNA_snn_res.0.5")
 pp <- plot_hexbin_meta(pbmc, col="RNA_snn_res.0.5", action="majority") 
 pp + ggrepel::geom_label_repel(data = label_df, aes(x=x, y=y, label = label), 
-                               colour="black",  label.size = NA, fill = NA)  
+                            colour="black",  label.size = NA, fill = NA)  
 ```
 
 #### Plot gene expression in hexagon cell representation
@@ -154,3 +154,6 @@ plot_hexbin_gene(pbmc, type="logcounts", gene=gene_id,
                  action="mean", xlab="UMAP1", ylab="UMAP2", 
                  title=paste0("Mean of ", gene_id))
 ```
+
+
+
