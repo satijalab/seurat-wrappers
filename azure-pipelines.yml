@@ -18,3 +18,11 @@ jobs:
         displayName: "Install SeuratWrappers"
       - script: bash test-vignettes.sh
         displayName: "Test Vignettes"
+      - task: CopyFiles@2
+        inputs:
+          contents: 'test-build/**'
+          targetFolder: $(Build.ArtifactStagingDirectory)
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathToPublish: $(Build.ArtifactStagingDirectory)
+          artifactName: Vignettes

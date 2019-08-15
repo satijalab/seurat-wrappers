@@ -17,7 +17,8 @@ Remotes: MacoskoLab/liger,
     hms-dbmi/conos,
     immunogenomics/harmony,
     satijalab/seurat-data,
-    velocyto-team/velocyto.R
+    velocyto-team/velocyto.R,
+    SaskiaFreytag/schex
 Depends:
     R (>= 3.5.0)
 Imports:
@@ -48,4 +49,5 @@ Suggests:
     harmony,
     scran,
     SeuratData,
-    velocyto.R
+    velocyto.R,
+    schex
