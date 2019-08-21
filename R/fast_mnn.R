@@ -73,14 +73,13 @@ RunFastMNN <- function(
       list(...)
     )
   )
-  rownames(x = out$corrected) <- colnames(x = integrated)
-  colnames(out$corrected) <- paste0(reduction.key,1:ncol(out$corrected))
+  rownames(x = SingleCellExperiment::reducedDim(x = out)) <- colnames(x = integrated)
+  colnames(x = SingleCellExperiment::reducedDim(x = out)) <- paste0(reduction.key, 1:ncol(x = SingleCellExperiment::reducedDim(x = out)))
   integrated[[reduction.name]] <- CreateDimReducObject(
-    embeddings = out$corrected,
+    embeddings = SingleCellExperiment::reducedDim(x = out),
     assay = DefaultAssay(object = integrated),
     key = reduction.key
   )
-  out$corrected <- NULL
   Tool(object = integrated) <- out
   integrated <- LogSeuratCommand(object = integrated)
   return(integrated)
