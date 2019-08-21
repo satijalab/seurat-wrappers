@@ -47,7 +47,7 @@ Suggests:
     conos,
     liger (>= 0.4.2),
     harmony,
-    scran,
+    batchelor,
     SeuratData,
     velocyto.R,
     schex
