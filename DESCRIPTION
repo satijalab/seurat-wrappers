@@ -21,6 +21,7 @@ Remotes: MacoskoLab/liger,
     SaskiaFreytag/schex@031320d
 Depends:
     R (>= 3.5.0)
+biocViews:
 Imports:
     BiocManager,
     cowplot,
