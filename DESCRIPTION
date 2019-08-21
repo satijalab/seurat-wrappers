@@ -18,7 +18,7 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
-    SaskiaFreytag/schex
+    SaskiaFreytag/schex@3b102ca
 Depends:
     R (>= 3.5.0)
 Imports:
