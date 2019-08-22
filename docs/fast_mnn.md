@@ -47,7 +47,7 @@ pbmcsca <- FindClusters(pbmcsca)
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/pbmcsca-1.png)
+![](fast_mnn_files/figure-markdown_github/pbmcsca-1.png)
 
 ### Interferon-stimulated and control PBMC
 
@@ -65,7 +65,7 @@ ifnb <- FindClusters(ifnb)
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/ifnb_stim-1.png)
+![](fast_mnn_files/figure-markdown_github/ifnb_stim-1.png)
 
 ### Eight human pancreatic islet datasets
 
@@ -83,4 +83,4 @@ panc8 <- FindClusters(panc8)
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/pancreas-1.png)
+![](fast_mnn_files/figure-markdown_github/pancreas-1.png)
