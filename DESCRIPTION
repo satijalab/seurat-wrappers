@@ -18,9 +18,10 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
-    SaskiaFreytag/schex
+    SaskiaFreytag/schex@031320d
 Depends:
     R (>= 3.5.0)
+biocViews:
 Imports:
     BiocManager,
     cowplot,
@@ -47,7 +48,7 @@ Suggests:
     conos,
     liger (>= 0.4.2),
     harmony,
-    scran,
+    batchelor,
     SeuratData,
     velocyto.R,
     schex
