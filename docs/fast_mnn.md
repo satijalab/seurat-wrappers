@@ -1,6 +1,6 @@
 Running fastMNN on Seurat Objects
 ================
-Compiled: July 15, 2019
+Compiled: August 21, 2019
 
 -   [](#section)
     -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
@@ -17,7 +17,7 @@ This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and 
 >
 > doi: [10.1038/nbt.4091](https://doi.org/10.1038/nbt.4091)
 >
-> Bioconductor: <https://bioconductor.org/packages/release/bioc/html/scran.html>
+> Bioconductor: <https://bioconductor.org/packages/release/bioc/html/batchelor.html>
 
 Prerequisites to install:
 
@@ -47,7 +47,7 @@ pbmcsca <- FindClusters(pbmcsca)
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/pbmcsca-1.png)
+![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/pbmcsca-1.png)
 
 ### Interferon-stimulated and control PBMC
 
@@ -65,7 +65,7 @@ ifnb <- FindClusters(ifnb)
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/ifnb_stim-1.png)
+![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/ifnb_stim-1.png)
 
 ### Eight human pancreatic islet datasets
 
@@ -83,4 +83,4 @@ panc8 <- FindClusters(panc8)
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](fast_mnn_files/figure-markdown_github/pancreas-1.png)
+![](/__w/1/s/test-build/fast_mnn_files/figure-markdown_github/pancreas-1.png)
