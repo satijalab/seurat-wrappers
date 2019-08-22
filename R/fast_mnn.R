@@ -10,12 +10,12 @@ NULL
 #' @param reduction.name Name to store resulting DimReduc object as
 #' @param reduction.key Key for resulting DimReduc
 #' @param verbose Print messages from \code{\link[Seurat]{SelectIntegrationFeatures}}
-#' @param ... Extra parameters passed to \code{\link[scran]{fastMNN}}
+#' @param ... Extra parameters passed to \code{\link[batchelor]{fastMNN}}
 #'
 #' @return A Seurat object merged from the objects in \code{object.list} and a new
 #' DimReduc of name \code{reduction.name} (key set to \code{reduction.key}) with
 #' corrected embeddings matrix; all other return values from
-#' \code{\link[scran]{fastMNN}} are stored in the \code{tool} slot, accessible with
+#' \code{\link[batchelor]{fastMNN}} are stored in the \code{tool} slot, accessible with
 #' \code{\link[Seurat]{Tool}}
 #'
 #' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures
@@ -23,7 +23,7 @@ NULL
 #'
 #' @export
 #'
-#' @seealso \code{\link[scran]{fastMNN}} \code{\link[Seurat]{Tool}}
+#' @seealso \code{\link[batchelor]{fastMNN}} \code{\link[Seurat]{Tool}}
 #'
 RunFastMNN <- function(
   object.list,
@@ -34,7 +34,7 @@ RunFastMNN <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckPackage(package = 'scran', repository = 'bioconductor')
+  CheckPackage(package = 'batchelor', repository = 'bioconductor')
   if (!all(sapply(X = object.list, FUN = inherits, what = 'Seurat'))) {
     stop("'object.list' must be a list of Seurat objects", call. = FALSE)
   }
@@ -67,20 +67,19 @@ RunFastMNN <- function(
     y = object.list[2:length(x = object.list)]
   )
   out <- do.call(
-    what = scran::fastMNN,
+    what = batchelor::fastMNN,
     args = c(
       objects.sce,
       list(...)
     )
   )
-  rownames(x = out$corrected) <- colnames(x = integrated)
-  colnames(out$corrected) <- paste0(reduction.key,1:ncol(out$corrected))
+  rownames(x = SingleCellExperiment::reducedDim(x = out)) <- colnames(x = integrated)
+  colnames(x = SingleCellExperiment::reducedDim(x = out)) <- paste0(reduction.key, 1:ncol(x = SingleCellExperiment::reducedDim(x = out)))
   integrated[[reduction.name]] <- CreateDimReducObject(
-    embeddings = out$corrected,
+    embeddings = SingleCellExperiment::reducedDim(x = out),
     assay = DefaultAssay(object = integrated),
     key = reduction.key
   )
-  out$corrected <- NULL
   Tool(object = integrated) <- out
   integrated <- LogSeuratCommand(object = integrated)
   return(integrated)

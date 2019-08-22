@@ -25,7 +25,7 @@ This vigettte demonstrates how to run fastMNN on Seurat objects. Parameters and 
 >
 > doi: [10.1038/nbt.4091](https://doi.org/10.1038/nbt.4091)
 >
-> Bioconductor: https://bioconductor.org/packages/release/bioc/html/scran.html
+> Bioconductor: https://bioconductor.org/packages/release/bioc/html/batchelor.html
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(

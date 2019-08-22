@@ -7,7 +7,37 @@
 #' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 #'
 #' @param object An object
+#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
+#' @param q  The number of additional power iterations in randomized SVD when
+#' computing rank k approximation. By default, q=10.
+#' @param quantile.prob The quantile probability to use when calculating threshold.
+#' By default, quantile.prob = 0.001.
+#' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
+#' installed from https://github.com/KlugerLab/rpca-mkl.
+#' @param mkl.seed Only relevant if use.mkl=T. Set the seed for the random
+#' generator for the Intel MKL implementation of SVD. Any number <0 will
+#' use the current timestamp. If use.mkl=F, set the seed using
+#' set.seed() function as usual.
+#' @param assay Assay to use
+#' @param slot slot to use
+#' @param setDefaultAssay If TRUE, will set imputed results as default Assay
+#' @param genes.use genes to impute
+#' @param K Number of singular values to compute when choosing k. Must be less
+#' than the smallest dimension of the matrix. Default 100 or smallest dimension.
+#' @param p.val.th  The threshold for ''significance'' when choosing k. Default 1e-10.
+#' @param noise.start  Index for which all smaller singular values are considered noise.
+#' Default K - 20.
+#' @param q.k  Number of additional power iterations when choosing k. Default 2.
+#' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
+#'
 #' @param ... Arguments passed to other methods
+#'
+#' @importFrom rsvd rsvd
+#' @importFrom Matrix Matrix
+#' @importFrom stats pnorm sd setNames quantile
+#' @importFrom Seurat DefaultAssay Tool GetAssayData Tool<- CreateAssayObject
+#' DefaultAssay<-
+#'
 #'
 #' @rdname RunALRA
 #' @export RunALRA
@@ -36,24 +66,53 @@ RunALRA <- function(object, ...) {
   UseMethod(generic = 'RunALRA', object = object)
 }
 
-#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
-#' @param q  The number of additional power iterations in randomized SVD when
-#' computing rank k approximation. By default, q=10.
-#'
 #' @rdname RunALRA
 #' @export
 #'
-RunALRA.default <- function(object, k = NULL, q = 10, ...) {
+RunALRA.default <- function(
+  object,
+  k = NULL,
+  q = 10,
+  quantile.prob = 0.001,
+  use.mkl = FALSE,
+  mkl.seed = -1,
+  ...
+) {
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
   message("Computing Randomized SVD")
-  fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
+  if (use.mkl) {
+    CheckPackage(package = 'KlugerLab/rpca-mkl/fastRPCA', repository = 'github')
+    fastDecomp.noc <- setNames(
+      object = vector(mode = "list", length = 3),
+      nm = c("u", "d", "v")
+    )
+    fastPCAOut <- fastRPCA::fastPCA(
+      inputMatrix = A.norm,
+      k = k,
+      its = q,
+      l = (k + 10),
+      seed = mkl.seed
+    )
+    fastDecomp.noc$u <- fastPCAOut$U
+    fastDecomp.noc$v <- fastPCAOut$V
+    fastDecomp.noc$d <- diag(x = fastPCAOut$S)
+  } else {
+    fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
+  }
   A.norm.rank.k <- fastDecomp.noc$u[, 1:k] %*%
     diag(x = fastDecomp.noc$d[1:k]) %*%
     t(x = fastDecomp.noc$v[,1:k])
-  message("Find most negative values of each gene")
-  A.norm.rank.k.mins <- abs(x = apply(X = A.norm.rank.k, MARGIN = 2, FUN = min))
+  message(sprintf("Find the %f quantile of each gene", quantile.prob))
+  # A.norm.rank.k.mins <- abs(x = apply(X = A.norm.rank.k, MARGIN = 2, FUN = min))
+  A.norm.rank.k.mins <- abs(x = apply(
+    X = A.norm.rank.k,
+    MARGIN = 2,
+    FUN = function(x) {
+      return(quantile(x = x, probs = quantile.prob))
+    }
+  ))
   message("Thresholding by the most negative value of each gene")
   A.norm.rank.k.cor <- replace(
     x = A.norm.rank.k,
@@ -61,13 +120,13 @@ RunALRA.default <- function(object, k = NULL, q = 10, ...) {
     values = 0
   )
   sd.nonzero <- function(x) {
-    return(sd(x[!x == 0]))
+    return(sd(x = x[!x == 0]))
   }
   sigma.1 <- apply(X = A.norm.rank.k.cor, MARGIN = 2, FUN = sd.nonzero)
   sigma.2 <- apply(X = A.norm, MARGIN = 2, FUN = sd.nonzero)
   mu.1 <- colSums(x = A.norm.rank.k.cor) / colSums(x = !!A.norm.rank.k.cor)
   mu.2 <- colSums(x = A.norm) / colSums(x = !!A.norm)
-  toscale <- !is.na(x = sigma.1) & !is.na(x = sigma.2)
+  toscale <- !is.na(sigma.1) & !is.na(sigma.2) & !(sigma.1 == 0 & sigma.2 == 0) & !(sigma.1 == 0)
   message(sprintf(fmt = "Scaling all except for %d columns", sum(!toscale)))
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
@@ -107,22 +166,6 @@ RunALRA.default <- function(object, k = NULL, q = 10, ...) {
   return(A.norm.rank.k.cor.sc)
 }
 
-#' @param assay Assay to use
-#' @param slot slot to use
-#' @param setDefaultAssay If TRUE, will set imputed results as default Assay
-#' @param genes.use genes to impute
-#' @param K Number of singular values to compute when choosing k. Must be less
-#' than the smallest dimension of the matrix. Default 100 or smallest dimension.
-#' @param p.val.th  The threshold for ''significance'' when choosing k. Default 1e-10.
-#' @param noise.start  Index for which all smaller singular values are considered noise.
-#' Default K - 20.
-#' @param q.k  Number of additional power iterations when choosing k. Default 2.
-#' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
-#'
-#' @importFrom rsvd rsvd
-#' @importFrom Matrix Matrix
-#' @importFrom stats pnorm sd
-#'
 #' @rdname RunALRA
 #' @export
 #' @method RunALRA Seurat
@@ -131,12 +174,15 @@ RunALRA.Seurat <- function(
   object,
   k = NULL,
   q = 10,
+  quantile.prob = 0.001,
+  use.mkl = FALSE,
+  mkl.seed=-1,
   assay = NULL,
   slot = "data",
   setDefaultAssay = TRUE,
   genes.use = NULL,
   K = NULL,
-  p.val.th = 1e-10,
+  thresh=6,
   noise.start = NULL,
   q.k = 2,
   k.only = FALSE,
@@ -179,18 +225,34 @@ RunALRA.Seurat <- function(
       stop("There need to be at least 5 singular values considered noise")
     }
     noise.svals <- noise.start:K
-    rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
-    diffs <- diff(x = rsvd.out$d)
-    pvals <- pnorm(
-      q = diffs,
-      mean = mean(x = diffs[noise.svals - 1]),
-      sd = sd(x = diffs[noise.svals - 1])
-    )
-    k <- max(which(x = pvals < p.val.th))
+    if (use.mkl) {
+      CheckPackage(package = 'KlugerLab/rpca-mkl/fastRPCA', repository = 'github')
+      L <- min(K + 10, min(dim(x = data.used)))
+      rsvd.out <- setNames(
+        object = vector(mode = "list", length = 3),
+        nm = c("u", "d", "v")
+      )
+      fastPCAOut <- fastRPCA::fastPCA(
+        inputMatrix = as.matrix(x = data.used),
+        k = K,
+        its = q.k,
+        l = L,
+        seed = mkl.seed
+      )
+      rsvd.out$u <- fastPCAOut$U
+      rsvd.out$v <- fastPCAOut$V
+      rsvd.out$d <- diag(x = fastPCAOut$S)
+    } else {
+      rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
+    }
+    diffs <- rsvd.out$d[1:(length(x = rsvd.out$d) - 1)] - rsvd.out$d[2:length(x = rsvd.out$d)]
+    mu <- mean(x = diffs[noise.svals - 1])
+    sigma <- sd(x = diffs[noise.svals - 1])
+    num_of_sds <- (diffs - mu) / sigma
+    k <- max(which(x = num_of_sds > thresh))
     alra.info[["d"]] <- rsvd.out$d
     alra.info[["k"]] <- k
     alra.info[["diffs"]] <- diffs
-    alra.info[["pvals"]] <- pvals
     Tool(object = object) <- alra.info
   }
   if (k.only) {
@@ -199,7 +261,14 @@ RunALRA.Seurat <- function(
   }
   message("Rank k = ", k)
   # Perform ALRA on data.used
-  output.alra <- RunALRA(object = data.used, k = k, q = q)
+  output.alra <- RunALRA(
+    object = data.used,
+    k = k,
+    q = q,
+    quantile.prob = quantile.prob,
+    use.mkl = use.mkl,
+    mkl.seed = mkl.seed
+  )
   # Save ALRA data in object@assay
   data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
   rownames(x = data.alra) <- genes.use
@@ -212,6 +281,7 @@ RunALRA.Seurat <- function(
   }
   return(object)
 }
+
 
 #' ALRA Approximate Rank Selection Plot
 #'
