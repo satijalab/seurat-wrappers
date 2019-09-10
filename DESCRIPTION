@@ -31,7 +31,7 @@ Imports:
     methods,
     remotes,
     rsvd,
-    Seurat (>= 3.0.0),
+    Seurat (>= 3.0.1),
     stats,
     utils
 Collate:
