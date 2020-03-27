@@ -41,6 +41,7 @@ Collate:
     'fast_mnn.R'
     'liger.R'
     'velocity.R'
+    'glmpca.R'
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
