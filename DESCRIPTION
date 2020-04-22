@@ -52,4 +52,5 @@ Suggests:
     batchelor,
     SeuratData,
     velocyto.R,
-    schex
+    schex,
+    glmpca
