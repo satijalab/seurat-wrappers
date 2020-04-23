@@ -161,7 +161,19 @@ as.Seurat.cell_data_set <- function(
   return(object)
 }
 
+#' Run \code{link[monocle3]{learn_graph}} on a \code{\link[Seurat]{Seurat}} object
+#'
+#' @param object A \code{\link[Seurat]{Seurat}} object
+#' @param reduction Name of reduction to use for learning the pseudotime graph
+#' @param ... Arguments passed to \code{\link[monocle3]{learn_graph}}
+#'
+#' @return A \code{\link[monocle3]{cell_data_set}} object with the pseudotime graph
+#'
 #' @importFrom Seurat Reductions
+#'
+#' @seealso \code{\link[monocle3]{learn_graph}} \code{\link[monocle3]{cell_data_set}}
+#'
+#' @export
 #'
 LearnGraph <- function(object, reduction = DefaultDimReduc(object = object), ...) {
   CheckPackage(package = 'cole-trapnell-lab/monocle3', repository = 'github')
@@ -172,12 +184,11 @@ LearnGraph <- function(object, reduction = DefaultDimReduc(object = object), ...
     reduc <- object[[reduction]]
     suppressWarnings(expr = object[['UMAP']] <- reduc)
   }
-  cds <- as.cell_data_set.Seurat(
+  cds <- as.cell_data_set(
     x = object,
     assay = DefaultAssay(object = object[['UMAP']]),
     reductions = 'UMAP',
-    default.reduction = 'UMAP',
-    ...
+    default.reduction = 'UMAP'
   )
   cds <- monocle3::learn_graph(cds = cds, ...)
   return(cds)
