@@ -1,6 +1,6 @@
 Running GLM-PCA on a Seurat Object
 ================
-Compiled: April 22, 2020
+Compiled: May 01, 2020
 
 This vigettte demonstrates how to run GLM-PCA, which implements a generalized version of PCA for non-normally distributed data, on a Seurat object. If you use this, please cite:
 
@@ -29,7 +29,7 @@ library(glmpca)
 library(dplyr)
 ```
 
-### scRNA-seq imputation on pbmc3k
+### GLM-PCA on PBMC3k
 
 To learn more about this dataset, type `?pbmc3k`
 
@@ -37,24 +37,23 @@ To learn more about this dataset, type `?pbmc3k`
 InstallData("pbmc3k")
 data("pbmc3k")
 
-# Initial processing to select variable features
-pbmc3k <- NormalizeData(pbmc3k, verbose = F) %>% FindVariableFeatures(verbose = F)
+# Initial processing to select variable features 
+pbmc3k <- NormalizeData(pbmc3k, verbose = FALSE) %>% FindVariableFeatures(verbose = FALSE)
 
-# run GLM-PCA on Seurat object.  Uses poisson model by default Note that data in the counts slot
-# is used We choose 10 dimensions for computational efficiency
+# run GLM-PCA on Seurat object. 
+# Uses Poisson model by default
+# Note that data in the counts slot is used
+# We choose 10 dimensions for computational efficiency
 
-ndims = 10
-pbmc3k <- SeuratWrappers:::RunGLMPCA(pbmc3k, features = VariableFeatures(pbmc3k), L = ndims)
-pbmc3k <- FindNeighbors(pbmc3k, reduction = "glmpca", dims = 1:ndims, verbose = FALSE) %>% FindClusters(verbose = F)
-pbmc3k <- RunUMAP(pbmc3k, reduction = "glmpca", dims = 1:ndims, verbose = FALSE)
+ndims <- 10
+pbmc3k <- RunGLMPCA(pbmc3k, features = VariableFeatures(pbmc3k), L = ndims)
+pbmc3k <- FindNeighbors(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE) %>% FindClusters(verbose = F)
+pbmc3k <- RunUMAP(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
 ```
 
-<!-- out.height = 8, fig.height = 20, fig.width = 16 -->
 ``` r
-# note that we need to optimize these visualizations
-
-# visualize original and imputed values
-features.plot <- c("CD3D", "MS4A1", "CD8A", "GZMK", "GZMB", "FCGR3A")
+# visualize markers
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
 DimPlot(pbmc3k)
 ```
 
@@ -64,4 +63,4 @@ DimPlot(pbmc3k)
 FeaturePlot(pbmc3k, features.plot, ncol = 2)
 ```
 
-![](glmpca_files/figure-markdown_github/explore-2.png)
+![](glmpca_files/figure-markdown_github/explore2-1.png)
