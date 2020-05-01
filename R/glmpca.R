@@ -28,7 +28,6 @@ NULL
 #'
 #' @export
 #'
-#'
 RunGLMPCA <- function(
   object,
   L = 5,
@@ -46,25 +45,25 @@ RunGLMPCA <- function(
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object)
-  data <- GetAssayData(object = object,slot = 'counts')[]
-  features <- intersect(features,rownames(data))
-  if (length(features) == 0) {
+  data <- GetAssayData(object = object, slot = 'counts')
+  features <- intersect(x = features, y = rownames(x = data))
+  if (length(x = features) == 0) {
     stop("Please specify a subset of features for GLM-PCA")
   }
-  data <- data[features,]
-  glmpca_results <- glmpca::glmpca(Y = data, L = L, ...)
+  data <- data[features, ]
+  glmpca_results <- glmpca:::glmpca(Y = data, L = L, ...)
   glmpca_dimnames <- paste0(reduction.key, 1:L)
-  colnames(glmpca_results$factors) <- glmpca_dimnames
-  colnames(glmpca_results$loadings) <- glmpca_dimnames
-  
-  object[[reduction.name]] <- 
-    CreateDimReducObject(embeddings = as.matrix(glmpca_results$factors),
-                         key = reduction.key,
-                         loadings = as.matrix(glmpca_results$loadings),
-                         stdev = glmpca_results$dev, 
-                         assay = assay, 
-                         global = TRUE,
-                         misc = glmpca_results)
+  colnames(x = glmpca_results$factors) <- glmpca_dimnames
+  colnames(x = glmpca_results$loadings) <- glmpca_dimnames
+    object[[reduction.name]] <-CreateDimReducObject(
+    embeddings = as.matrix(glmpca_results$factors),
+    key = reduction.key,
+    loadings = as.matrix(glmpca_results$loadings),
+    stdev = glmpca_results$dev,
+    assay = assay,
+    global = TRUE,
+    misc = glmpca_results
+  )
   object <- LogSeuratCommand(object = object)
   return(object)
 }
