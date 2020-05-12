@@ -31,8 +31,8 @@ RunOptimizeALS <- function(
   assay = NULL,
   split.by = 'orig.ident',
   lambda = 5,
-  thresh = 1e-4,
-  max.iters = 100,
+  thresh = 1e-6,
+  max.iters = 30,
   reduction.name = 'iNMF_raw',
   reduction.key = 'riNMF_',
   nrep = 1,
@@ -98,18 +98,19 @@ RunOptimizeALS <- function(
 
 #' Generate shared factor neighborhood graph
 #'
-#' @inheritParams liger::SNF
+#' This is a deprecated function. Call 'RunQuantileNorm' instead.
+#'
+# @inheritParams liger::SNF
 #' @inheritParams RunOptimizeALS
 #' @param reduction Name of reduction to use
 #'
 #' @return A Seurat object with the SNF list stored in the \code{tool} slot,
 #' accessible with \code{\link[Seurat]{Tool}}
 #'
-# @importFrom liger SNF
 #' @importFrom Seurat SplitObject Embeddings Tool<- LogSeuratCommand
 #'
 #' @aliases SNF
-#' @seealso \code{\link[liger]{SNF}} \code{\link[Seurat]{Tool}}
+#' @seealso \code{\link[liger]{RunQuantileNorm}} \code{\link[Seurat]{Tool}}
 #'
 #' @export
 # @method SNF Seurat
@@ -127,37 +128,45 @@ RunSNF <- function(
   ...
 ) {
   CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
-  cells <- sapply(
-    X = SplitObject(object = object, split.by = split.by),
-    FUN = colnames,
-    simplify = FALSE
+  # cells <- sapply(
+  #   X = SplitObject(object = object, split.by = split.by),
+  #   FUN = colnames,
+  #   simplify = FALSE
+  # )
+  # dims.use <- dims.use %||% 1:length(x = object[[reduction]])
+  # embeddings <- sapply(
+  #   X = cells,
+  #   FUN = function(x) {
+  #     return(Embeddings(object = object[[reduction]])[x, ])
+  #   },
+  #   simplify = FALSE,
+  #   USE.NAMES = TRUE
+  # )
+  # snf <- liger::SNF(
+  #   object = embeddings,
+  #   dims.use = dims.use,
+  #   dist.use = dist.use,
+  #   center = center,
+  #   knn_k = knn_k,
+  #   k2 = k2,
+  #   small.clust.thresh = small.clust.thresh,
+  #   ...
+  # )
+  # Tool(object = object) <- snf
+  # object <- LogSeuratCommand(object = object)
+  # return(object)
+  .Deprecated(
+    new = 'RunQuantileNorm',
+    msg = paste(
+      "This is a deprecated function. Call 'RunQuantileNorm' instead."
+    )
   )
-  dims.use <- dims.use %||% 1:length(x = object[[reduction]])
-  embeddings <- sapply(
-    X = cells,
-    FUN = function(x) {
-      return(Embeddings(object = object[[reduction]])[x, ])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  snf <- liger::SNF(
-    object = embeddings,
-    dims.use = dims.use,
-    dist.use = dist.use,
-    center = center,
-    knn_k = knn_k,
-    k2 = k2,
-    small.clust.thresh = small.clust.thresh,
-    ...
-  )
-  Tool(object = object) <- snf
-  object <- LogSeuratCommand(object = object)
-  return(object)
 }
 
 #' Run quantileAlignSNF on a Seurat object
 #'
+#' This is a deprecated function. Call 'RunQuantileNorm' instead.
+#' 
 #' @inheritParams RunSNF
 #' @inheritParams RunOptimizeALS
 #' @inheritParams liger::quantileAlignSNF
@@ -174,7 +183,7 @@ RunSNF <- function(
 #' DefaultAssay Tool<- Idents<- LogSeuratCommand
 #'
 #' @aliases quantileAlignSNF
-#' @seealso \code{\link[liger]{quantileAlignSNF}}
+#' @seealso \code{\link[liger]{RunQuantileNorm}}
 #'
 #' @export
 # @method quantileAlignSNF Seurat
@@ -198,16 +207,133 @@ RunQuantileAlignSNF <- function(
   print.align.summary = FALSE,
   ...
 ) {
-  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
-  if (recalc.snf || is.null(x = Tool(object = object, slot = 'RunSNF'))) {
-    object <- RunSNF(
-      object = object,
-      split.by = split.by,
-      reduction = reduction,
-      center = center,
-      ...
+  # CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
+  # if (recalc.snf || is.null(x = Tool(object = object, slot = 'RunSNF'))) {
+  #   object <- RunSNF(
+  #     object = object,
+  #     split.by = split.by,
+  #     reduction = reduction,
+  #     center = center,
+  #     ...
+  #   )
+  # }
+  # embeddings <- sapply(
+  #   X = SplitObject(object = object, split.by = split.by),
+  #   FUN = function(x) {
+  #     return(Embeddings(object = x[[reduction]]))
+  #   },
+  #   simplify = FALSE,
+  #   USE.NAMES = TRUE
+  # )
+  # if (is.null(x = ref_dataset)) {
+  #   num.samples <- vapply(
+  #     X = embeddings,
+  #     FUN = nrow,
+  #     FUN.VALUE = integer(length = 1L)
+  #   )
+  #   ref_dataset <- names(x = embeddings)[which.max(x = num.samples)]
+  # } else if (is.numeric(x = ref_dataset)) {
+  #   ref_dataset <- names(x = embeddings)[ref_dataset]
+  # }
+  # if (is.character(x = ref_dataset) && !ref_dataset %in% names(x = embeddings)) {
+  #   stop("Cannot find reference dataset '", ref_dataset, "' in the split", call. = FALSE)
+  # }
+  # out <- liger::quantileAlignSNF(
+  #   object = embeddings,
+  #   snf = Tool(object = object, slot = 'RunSNF'),
+  #   cell.names = colnames(x = object),
+  #   ref_dataset = ref_dataset,
+  #   prune.thresh = prune.thresh,
+  #   min_cells = min_cells,
+  #   quantiles = quantiles,
+  #   nstart = nstart,
+  #   resolution = resolution,
+  #   center = center,
+  #   id.number = id.number,
+  #   print.mod = print.mod,
+  #   print.align.summary = print.align.summary,
+  #   ...
+  # )
+  # object[[reduction.name]] <- CreateDimReducObject(
+  #   embeddings = out$H.norm,
+  #   assay = DefaultAssay(object = object[[reduction]]),
+  #   key = reduction.key
+  # )
+  # out <- as.data.frame(x = out[names(x = out) != 'H.norm'])
+  # object[[colnames(x = out)]] <- out
+  # Idents(object = object) <- 'clusters'
+  # object <- LogSeuratCommand(object = object)
+  # return(object)
+  message(paste(
+      "This is a deprecated function. Calling 'RunQuantileNorm' instead.",
+      "Note that not all parameters can be passed to 'RunQuantileNorm'.",
+      "It's suggested to run 'louvainCluster' subsequently as well."
+    ))
+
+  .Deprecated(
+    new = 'RunQuantileNorm',
+    msg = paste(
+      "This is a deprecated function. Calling 'quantile_norm' instead.",
+      "Note that not all parameters can be passed to 'quantile_norm'.",
+      "It's suggested to run 'louvainCluster' subsequently as well."
     )
-  }
+  )
+
+  return(RunQuantileNorm(object,
+    split.by = split.by,
+    reduction = reduction,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    quantiles = quantiles,
+    ref_dataset = NULL,
+    min_cells = 20,
+    knn_k = 20,
+    dims.use = NULL,
+    do.center = F,
+    max_sample = 1000,
+    eps = 0.9,
+    refine.knn = T,
+    ...
+  ))
+}
+
+#' Run quantile_norm on a Seurat object
+#'
+#' @inheritParams RunOptimizeALS
+#' @inheritParams liger::quantile_norm
+#' @param ... Arguments passed to other methods
+#'
+#' @return A Seurat object with embeddings from \code{\link[liger]{quantile_norm}}
+#' stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
+#'
+# @importFrom liger quantile_norm
+#' @importFrom Seurat Tool SplitObject Embeddings CreateDimReducObject
+#' DefaultAssay Tool<- Idents<- LogSeuratCommand
+#'
+#' @aliases quantile_norm
+#' @seealso \code{\link[liger]{quantile_norm}}
+#'
+#' @export
+# @method quantile_norm Seurat
+#'
+RunQuantileNorm <- function(
+  object,
+  split.by = 'orig.ident',
+  reduction = 'iNMF_raw',
+  reduction.name = 'iNMF',
+  reduction.key = 'iNMF_',
+  quantiles = 50,
+  ref_dataset = NULL,
+  min_cells = 20,
+  knn_k = 20,
+  dims.use = NULL,
+  do.center = F,
+  max_sample = 1000,
+  eps = 0.9,
+  refine.knn = T,
+  ...
+) {
+  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
   embeddings <- sapply(
     X = SplitObject(object = object, split.by = split.by),
     FUN = function(x) {
@@ -229,20 +355,17 @@ RunQuantileAlignSNF <- function(
   if (is.character(x = ref_dataset) && !ref_dataset %in% names(x = embeddings)) {
     stop("Cannot find reference dataset '", ref_dataset, "' in the split", call. = FALSE)
   }
-  out <- liger::quantileAlignSNF(
+  out <- liger::quantile_norm(
     object = embeddings,
-    snf = Tool(object = object, slot = 'RunSNF'),
-    cell.names = colnames(x = object),
-    ref_dataset = ref_dataset,
-    prune.thresh = prune.thresh,
-    min_cells = min_cells,
     quantiles = quantiles,
-    nstart = nstart,
-    resolution = resolution,
-    center = center,
-    id.number = id.number,
-    print.mod = print.mod,
-    print.align.summary = print.align.summary,
+    ref_dataset = ref_dataset,
+    min_cells = min_cells,
+    knn_k = knn_k,
+    dims.use = dims.use,
+    do.center = do.center,
+    max_sample = max_sample,
+    eps = eps,
+    refine.knn = refine.knn,
     ...
   )
   object[[reduction.name]] <- CreateDimReducObject(

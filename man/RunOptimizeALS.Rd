@@ -5,11 +5,24 @@
 \alias{optimizeALS}
 \title{Run optimizeALS on a Seurat object}
 \usage{
-RunOptimizeALS(object, k, assay = NULL, split.by = "orig.ident",
-  lambda = 5, thresh = 1e-04, max.iters = 100,
-  reduction.name = "iNMF_raw", reduction.key = "riNMF_", nrep = 1,
-  H.init = NULL, W.init = NULL, V.init = NULL, rand.seed = 1,
-  print.obj = FALSE, ...)
+RunOptimizeALS(
+  object,
+  k,
+  assay = NULL,
+  split.by = "orig.ident",
+  lambda = 5,
+  thresh = 1e-06,
+  max.iters = 30,
+  reduction.name = "iNMF_raw",
+  reduction.key = "riNMF_",
+  nrep = 1,
+  H.init = NULL,
+  W.init = NULL,
+  V.init = NULL,
+  rand.seed = 1,
+  print.obj = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A merged Seurat object}
@@ -27,9 +40,9 @@ strongly (ie. alignment should increase as lambda increases). Run suggestLambda 
 most appropriate value for balancing dataset alignment and agreement (default 5.0).}
 
 \item{thresh}{Convergence threshold. Convergence occurs when |obj0-obj|/(mean(obj0,obj)) < thresh.
-(default 1e-4)}
+(default 1e-6)}
 
-\item{max.iters}{Maximum number of block coordinate descent iterations to perform (default 100).}
+\item{max.iters}{Maximum number of block coordinate descent iterations to perform (default 30).}
 
 \item{reduction.name}{Name to store resulting DimReduc object as}
 

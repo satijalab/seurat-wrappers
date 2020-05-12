@@ -5,12 +5,25 @@
 \alias{quantileAlignSNF}
 \title{Run quantileAlignSNF on a Seurat object}
 \usage{
-RunQuantileAlignSNF(object, split.by = "orig.ident",
-  reduction = "iNMF_raw", reduction.name = "iNMF",
-  reduction.key = "iNMF_", recalc.snf = FALSE, ref_dataset = NULL,
-  prune.thresh = 0.2, min_cells = 2, quantiles = 50, nstart = 10,
-  resolution = 1, center = FALSE, id.number = NULL,
-  print.mod = FALSE, print.align.summary = FALSE, ...)
+RunQuantileAlignSNF(
+  object,
+  split.by = "orig.ident",
+  reduction = "iNMF_raw",
+  reduction.name = "iNMF",
+  reduction.key = "iNMF_",
+  recalc.snf = FALSE,
+  ref_dataset = NULL,
+  prune.thresh = 0.2,
+  min_cells = 2,
+  quantiles = 50,
+  nstart = 10,
+  resolution = 1,
+  center = FALSE,
+  id.number = NULL,
+  print.mod = FALSE,
+  print.align.summary = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A merged Seurat object}
@@ -60,8 +73,8 @@ A Seurat object with embeddings from \code{\link[liger]{quantileAlignSNF}}
 stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
 }
 \description{
-Run quantileAlignSNF on a Seurat object
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{quantileAlignSNF}}
+\code{\link[liger]{RunQuantileNorm}}
 }
