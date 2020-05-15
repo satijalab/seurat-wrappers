@@ -37,13 +37,14 @@ Prerequisites to install:
 * [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 * [SeuratData](https://github.com/satijalab/seurat-data) 
 * [glmpca](https://github.com/willtownes/glmpca)
+* [scry](https://github.com/kstreet13/scry)
 
 ```{r packages}
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 library(glmpca)
-library(dplyr)
+library(scry)
 ```
 
 ### GLM-PCA on PBMC3k
@@ -54,17 +55,21 @@ To learn more about this dataset, type `?pbmc3k`
 InstallData("pbmc3k")
 data("pbmc3k")
 
-# Initial processing to select variable features 
-pbmc3k <- NormalizeData(pbmc3k, verbose = FALSE) %>% FindVariableFeatures(verbose = FALSE)
+# Initial processing to select variable features
+m <- GetAssayData(pbmc3k, slot = "counts", assay = "RNA")
+devs <- scry::devianceFeatureSelection(m)
+dev_ranked_genes <- rownames(pbmc3k)[order(devs, decreasing = TRUE)]
+topdev <- head(dev_ranked_genes, 2000)
 
-# run GLM-PCA on Seurat object. 
+# run GLM-PCA on Seur at object. 
 # Uses Poisson model by default
 # Note that data in the counts slot is used
 # We choose 10 dimensions for computational efficiency
 
 ndims <- 10
-pbmc3k <- RunGLMPCA(pbmc3k, features = VariableFeatures(pbmc3k), L = ndims)
-pbmc3k <- FindNeighbors(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE) %>% FindClusters(verbose = F)
+pbmc3k <- RunGLMPCA(pbmc3k, features = topdev, L = ndims)
+pbmc3k <- FindNeighbors(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
+pbmc3k <- FindClusters(pbmc3k, verbose = FALSE)
 pbmc3k <- RunUMAP(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
 ```
 
@@ -72,6 +77,12 @@ pbmc3k <- RunUMAP(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
 # visualize markers
 features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
 DimPlot(pbmc3k)
+```
+
+Do the learned clusters overlap with the original annotation?
+
+```{r}
+with(pbmc3k[[]], table(seurat_annotations, seurat_clusters))
 ```
 
 ```{r explore2, fig.height=10}

@@ -55,11 +55,18 @@ RunGLMPCA <- function(
   glmpca_dimnames <- paste0(reduction.key, 1:L)
   colnames(x = glmpca_results$factors) <- glmpca_dimnames
   colnames(x = glmpca_results$loadings) <- glmpca_dimnames
-    object[[reduction.name]] <-CreateDimReducObject(
-    embeddings = as.matrix(glmpca_results$factors),
+  factors_l2_norm <- apply(
+    X = glmpca_results$factors,
+    MARGIN = 2,
+    FUN = function(x) {
+      sqrt(x = crossprod(x = x))
+    }
+  )
+  object[[reduction.name]] <- CreateDimReducObject(
+    embeddings = as.matrix(x = glmpca_results$factors),
     key = reduction.key,
-    loadings = as.matrix(glmpca_results$loadings),
-    stdev = glmpca_results$dev,
+    loadings = as.matrix(x = glmpca_results$loadings),
+    stdev = factors_l2_norm,
     assay = assay,
     global = TRUE,
     misc = glmpca_results
