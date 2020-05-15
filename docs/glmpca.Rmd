@@ -61,7 +61,7 @@ devs <- scry::devianceFeatureSelection(m)
 dev_ranked_genes <- rownames(pbmc3k)[order(devs, decreasing = TRUE)]
 topdev <- head(dev_ranked_genes, 2000)
 
-# run GLM-PCA on Seur at object. 
+# run GLM-PCA on Seurat object. 
 # Uses Poisson model by default
 # Note that data in the counts slot is used
 # We choose 10 dimensions for computational efficiency
@@ -86,5 +86,6 @@ with(pbmc3k[[]], table(seurat_annotations, seurat_clusters))
 ```
 
 ```{r explore2, fig.height=10}
+pbmc3k <- NormalizeData(pbmc3k, verbose = FALSE) 
 FeaturePlot(pbmc3k, features.plot, ncol = 2)
 ```
