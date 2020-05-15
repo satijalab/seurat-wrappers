@@ -7,7 +7,9 @@ Compiled: July 16, 2019
     -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
     -   [Eight human pancreatic islet datasets](#eight-human-pancreatic-islet-datasets)
 
-This vigettte demonstrates how to run LIGER on Seurat objects. Parameters and commands are based off of the [LIGER tutorial](https://macoskolab.github.io/liger/liger-vignette.html). If you use LIGER, please cite:
+NOTE: Please update your `liger` version to 0.5.0 or above before following this tutorial.
+
+This vigettte demonstrates how to run LIGER on Seurat objects. Parameters and commands are based on the [LIGER tutorial](http://htmlpreview.github.io/?https://github.com/MacoskoLab/liger/blob/master/vignettes/Integrating_multi_scRNA_data.html). If you use LIGER, please cite:
 
 > *Single-Cell Multi-omic Integration Compares and Contrasts Features of Brain Cell Identity*
 >
@@ -33,7 +35,7 @@ library(SeuratData)
 library(SeuratWrappers)
 ```
 
-In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. Values for \(k\) and \(lambda\) were selected on a previous analysis of this dataset contained in a `liger` object instead.
+In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well. 
 
 ### Systematic comparative analysis of human PBMC
 
@@ -42,11 +44,14 @@ To learn more about this dataset, type `?pbmcsca`
 ``` r
 InstallData("pbmcsca")
 data("pbmcsca")
+# Please update your `liger` version to 0.5.0 or above before following this tutorial.
 pbmcsca <- NormalizeData(pbmcsca)
 pbmcsca <- FindVariableFeatures(pbmcsca)
 pbmcsca <- ScaleData(pbmcsca, split.by = "Method", do.center = FALSE)
 pbmcsca <- RunOptimizeALS(pbmcsca, k = 20, lambda = 5, split.by = "Method")
 pbmcsca <- RunQuantileNorm(pbmcsca, split.by = "Method")
+pbmcsca <- FindNeighbors(pbmcsca, nn.eps = 0.1, reduction = 'iNMF', dims = 1:20)
+pbmcsca <- FindClusters(pbmcsca, resolution = 0.3, n.start = 10, n.iter = 100)
 pbmcsca <- RunUMAP(pbmcsca, dims = 1:ncol(pbmcsca[["iNMF"]]), reduction = "iNMF")
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
@@ -60,11 +65,14 @@ To learn more about this dataset, type `?ifnb`
 ``` r
 InstallData("ifnb")
 data("ifnb")
+# Please update your `liger` version to 0.5.0 or above before following this tutorial.
 ifnb <- NormalizeData(ifnb)
 ifnb <- FindVariableFeatures(ifnb)
 ifnb <- ScaleData(ifnb, split.by = "stim", do.center = FALSE)
 ifnb <- RunOptimizeALS(ifnb, k = 20, lambda = 5, split.by = "stim")
 ifnb <- RunQuantileNorm(ifnb, split.by = "stim")
+ifnb <- FindNeighbors(ifnb, nn.eps = 0.1, reduction = 'iNMF', dims = 1:20)
+ifnb <- FindClusters(ifnb, resolution = 0.55, n.start = 10, n.iter = 100)
 ifnb <- RunUMAP(ifnb, dims = 1:ncol(ifnb[["iNMF"]]), reduction = "iNMF")
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
@@ -78,11 +86,14 @@ To learn more about this dataset, type `?panc8`
 ``` r
 InstallData("panc8")
 data("panc8")
+# Please update your `liger` version to 0.5.0 or above before following this tutorial.
 panc8 <- NormalizeData(panc8)
 panc8 <- FindVariableFeatures(panc8)
 panc8 <- ScaleData(panc8, split.by = "replicate", do.center = FALSE)
 panc8 <- RunOptimizeALS(panc8, k = 20, lambda = 5, split.by = "replicate")
 panc8 <- RunQuantileNorm(panc8, split.by = "replicate")
+panc8 <- FindNeighbors(panc8, nn.eps = 0.1, reduction = 'iNMF', dims = 1:20)
+panc8 <- FindClusters(panc8, resolution = 0.4, n.start = 10, n.iter = 100)
 panc8 <- RunUMAP(panc8, dims = 1:ncol(panc8[["iNMF"]]), reduction = "iNMF")
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
