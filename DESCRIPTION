@@ -18,7 +18,7 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
-    SaskiaFreytag/schex@031320d
+    SaskiaFreytag/schex@031320d,
     k3yavi/alevin-Rtools
 Depends:
     R (>= 3.5.0)
