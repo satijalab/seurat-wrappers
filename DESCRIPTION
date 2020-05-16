@@ -36,16 +36,16 @@ Imports:
     stats,
     utils
 Collate:
+    'internal.R'
+    'alevin.R'
     'alra.R'
     'conos.R'
-    'internal.R'
     'fast_mnn.R'
     'liger.R'
     'velocity.R'
-    'alevin.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0
 Suggests:
     conos,
     liger (>= 0.4.2),

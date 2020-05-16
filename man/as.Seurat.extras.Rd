@@ -6,11 +6,24 @@
 \alias{as.Seurat.list}
 \title{Extra conversions to Seurat objects}
 \usage{
-\method{as.Seurat}{Conos}(x, method = "mnn", reduction = "largeVis",
-  idents = names(x = x$clusters)[1], verbose = TRUE, ...)
+\method{as.Seurat}{Conos}(
+  x,
+  method = "mnn",
+  reduction = "largeVis",
+  idents = names(x = x$clusters)[1],
+  verbose = TRUE,
+  ...
+)
 
-\method{as.Seurat}{list}(x, default.assay = 1, slot = "counts",
-  min.cells = 0, min.features = 0, verbose = TRUE, ...)
+\method{as.Seurat}{list}(
+  x,
+  default.assay = 1,
+  slot = "counts",
+  min.cells = 0,
+  min.features = 0,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}

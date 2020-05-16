@@ -2,7 +2,6 @@
 #'
 NULL
 
-#' @inheritParams Seurat::CreateSeuratObject
 #' Load alevin Counts data from an EDS file
 #'
 #' This is a wrapper around ReadCounts from AlevinRtools
