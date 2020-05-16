@@ -19,6 +19,7 @@ Remotes: MacoskoLab/liger,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
     SaskiaFreytag/schex@031320d
+    k3yavi/alevin-Rtools
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -41,6 +42,7 @@ Collate:
     'fast_mnn.R'
     'liger.R'
     'velocity.R'
+    'alevin.R'
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
@@ -51,4 +53,5 @@ Suggests:
     batchelor,
     SeuratData,
     velocyto.R,
-    schex
+    schex,
+    AlevinRtools

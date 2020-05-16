@@ -23,3 +23,4 @@ devtools::install_github('satijalab/seurat-wrappers')
 | ALRA | [Zero-preserving imputation with ALRA](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/alra.html) | Linderman et al, bioRxiv 2018 | https://github.com/KlugerLab/ALRA |
 | Velocity | [Estimating RNA Velocity using Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/velocity.html) | La Manno et al, Nature 2018 | https://velocyto.org |
 | schex | [Using schex with Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/schex.html) | Freytag, R package 2019 | https://github.com/SaskiaFreytag/schex
+| alevin | [Import alevin counts into Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/alevin.html) | Srivastava et. al., Genome Biology 2019 | https://github.com/k3yavi/alevin-Rtools
