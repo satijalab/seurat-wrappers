@@ -613,20 +613,15 @@ body {
 <p>Prerequisites to install:</p>
 <ul>
 <li><a href="https://github.com/satijalab/seurat-wrappers">SeuratWrappers</a></li>
+<li><a href="https://github.com/k3yavi/alevin-Rtools">AlevinRtools</a></li>
 </ul>
 <!-- end list -->
 
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SeuratWrappers)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SeuratWrappers)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(AlevinRtools)</a></code></pre></div>
 <h2></h2>
 <h3 id="import-alevin-quantified-counts">Import alevin quantified counts</h3>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">pbmc &lt;-<span class="st"> </span><span class="kw">ReadAlevin</span>(<span class="st">&quot;~/alevin_out/alevin/quants_mat.gz&quot;</span>)</a></code></pre></div>
-<pre><code>
-</code></pre>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">pbmc</a></code></pre></div>
-<pre><code>## An object of class Seurat 
-## 98069 features across 6318 samples within 1 assay 
-## Active assay: RNA (98069 features, 0 variable features)
-</code></pre>
 
 </body>
 </html>

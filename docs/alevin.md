@@ -22,11 +22,13 @@ If you use alevin in your work, please cite:
 Prerequisites to install:
 
   - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+  - [AlevinRtools](https://github.com/k3yavi/alevin-Rtools)
 
 <!-- end list -->
 
 ``` r
 library(SeuratWrappers)
+library(AlevinRtools)
 ```
 
 ## 
@@ -36,11 +38,3 @@ library(SeuratWrappers)
 ``` r
 pbmc <- ReadAlevin("~/alevin_out/alevin/quants_mat.gz")
 ```
-
-``` r
-pbmc
-```
-
-    ## An object of class Seurat 
-    ## 98069 features across 6318 samples within 1 assay 
-    ## Active assay: RNA (98069 features, 0 variable features)
