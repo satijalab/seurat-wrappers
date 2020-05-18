@@ -2,22 +2,30 @@
 #'
 NULL
 
-#' Load alevin Counts data from an EDS file
+#' Load alevin quantification data
 #'
-#' This is a wrapper around ReadCounts from AlevinRtools
+#' A wrapper around tximport to create a \code{SeuratObject}
+#' from alevin quantification data.
 #'
-#' @param file Path to `quants_mat.gz` file
+#' @param file path to \code{quants_mat.gz} file within
+#' alevin directory
+#' @param ... extra arguments passed to \code{tximport},
+#' for example,
+#' \code{alevinArgs=list(filterBarcodes=TRUE, tierImport=TRUE)}.
 #'
-#' @return Returns a Seurat object with alevin counts
+#' @return returns a Seurat object with alevin counts
 #' @seealso \code{\link[alevin]{alevin}}
 #' @author Avi Srivastava
 #' @references Srivastava, Avi, et al. "Alevin efficiently 
 #' estimates accurate gene abundances from dscRNA-seq data." 
 #' Genome biology 20.1 (2019): 65.
 #' @export
-ReadAlevin <- function(file) {
-    CheckPackage(package = 'k3yavi/alevin-Rtools', repository = 'github')
-    counts <- AlevinRtools::ReadCounts(file)
-
-    return(CreateSeuratObject(counts))
+ReadAlevin <- function(file, ...) {
+  CheckPackage(package = 'tximport', repository = 'bioconductor')
+  txi <- tximport(file, type="alevin", ...)
+  # TODO 1 - here we can also bring along other assays optionally
+  # TODO 2 - here we can see if tximeta is available, and if so
+  #          we could bring along the range information (once
+  #          we've sorted out how to stash that properly)
+  return(CreateSeuratObject(txi$counts))
 }

@@ -2,18 +2,24 @@
 % Please edit documentation in R/alevin.R
 \name{ReadAlevin}
 \alias{ReadAlevin}
-\title{Load alevin Counts data from an EDS file}
+\title{Load alevin quantification data}
 \usage{
-ReadAlevin(file)
+ReadAlevin(file, ...)
 }
 \arguments{
-\item{file}{Path to `quants_mat.gz` file}
+\item{file}{path to \code{quants_mat.gz} file within
+alevin directory}
+
+\item{...}{extra arguments passed to \code{tximport},
+for example,
+\code{alevinArgs=list(filterBarcodes=TRUE, tierImport=TRUE)}.}
 }
 \value{
-Returns a Seurat object with alevin counts
+returns a Seurat object with alevin counts
 }
 \description{
-This is a wrapper around ReadCounts from AlevinRtools
+A wrapper around tximport to create a \code{SeuratObject}
+from alevin quantification data.
 }
 \references{
 Srivastava, Avi, et al. "Alevin efficiently 
