@@ -1,6 +1,6 @@
 Import alevin counts & generate Seurat object
 ================
-Compiled: May 16, 2020
+Compiled: May 18, 2020
 
 This vignette demonstrates the import of alevin quantified counts into
 Seurat. Commands and parameters are based off of the [alevin
@@ -22,13 +22,13 @@ If you use alevin in your work, please cite:
 Prerequisites to install:
 
   - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
-  - [AlevinRtools](https://github.com/k3yavi/alevin-Rtools)
+  - [tximport](https://bioconductor.org/packages/tximport)
 
 <!-- end list -->
 
 ``` r
 library(SeuratWrappers)
-library(AlevinRtools)
+library(tximport)
 ```
 
 ## 

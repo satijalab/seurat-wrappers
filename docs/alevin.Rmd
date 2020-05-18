@@ -40,11 +40,11 @@ knitr::opts_chunk$set(
 Prerequisites to install: 
 
 * [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
-* [AlevinRtools](https://github.com/k3yavi/alevin-Rtools)
+* [tximport](https://bioconductor.org/packages/tximport)
 
-```{r packages}
+```{r packages, eval=FALSE}
 library(SeuratWrappers)
-library(AlevinRtools)
+library(tximport)
 ```
 
 ## {.tabset .tabset-pills}

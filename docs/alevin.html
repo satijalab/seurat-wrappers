@@ -601,7 +601,7 @@ body {
 <body>
 
 <h1 id="import-alevin-counts-&amp;-generate-seurat-object">Import alevin counts &amp; generate Seurat object</h1>
-<p>Compiled: May 16, 2020</p>
+<p>Compiled: May 18, 2020</p>
 <p>This vignette demonstrates the import of alevin quantified counts into Seurat. Commands and parameters are based off of the <a href="https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/">alevin tutorial</a>. If you use alevin in your work, please cite:</p>
 <blockquote>
 <p><em>Alevin efficiently estimates accurate gene abundances from dscRNA-seq data</em></p>
@@ -613,12 +613,12 @@ body {
 <p>Prerequisites to install:</p>
 <ul>
 <li><a href="https://github.com/satijalab/seurat-wrappers">SeuratWrappers</a></li>
-<li><a href="https://github.com/k3yavi/alevin-Rtools">AlevinRtools</a></li>
+<li><a href="https://bioconductor.org/packages/tximport">tximport</a></li>
 </ul>
 <!-- end list -->
 
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SeuratWrappers)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(AlevinRtools)</a></code></pre></div>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(tximport)</a></code></pre></div>
 <h2></h2>
 <h3 id="import-alevin-quantified-counts">Import alevin quantified counts</h3>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">pbmc &lt;-<span class="st"> </span><span class="kw">ReadAlevin</span>(<span class="st">&quot;~/alevin_out/alevin/quants_mat.gz&quot;</span>)</a></code></pre></div>

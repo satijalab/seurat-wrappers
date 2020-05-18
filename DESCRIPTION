@@ -18,8 +18,7 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
-    SaskiaFreytag/schex@031320d,
-    k3yavi/alevin-Rtools
+    SaskiaFreytag/schex@031320d
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -54,4 +53,4 @@ Suggests:
     SeuratData,
     velocyto.R,
     schex,
-    AlevinRtools
+    tximport
