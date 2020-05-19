@@ -11,10 +11,14 @@ NULL
 #' alevin directory
 #' @param getMeta logical, option to use \code{tximeta} to
 #' programmatically obtain gene range information, default
-#' is FALSE
+#' is FALSE. Ranges are stored in \code{chr}, \code{start},
+#' and \code{end} in the \code{meta.features} slot.
+#' @param meanAndVariance logical, should mean and variance
+#' of counts be returned in \code{counts} and \code{data}
+#' slots, respectively
 #' @param ... extra arguments passed to \code{tximport},
 #' for example,
-#' \code{alevinArgs=list(filterBarcodes=TRUE, tierImport=TRUE)}.
+#' \code{alevinArgs=list(filterBarcodes=TRUE)}.
 #'
 #' @return returns a Seurat object with alevin counts
 #' @seealso \code{\link[alevin]{alevin}}
@@ -23,25 +27,39 @@ NULL
 #' estimates accurate gene abundances from dscRNA-seq data." 
 #' Genome biology 20.1 (2019): 65.
 #' @export
-ReadAlevin <- function(file, getMeta=FALSE, ...) {
+ReadAlevin <- function(file, getMeta=FALSE, meanAndVariance=FALSE, ...) {
   CheckPackage(package = 'tximport', repository = 'bioconductor')
   CheckPackage(package = 'fishpond', repository = 'bioconductor')
   hasTximeta <- requireNamespace("tximeta", quietly=TRUE)
+  metaSuccess <- FALSE
   if (getMeta) {
-    if (!hasTximeta) stop("tximeta is not installed, use BiocManager::install()")
-    # TODO ... use tximeta here and stash ranges
+    if (!hasTximeta)
+      stop("tximeta is not installed, use BiocManager::install()")
+    se <- tximeta::tximeta(file, type="alevin", ...)
+    metaSuccess <- TRUE
+    if (meanAndVariance &
+        all(c("mean","variance") %in% SummarizedExperiment::assayNames(se))) {
+      txi <- list(mean=SummarizedExperiment::assays(se)[["mean"]],
+                  variance=SummarizedExperiment::assays(se)[["variance"]])
+    } else {
+      txi <- list(counts=SummarizedExperiment::assays(se)[["counts"]])
+    }
   } else {
-    txi <- tximport(file, type="alevin", ...)
+    txi <- tximport::tximport(file, type="alevin", ...)
   }
-  obj <- CreateSeuratObject(txi$counts)
-  if ("mean" %in% names(txi)) {
-    obj <- obj
+  if (meanAndVariance) {
+    if (!all(c("mean","variance") %in% names(txi)))
+      stop("mean and variance not present in alevin directory")
+    obj <- CreateSeuratObject(counts=txi$mean)
+    obj <- Seurat::SetAssayData(obj, "data", txi$variance)
+  } else {
+    obj <- CreateSeuratObject(counts=txi$counts)
   }
-  if ("variance" %in% names(txi)) {
-    obj <- obj
-  }
-  if ("tier" %in% names(txi)) {
-    obj <- obj
+  if (metaSuccess) {
+    r <- SummarizedExperiment::rowRanges(se)
+    obj[["RNA"]][["chr"]] <- as.character(GenomicRanges::seqnames(r))
+    obj[["RNA"]][["start"]] <- GenomicRanges::start(r)
+    obj[["RNA"]][["end"]] <- GenomicRanges::end(r)
   }
   return(obj)
 }

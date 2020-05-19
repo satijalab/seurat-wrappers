@@ -4,7 +4,7 @@
 \alias{ReadAlevin}
 \title{Load alevin quantification data}
 \usage{
-ReadAlevin(file, getMeta = FALSE, ...)
+ReadAlevin(file, getMeta = FALSE, meanAndVariance = FALSE, ...)
 }
 \arguments{
 \item{file}{path to \code{quants_mat.gz} file within
@@ -12,11 +12,16 @@ alevin directory}
 
 \item{getMeta}{logical, option to use \code{tximeta} to
 programmatically obtain gene range information, default
-is FALSE}
+is FALSE. Ranges are stored in \code{chr}, \code{start},
+and \code{end} in the \code{meta.features} slot.}
+
+\item{meanAndVariance}{logical, should mean and variance
+of counts be returned in \code{counts} and \code{data}
+slots, respectively}
 
 \item{...}{extra arguments passed to \code{tximport},
 for example,
-\code{alevinArgs=list(filterBarcodes=TRUE, tierImport=TRUE)}.}
+\code{alevinArgs=list(filterBarcodes=TRUE)}.}
 }
 \value{
 returns a Seurat object with alevin counts
