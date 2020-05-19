@@ -36,7 +36,7 @@ ReadAlevin <- function(file, getMeta=FALSE, meanAndVariance=FALSE, ...) {
     if (!hasTximeta)
       stop("tximeta is not installed, use BiocManager::install()")
     se <- tximeta::tximeta(file, type="alevin", ...)
-    metaSuccess <- TRUE
+    metaSuccess <- !is.null(SummarizedExperiment::rowRanges(se))
     if (meanAndVariance &
         all(c("mean","variance") %in% SummarizedExperiment::assayNames(se))) {
       txi <- list(mean=SummarizedExperiment::assays(se)[["mean"]],
