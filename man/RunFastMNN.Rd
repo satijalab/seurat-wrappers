@@ -4,9 +4,15 @@
 \alias{RunFastMNN}
 \title{Run fastMNN}
 \usage{
-RunFastMNN(object.list, assay = NULL, features = 2000,
-  reduction.name = "mnn", reduction.key = "mnn_", verbose = TRUE,
-  ...)
+RunFastMNN(
+  object.list,
+  assay = NULL,
+  features = 2000,
+  reduction.name = "mnn",
+  reduction.key = "mnn_",
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object.list}{A list of Seurat objects}
@@ -21,18 +27,18 @@ RunFastMNN(object.list, assay = NULL, features = 2000,
 
 \item{verbose}{Print messages from \code{\link[Seurat]{SelectIntegrationFeatures}}}
 
-\item{...}{Extra parameters passed to \code{\link[scran]{fastMNN}}}
+\item{...}{Extra parameters passed to \code{\link[batchelor]{fastMNN}}}
 }
 \value{
 A Seurat object merged from the objects in \code{object.list} and a new
 DimReduc of name \code{reduction.name} (key set to \code{reduction.key}) with
 corrected embeddings matrix; all other return values from
-\code{\link[scran]{fastMNN}} are stored in the \code{tool} slot, accessible with
+\code{\link[batchelor]{fastMNN}} are stored in the \code{tool} slot, accessible with
 \code{\link[Seurat]{Tool}}
 }
 \description{
 Run fastMNN
 }
 \seealso{
-\code{\link[scran]{fastMNN}} \code{\link[Seurat]{Tool}}
+\code{\link[batchelor]{fastMNN}} \code{\link[Seurat]{Tool}}
 }
