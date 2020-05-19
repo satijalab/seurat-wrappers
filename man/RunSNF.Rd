@@ -5,9 +5,18 @@
 \alias{SNF}
 \title{Generate shared factor neighborhood graph}
 \usage{
-RunSNF(object, split.by = "orig.ident", reduction = "iNMF_raw",
-  dims.use = NULL, dist.use = "CR", center = FALSE, knn_k = 20,
-  k2 = 500, small.clust.thresh = knn_k, ...)
+RunSNF(
+  object,
+  split.by = "orig.ident",
+  reduction = "iNMF_raw",
+  dims.use = NULL,
+  dist.use = "CR",
+  center = FALSE,
+  knn_k = 20,
+  k2 = 500,
+  small.clust.thresh = knn_k,
+  ...
+)
 }
 \arguments{
 \item{object}{A merged Seurat object}
@@ -16,23 +25,23 @@ RunSNF(object, split.by = "orig.ident", reduction = "iNMF_raw",
 
 \item{reduction}{Name of reduction to use}
 
-\item{dims.use}{Indices of factors to use for shared nearest factor determination (default
+\item{dims.use}{Indices of factors to use for shared nearest factor determination (default 
 1:ncol(H[[1]])).}
 
 \item{dist.use}{Distance metric to use in calculating nearest neighbors (default "CR").}
 
-\item{center}{Centers the data when scaling factors (useful for less sparse modalities like
+\item{center}{Centers the data when scaling factors (useful for less sparse modalities like 
 methylation data). (default FALSE)}
 
 \item{knn_k}{Number of nearest neighbors for within-dataset knn graph (default 20).}
 
-\item{k2}{Horizon parameter for shared nearest factor graph. Distances to all but the k2 nearest
+\item{k2}{Horizon parameter for shared nearest factor graph. Distances to all but the k2 nearest 
 neighbors are set to 0 (cuts down on memory usage for very large graphs). (default 500)}
 
-\item{small.clust.thresh}{Extracts small clusters loading highly on single factor with fewer
+\item{small.clust.thresh}{Extracts small clusters loading highly on single factor with fewer 
 cells than this before regular alignment (default 0 -- no small cluster extraction).}
 
-\item{...}{Arguments passed to and from other methods}
+\item{...}{Arguments passed to other methods}
 }
 \value{
 A Seurat object with the SNF list stored in the \code{tool} slot,
