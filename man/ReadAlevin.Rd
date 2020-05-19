@@ -4,11 +4,15 @@
 \alias{ReadAlevin}
 \title{Load alevin quantification data}
 \usage{
-ReadAlevin(file, ...)
+ReadAlevin(file, getMeta = FALSE, ...)
 }
 \arguments{
 \item{file}{path to \code{quants_mat.gz} file within
 alevin directory}
+
+\item{getMeta}{logical, option to use \code{tximeta} to
+programmatically obtain gene range information, default
+is FALSE}
 
 \item{...}{extra arguments passed to \code{tximport},
 for example,

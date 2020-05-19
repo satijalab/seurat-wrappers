@@ -53,4 +53,5 @@ Suggests:
     SeuratData,
     velocyto.R,
     schex,
-    tximport
+    tximport,
+    fishpond

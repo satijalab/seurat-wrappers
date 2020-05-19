@@ -9,6 +9,9 @@ NULL
 #'
 #' @param file path to \code{quants_mat.gz} file within
 #' alevin directory
+#' @param getMeta logical, option to use \code{tximeta} to
+#' programmatically obtain gene range information, default
+#' is FALSE
 #' @param ... extra arguments passed to \code{tximport},
 #' for example,
 #' \code{alevinArgs=list(filterBarcodes=TRUE, tierImport=TRUE)}.
@@ -20,12 +23,25 @@ NULL
 #' estimates accurate gene abundances from dscRNA-seq data." 
 #' Genome biology 20.1 (2019): 65.
 #' @export
-ReadAlevin <- function(file, ...) {
+ReadAlevin <- function(file, getMeta=FALSE, ...) {
   CheckPackage(package = 'tximport', repository = 'bioconductor')
-  txi <- tximport(file, type="alevin", ...)
-  # TODO 1 - here we can also bring along other assays optionally
-  # TODO 2 - here we can see if tximeta is available, and if so
-  #          we could bring along the range information (once
-  #          we've sorted out how to stash that properly)
-  return(CreateSeuratObject(txi$counts))
+  CheckPackage(package = 'fishpond', repository = 'bioconductor')
+  hasTximeta <- requireNamespace("tximeta", quietly=TRUE)
+  if (getMeta) {
+    if (!hasTximeta) stop("tximeta is not installed, use BiocManager::install()")
+    # TODO ... use tximeta here and stash ranges
+  } else {
+    txi <- tximport(file, type="alevin", ...)
+  }
+  obj <- CreateSeuratObject(txi$counts)
+  if ("mean" %in% names(txi)) {
+    obj <- obj
+  }
+  if ("variance" %in% names(txi)) {
+    obj <- obj
+  }
+  if ("tier" %in% names(txi)) {
+    obj <- obj
+  }
+  return(obj)
 }
