@@ -54,7 +54,7 @@ library(SeuratWrappers)
 
 In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well.
 
-The users can optionally perform Louvain clustering (`FindNeighbors` and `FindClusters`) after `RunQuantileNorm` according to their needs.
+`RunQuantileNorm` produces joint clusters, but users can also optionally perform Louvain community detection (`FindNeighbors` and `FindClusters`) on the integrated latent space from iNMF.
 
 ## {.tabset .tabset-pills}
 
