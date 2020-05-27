@@ -1,0 +1,95 @@
+---
+title: "Estimating RNA Velocity using Seurat and scVelo"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    df_print: kable
+    theme: united
+  github_document:
+    html_preview: true
+    toc: false
+---
+
+This vignette demonstrates analysing RNA Velocity quantifications stored in a Seurat object. <!-- Parameters are based off of the [RNA Velocity tutorial](http://pklab.med.harvard.edu/velocyto/notebooks/R/SCG71.nb.html).--> If you use scVelo in your work, please cite:
+
+<!-- > *RNA velocity of single cells* -->
+<!-- > -->
+<!-- > Gioele La Manno, Ruslan Soldatov, Amit Zeisel, Emelie Braun, Hannah Hochgerner, Viktor Petukhov, Katja Lidschreiber, Maria E. Kastriti, Peter Lönnerberg, Alessandro Furlan, Jean Fan, Lars E. Borm, Zehua Liu, David van Bruggen, Jimin Guo, Xiaoling He, Roger Barker, Erik Sundström, Gonçalo Castelo-Branco, Patrick Cramer, Igor Adameyko, Sten Linnarsson & Peter V. Kharchenko -->
+<!-- > -->
+<!-- > doi: [10.1038/s41586-018-0414-6](https://doi.org/10.1038/s41586-018-0414-6) -->
+<!-- > -->
+<!-- > Website: https://velocyto.org -->
+
+```{r setup, include=FALSE}
+python3 <- Sys.which(names = c("python3.6", "python3"))
+python3 <- unname(obj = Filter(f = nchar, x = python3))
+library(reticulate)
+reticulate::use_python(python = python3[1], required = TRUE)
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.height = 10,
+  fig.width = 16
+)
+```
+
+Prerequisites to install:
+
+ - [Seurat](https://satijalab.org/seurat/install)
+ - [scVelo](https://scvelo.readthedocs.io/)
+ - [SeuratDisk](https://mojaveazure.github.io/seurat-disk)
+ - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+
+```{r packages}
+library(Seurat)
+library(SeuratDisk)
+library(SeuratWrappers)
+```
+
+```{r cleanup, results="hide", echo=FALSE, eval=TRUE}
+if (file.exists("mouseBM.h5Seurat")) {
+  file.remove("mouseBM.h5Seurat")
+}
+if (file.exists("mouseBM.h5ad")) {
+  file.remove("mouseBM.h5ad")
+}
+```
+
+```{r load_data3, results='hide', eval=TRUE}
+# If you don't have velocyto's example mouse bone marrow dataset, download with the CURL command
+# curl::curl_download(url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom", destfile = "~/Downloads/SCG71.loom")
+ldat <- ReadVelocity(file = "~/Downloads/SCG71.loom")
+bm <- as.Seurat(x = ldat)
+bm[["RNA"]] <- bm[["spliced"]]
+bm <- SCTransform(bm)
+bm <- RunPCA(bm)
+bm <- RunUMAP(bm, dims = 1:20)
+bm <- FindNeighbors(bm, dims = 1:20)
+bm <- FindClusters(bm)
+DefaultAssay(bm) <- "RNA"
+SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
+Convert("mouseBM.h5Seurat", dest = "h5ad")
+```
+
+```{python scvelo, results="hide"}
+# In Python
+import scvelo as scv
+adata = scv.read("mouseBM.h5ad")
+adata
+scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
+scv.tl.velocity(adata)
+scv.tl.velocity_graph(adata)
+scv.pl.velocity_embedding_stream(adata, basis="umap", color="seurat_clusters")
+scv.pl.velocity_embedding(adata, basis="umap", color="seurat_clusters", arrow_length=3, arrow_size=2, dpi=120)
+```
+
+```{python latent_time, results="hide"}
+scv.tl.recover_dynamics(adata)
+scv.tl.latent_time(adata)
+scv.pl.scatter(adata, color="latent_time", color_map="gnuplot")
+top_genes = adata.var["fit_likelihood"].sort_values(ascending=False).index[:300]
+scv.pl.heatmap(adata, var_names=top_genes, sortby="latent_time", col_color="seurat_clusters", n_convolve=100)
+```
