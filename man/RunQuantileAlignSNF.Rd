@@ -48,16 +48,16 @@ the dataset with the largest number of cells is used.}
 
 \item{quantiles}{Number of quantiles to use for quantile normalization (default 50).}
 
-\item{nstart}{Number of times to perform Louvain community detection with different random
+\item{nstart}{Number of times to perform Louvain community detection with different random 
 starts (default 10).}
 
-\item{resolution}{Controls the number of communities detected. Higher resolution -> more
+\item{resolution}{Controls the number of communities detected. Higher resolution -> more 
 communities. (default 1)}
 
-\item{center}{Centers the data when scaling factors (useful for less sparse modalities like
+\item{center}{Centers the data when scaling factors (useful for less sparse modalities like 
 methylation data). (default FALSE)}
 
-\item{id.number}{Number to use for identifying edge file (when running in parallel)
+\item{id.number}{Number to use for identifying edge file (when running in parallel) 
 (generates random value by default).}
 
 \item{print.mod}{Print modularity output from clustering algorithm (default FALSE).}

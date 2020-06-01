@@ -39,11 +39,12 @@ Collate:
     'conos.R'
     'internal.R'
     'fast_mnn.R'
+    'glmpca.R'
     'liger.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Suggests:
     conos,
     liger (>= 0.4.2),
@@ -51,4 +52,5 @@ Suggests:
     batchelor,
     SeuratData,
     velocyto.R,
-    schex
+    schex,
+    glmpca
