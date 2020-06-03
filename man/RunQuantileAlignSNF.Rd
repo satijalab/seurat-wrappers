@@ -73,8 +73,8 @@ A Seurat object with embeddings from \code{\link[liger]{quantileAlignSNF}}
 stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
 }
 \description{
-Run quantileAlignSNF on a Seurat object
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{quantileAlignSNF}}
+\code{\link[liger]{RunQuantileNorm}}
 }
