@@ -73,11 +73,15 @@ SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
 Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```
 
-```{python scvelo, results="hide"}
+```{python load_adata}
 # In Python
 import scvelo as scv
+scv.__version__
 adata = scv.read("mouseBM.h5ad")
 adata
+```
+
+```{python scvelo, results="hide"}
 scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
 scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
 scv.tl.velocity(adata)
