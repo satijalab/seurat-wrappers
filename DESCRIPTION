@@ -36,8 +36,9 @@ Imports:
     utils
 Collate:
     'alra.R'
-    'conos.R'
     'internal.R'
+    'cogaps.R'
+    'conos.R'
     'fast_mnn.R'
     'glmpca.R'
     'liger.R'
@@ -53,4 +54,5 @@ Suggests:
     SeuratData,
     velocyto.R,
     schex,
+    CoGAPS,
     glmpca

@@ -16,10 +16,10 @@ RunQuantileNorm(
   min_cells = 20,
   knn_k = 20,
   dims.use = NULL,
-  do.center = F,
+  do.center = FALSE,
   max_sample = 1000,
   eps = 0.9,
-  refine.knn = T,
+  refine.knn = TRUE,
   ...
 )
 }
