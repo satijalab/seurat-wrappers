@@ -40,6 +40,10 @@ Prerequisites to install:
   * [SeuratData](https://github.com/satijalab/seurat-data)
   * [CoGAPS](https://bioconductor.org/packages/release/bioc/vignettes/CoGAPS/inst/doc/CoGAPS.html#vignette-version)
  
+```{r install.deps, include = FALSE}
+BiocManager::install("CoGAPS")
+```
+
 ```{r packages}
 library(Seurat)
 library(SeuratWrappers)
