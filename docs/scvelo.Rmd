@@ -10,15 +10,15 @@ output:
     toc: false
 ---
 
-This vignette demonstrates analysing RNA Velocity quantifications stored in a Seurat object. <!-- Parameters are based off of the [RNA Velocity tutorial](http://pklab.med.harvard.edu/velocyto/notebooks/R/SCG71.nb.html).--> If you use scVelo in your work, please cite:
+This vignette demonstrates analysing RNA Velocity quantifications stored in a Seurat object using scVelo. If you use scVelo in your work, please cite:
 
-<!-- > *RNA velocity of single cells* -->
-<!-- > -->
-<!-- > Gioele La Manno, Ruslan Soldatov, Amit Zeisel, Emelie Braun, Hannah Hochgerner, Viktor Petukhov, Katja Lidschreiber, Maria E. Kastriti, Peter Lönnerberg, Alessandro Furlan, Jean Fan, Lars E. Borm, Zehua Liu, David van Bruggen, Jimin Guo, Xiaoling He, Roger Barker, Erik Sundström, Gonçalo Castelo-Branco, Patrick Cramer, Igor Adameyko, Sten Linnarsson & Peter V. Kharchenko -->
-<!-- > -->
-<!-- > doi: [10.1038/s41586-018-0414-6](https://doi.org/10.1038/s41586-018-0414-6) -->
-<!-- > -->
-<!-- > Website: https://velocyto.org -->
+> *Generalizing RNA velocity to transient cell states through dynamical modeling*
+>
+> Volker Bergen, Marius Lange, Stefan Peidli, F. Alexander Wolf & Fabian J. Theis
+>
+> doi: [10.1101/820936](https://doi.org/10.1101/820936)
+>
+> Website: https://scvelo.readthedocs.io/
 
 ```{r setup, include=FALSE}
 python3 <- Sys.which(names = c("python3.6", "python3"))
@@ -38,8 +38,8 @@ knitr::opts_chunk$set(
 Prerequisites to install:
 
  - [Seurat](https://satijalab.org/seurat/install)
- - [scVelo](https://scvelo.readthedocs.io/)
- - [SeuratDisk](https://mojaveazure.github.io/seurat-disk)
+ - [scVelo](https://scvelo.readthedocs.io/installation.html)
+ - [SeuratDisk](https://mojaveazure.github.io/seurat-disk/#installation)
  - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 
 ```{r packages}
@@ -76,7 +76,6 @@ Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```{python load_adata}
 # In Python
 import scvelo as scv
-scv.__version__
 adata = scv.read("mouseBM.h5ad")
 adata
 ```
