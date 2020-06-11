@@ -4,6 +4,9 @@
 #'
 NULL
 
+clusters.key <- 'monocle3_clusters'
+partitions.key <- 'monocle3_partitions'
+
 #' Convert objects to Monocle3 \code{cell_data_set} objects
 #'
 #' @param x An object
@@ -84,13 +87,27 @@ as.cell_data_set.Seurat <- function(
   if (!is.null(x = group.by)) {
     Idents(object = x) <- group.by
   }
-  if (graph %in% names(x = x)) {
+  # if (clusters.key %in% colnames(x = x[[]])) {
+  clusters.list <- if (is.null(x = group.by) && all(c(clusters.key, partitions.key) %in% colnames(x = x[[]]))) {
+    message("Using existing Monocle 3 cluster membership and partitions")
+    list(
+      partitions = factor(x = x[[partitions.key, drop = TRUE]]),
+      clusters = factor(x = x[[clusters.key, drop = TRUE]])
+    )
+  } else if (graph %in% names(x = x)) {
     g <- igraph::graph_from_adjacency_matrix(
       adjmatrix = x[[graph]],
       weighted = TRUE
     )
-    partitions <- igraph::components(graph = g)$membership[colnames(x = x)]
-    slot(object = cds, name = 'clusters')[[default.reduction]] <- list(
+    # TODO: figure out proper partitioning scheme
+    # partitions <- igraph::components(graph = g)$membership[colnames(x = x)]
+    warning(
+      "Monocle 3 trajectories require cluster partitions, which Seurat does not calculate. Please run 'cluster_cells' on your cell_data_set object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    partitions <- rep_len(x = 1, length.out = ncol(x = x))
+    list(
       cluster_result = list(
         g = g,
         relations = NULL,
@@ -102,11 +119,16 @@ as.cell_data_set.Seurat <- function(
           modularity = NA_real_
         )
       ),
-      partitions = as.factor(x = partitions),
+      partitions = factor(x = partitions),
       clusters = Idents(object = x)
     )
+  } else {
+    list()
   }
-  # TODO: Add translated resutls from learn_graph
+  if (length(x = clusters.list)) {
+    slot(object = cds, name = 'clusters')[[default.reduction]] <- clusters.list
+  }
+  # TODO: Add translated results from learn_graph
   return(cds)
 }
 
@@ -149,17 +171,33 @@ as.Seurat.cell_data_set <- function(
       Loadings(object = object[[lds.reduc]], projected = FALSE) <- loadings
     }
   }
-  # Pull cluster information
+  # Pull cluster information and pseudotime
   if (length(x = slot(object = x, name = 'clusters'))) {
     clusters <- clusters %||% DefaultDimReduc(object = object)
-    Idents(object = object) <- monocle3::clusters(
+    object[[clusters.key]] <- Idents(object = object) <- monocle3::clusters(
+      x = x,
+      reduction_method = clusters
+    )
+    object[[partitions.key]] <- monocle3::partitions(
       x = x,
       reduction_method = clusters
     )
     graph <- slot(object = x, name = 'clusters')[[clusters]]$cluster_result$g[]
-    graph <- as.Graph(x = graph)
-    DefaultAssay(object = graph) <- DefaultAssay(object = object)
-    object[[paste0(DefaultAssay(object = graph), '_monocle3_graph')]] <- graph
+    try(
+      expr = {
+        graph <- as.Graph(x = graph)
+        DefaultAssay(object = graph) <- DefaultAssay(object = object)
+        object[[paste0(DefaultAssay(object = graph), '_monocle3_graph')]] <- graph
+      },
+      silent = TRUE
+    )
+    try(
+      expr = object[['monocle3_pseudotime']] <- monocle3::pseudotime(
+        x = cds,
+        reduction_method = clusters
+      ),
+      silent = TRUE
+    )
   }
   # TODO: Pull trajectory information
   return(object)
