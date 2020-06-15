@@ -36,7 +36,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r install_deps, echo=FALSE}
-if (!requireNamespace("SeuratDisk")) {
+if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
   remotes::install_github("mojaveazure/seurat-disk")
 }
 if (!py_module_available("scvelo")) {
@@ -68,6 +68,14 @@ if (file.exists("mouseBM.h5Seurat")) {
 if (file.exists("mouseBM.h5ad")) {
   file.remove("mouseBM.h5ad")
 }
+```
+
+```{r download, results="hide", echo=FALSE}
+dir.create("~/Downloads", showWarnings = FALSE, recursive = TRUE)
+curl::curl_download(
+  url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom",
+  destfile = "~/Downloads/SCG71.loom"
+)
 ```
 
 ```{r load_data3, results='hide', eval=TRUE}
