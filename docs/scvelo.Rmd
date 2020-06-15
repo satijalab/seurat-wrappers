@@ -36,8 +36,16 @@ knitr::opts_chunk$set(
 ```
 
 ```{r install_deps, echo=FALSE}
-remotes::install_github("mojaveazure/seurat-disk")
-reticulate::py_install("scvelo")
+if (!requireNamespace("SeuratDisk")) {
+  remotes::install_github("mojaveazure/seurat-disk")
+}
+if (!py_module_available("scvelo")) {
+  pip3 <- Sys.which("pip3")[1]
+  if (!nchar(pip3)) {
+    stop("Cannot find pip3 or scvelo", call. = FALSE)
+  }
+  system2(command = pip3, args = c("install", "--user", "scvelo"))
+}
 ```
 
 Prerequisites to install:
