@@ -35,6 +35,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r install_deps, echo=FALSE}
+remotes::install_github("mojaveazure/seurat-disk")
+reticulate::py_install("scvelo")
+```
+
 Prerequisites to install:
 
  - [Seurat](https://satijalab.org/seurat/install)
