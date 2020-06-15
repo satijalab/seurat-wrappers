@@ -4,10 +4,21 @@
 \alias{RunVelocity}
 \title{Run RNA Velocty}
 \usage{
-RunVelocity(object, spliced = "spliced", unspliced = "unspliced",
-  ambiguous = NULL, spliced.average = 0.2, unspliced.average = 0.05,
-  reduction = "pca", group.by = "ident", cells = NULL,
-  graph = NULL, ncores = 1, verbose = TRUE, ...)
+RunVelocity(
+  object,
+  spliced = "spliced",
+  unspliced = "unspliced",
+  ambiguous = NULL,
+  spliced.average = 0.2,
+  unspliced.average = 0.05,
+  reduction = "pca",
+  group.by = "ident",
+  cells = NULL,
+  graph = NULL,
+  ncores = 1,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{Seurat} object}

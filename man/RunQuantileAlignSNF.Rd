@@ -5,12 +5,25 @@
 \alias{quantileAlignSNF}
 \title{Run quantileAlignSNF on a Seurat object}
 \usage{
-RunQuantileAlignSNF(object, split.by = "orig.ident",
-  reduction = "iNMF_raw", reduction.name = "iNMF",
-  reduction.key = "iNMF_", recalc.snf = FALSE, ref_dataset = NULL,
-  prune.thresh = 0.2, min_cells = 2, quantiles = 50, nstart = 10,
-  resolution = 1, center = FALSE, id.number = NULL,
-  print.mod = FALSE, print.align.summary = FALSE, ...)
+RunQuantileAlignSNF(
+  object,
+  split.by = "orig.ident",
+  reduction = "iNMF_raw",
+  reduction.name = "iNMF",
+  reduction.key = "iNMF_",
+  recalc.snf = FALSE,
+  ref_dataset = NULL,
+  prune.thresh = 0.2,
+  min_cells = 2,
+  quantiles = 50,
+  nstart = 10,
+  resolution = 1,
+  center = FALSE,
+  id.number = NULL,
+  print.mod = FALSE,
+  print.align.summary = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A merged Seurat object}
@@ -35,16 +48,16 @@ the dataset with the largest number of cells is used.}
 
 \item{quantiles}{Number of quantiles to use for quantile normalization (default 50).}
 
-\item{nstart}{Number of times to perform Louvain community detection with different random
+\item{nstart}{Number of times to perform Louvain community detection with different random 
 starts (default 10).}
 
-\item{resolution}{Controls the number of communities detected. Higher resolution -> more
+\item{resolution}{Controls the number of communities detected. Higher resolution -> more 
 communities. (default 1)}
 
-\item{center}{Centers the data when scaling factors (useful for less sparse modalities like
+\item{center}{Centers the data when scaling factors (useful for less sparse modalities like 
 methylation data). (default FALSE)}
 
-\item{id.number}{Number to use for identifying edge file (when running in parallel)
+\item{id.number}{Number to use for identifying edge file (when running in parallel) 
 (generates random value by default).}
 
 \item{print.mod}{Print modularity output from clustering algorithm (default FALSE).}
@@ -60,8 +73,8 @@ A Seurat object with embeddings from \code{\link[liger]{quantileAlignSNF}}
 stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
 }
 \description{
-Run quantileAlignSNF on a Seurat object
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{quantileAlignSNF}}
+\code{\link[liger]{RunQuantileNorm}}
 }
