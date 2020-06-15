@@ -25,22 +25,6 @@ RunSNF(
 
 \item{reduction}{Name of reduction to use}
 
-\item{dims.use}{Indices of factors to use for shared nearest factor determination (default 
-1:ncol(H[[1]])).}
-
-\item{dist.use}{Distance metric to use in calculating nearest neighbors (default "CR").}
-
-\item{center}{Centers the data when scaling factors (useful for less sparse modalities like 
-methylation data). (default FALSE)}
-
-\item{knn_k}{Number of nearest neighbors for within-dataset knn graph (default 20).}
-
-\item{k2}{Horizon parameter for shared nearest factor graph. Distances to all but the k2 nearest 
-neighbors are set to 0 (cuts down on memory usage for very large graphs). (default 500)}
-
-\item{small.clust.thresh}{Extracts small clusters loading highly on single factor with fewer 
-cells than this before regular alignment (default 0 -- no small cluster extraction).}
-
 \item{...}{Arguments passed to other methods}
 }
 \value{
@@ -48,8 +32,8 @@ A Seurat object with the SNF list stored in the \code{tool} slot,
 accessible with \code{\link[Seurat]{Tool}}
 }
 \description{
-Generate shared factor neighborhood graph
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{SNF}} \code{\link[Seurat]{Tool}}
+\code{\link[liger]{RunQuantileNorm}} \code{\link[Seurat]{Tool}}
 }
