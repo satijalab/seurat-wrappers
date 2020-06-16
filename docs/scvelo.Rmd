@@ -104,6 +104,8 @@ adata
 ```{python test_version}
 import sys
 sys.version
+import pip
+dir(pip)
 ```
 
 ```{python scvelo, results="hide", eval=FALSE}
