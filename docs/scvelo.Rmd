@@ -54,6 +54,9 @@ try:
 except ImportError:
   import pip
   pip.main(["install", "--user", "scvelo"])
+
+
+import scvelo as scv
 ```
 
 Prerequisites to install:
@@ -78,7 +81,7 @@ if (file.exists("mouseBM.h5ad")) {
 }
 ```
 
-```{r download, results="hide", echo=FALSE}
+```{r download, results="hide", echo=FALSE, eval=FALSE}
 dir.create("~/Downloads", showWarnings = FALSE, recursive = TRUE)
 curl::curl_download(
   url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom",
@@ -86,7 +89,7 @@ curl::curl_download(
 )
 ```
 
-```{r load_data3, results='hide', eval=TRUE}
+```{r load_data3, results='hide', eval=TRUE, eval=FALSE}
 # If you don't have velocyto's example mouse bone marrow dataset, download with the CURL command
 # curl::curl_download(url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom", destfile = "~/Downloads/SCG71.loom")
 ldat <- ReadVelocity(file = "~/Downloads/SCG71.loom")
