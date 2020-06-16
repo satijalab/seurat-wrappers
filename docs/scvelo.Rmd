@@ -94,11 +94,16 @@ SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
 Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```
 
-```{python load_adata}
+```{python load_adata, eval=FALSE}
 # In Python
 import scvelo as scv
 adata = scv.read("mouseBM.h5ad")
 adata
+```
+
+```{python test_version}
+import sys
+sys.version
 ```
 
 ```{python scvelo, results="hide"}
