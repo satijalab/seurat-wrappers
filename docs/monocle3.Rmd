@@ -38,6 +38,12 @@ Prerequisites to install:
 * [SeuratData](https://github.com/satijalab/seurat-data)
 * [Monocle 3](https://cole-trapnell-lab.github.io/monocle3/docs/installation/)
 
+```{r install_deps, echo=FALSE}
+setRepositories(ind = 1:2)
+remotes::install_github(repo = "cole-trapnell-lab/monocle3", upgrade = FALSE)
+```
+
+
 ```{r packages}
 library(monocle3)
 library(Seurat)
