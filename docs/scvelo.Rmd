@@ -39,13 +39,21 @@ knitr::opts_chunk$set(
 if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
   remotes::install_github(repo = "mojaveazure/seurat-disk", upgrade = FALSE)
 }
-if (!py_module_available(module = "scvelo")) {
-  pip3 <- Sys.which(names = "pip3")[1]
-  if (!nchar(x = pip3)) {
-    stop("Cannot find pip3 or scvelo", call. = FALSE)
-  }
-  system2(command = pip3, args = c("install", "--user", "scvelo"))
-}
+# if (!py_module_available(module = "scvelo")) {
+#   pip3 <- Sys.which(names = "pip3")[1]
+#   if (!nchar(x = pip3)) {
+#     stop("Cannot find pip3 or scvelo", call. = FALSE)
+#   }
+#   system2(command = pip3, args = c("install", "--user", "scvelo"))
+# }
+```
+
+```{python install_py_deps, echo=FALSE, results="hide"}
+try:
+  import scvelo
+except ImportError:
+  import pip
+  pip.main(["install", "--user", "scvelo"])
 ```
 
 Prerequisites to install:
@@ -94,21 +102,14 @@ SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
 Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```
 
-```{python load_adata, engine.path=python3, eval=FALSE}
+```{python load_adata}
 # In Python
 import scvelo as scv
 adata = scv.read("mouseBM.h5ad")
 adata
 ```
 
-```{python test_version}
-import sys
-sys.version
-import pip
-dir(pip)
-```
-
-```{python scvelo, results="hide", eval=FALSE}
+```{python scvelo, results="hide"}
 scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
 scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
 scv.tl.velocity(adata)
@@ -117,7 +118,7 @@ scv.pl.velocity_embedding_stream(adata, basis="umap", color="seurat_clusters")
 scv.pl.velocity_embedding(adata, basis="umap", color="seurat_clusters", arrow_length=3, arrow_size=2, dpi=120)
 ```
 
-```{python latent_time, results="hide", eval=FALSE}
+```{python latent_time, results="hide"}
 scv.tl.recover_dynamics(adata)
 scv.tl.latent_time(adata)
 scv.pl.scatter(adata, color="latent_time", color_map="gnuplot")
