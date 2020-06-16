@@ -48,7 +48,7 @@ if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
 # }
 ```
 
-```{python install_py_deps, echo=FALSE, results="hide"}
+```{python install_py_deps}
 try:
   import scvelo
 except ImportError:
@@ -102,14 +102,14 @@ SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
 Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```
 
-```{python load_adata}
+```{python load_adata, eval=FALSE}
 # In Python
 import scvelo as scv
 adata = scv.read("mouseBM.h5ad")
 adata
 ```
 
-```{python scvelo, results="hide"}
+```{python scvelo, results="hide"load_adata, eval=FALSE}
 scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
 scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
 scv.tl.velocity(adata)
@@ -118,7 +118,7 @@ scv.pl.velocity_embedding_stream(adata, basis="umap", color="seurat_clusters")
 scv.pl.velocity_embedding(adata, basis="umap", color="seurat_clusters", arrow_length=3, arrow_size=2, dpi=120)
 ```
 
-```{python latent_time, results="hide"}
+```{python latent_time, results="hide"load_adata, eval=FALSE}
 scv.tl.recover_dynamics(adata)
 scv.tl.latent_time(adata)
 scv.pl.scatter(adata, color="latent_time", color_map="gnuplot")
