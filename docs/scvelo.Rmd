@@ -49,11 +49,12 @@ if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
 ```
 
 ```{python install_py_deps}
+
 try:
   import scvelo
 except ImportError:
   import pip
-  pip.main(["install", "--user", "scvelo"])
+  pip.main(["install", "scvelo"])
 
 
 import scvelo as scv
