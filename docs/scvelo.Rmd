@@ -39,25 +39,13 @@ knitr::opts_chunk$set(
 if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
   remotes::install_github(repo = "mojaveazure/seurat-disk", upgrade = FALSE)
 }
-# if (!py_module_available(module = "scvelo")) {
-#   pip3 <- Sys.which(names = "pip3")[1]
-#   if (!nchar(x = pip3)) {
-#     stop("Cannot find pip3 or scvelo", call. = FALSE)
-#   }
-#   system2(command = pip3, args = c("install", "--user", "scvelo"))
-# }
-```
-
-```{python install_py_deps}
-
-try:
-  import scvelo
-except ImportError:
-  import pip
-  pip.main(["install", "scvelo"])
-
-
-import scvelo as scv
+if (!py_module_available(module = "scvelo")) {
+  pip3 <- Sys.which(names = "pip3")[1]
+  if (!nchar(x = pip3)) {
+    stop("Cannot find pip3 or scvelo", call. = FALSE)
+  }
+  system2(command = pip3, args = c("install", "scvelo"))
+}
 ```
 
 Prerequisites to install:
@@ -82,7 +70,7 @@ if (file.exists("mouseBM.h5ad")) {
 }
 ```
 
-```{r download, results="hide", echo=FALSE, eval=FALSE}
+```{r download, results="hide", echo=FALSE, eval=TRUE}
 dir.create("~/Downloads", showWarnings = FALSE, recursive = TRUE)
 curl::curl_download(
   url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom",
@@ -90,7 +78,7 @@ curl::curl_download(
 )
 ```
 
-```{r load_data3, results='hide', eval=TRUE, eval=FALSE}
+```{r load_data3, results='hide', eval=TRUE}
 # If you don't have velocyto's example mouse bone marrow dataset, download with the CURL command
 # curl::curl_download(url = "http://pklab.med.harvard.edu/velocyto/mouseBM/SCG71.loom", destfile = "~/Downloads/SCG71.loom")
 ldat <- ReadVelocity(file = "~/Downloads/SCG71.loom")
@@ -106,14 +94,14 @@ SaveH5Seurat(bm, filename = "mouseBM.h5Seurat")
 Convert("mouseBM.h5Seurat", dest = "h5ad")
 ```
 
-```{python load_adata, eval=FALSE}
+```{python load_adata, eval=TRUE}
 # In Python
 import scvelo as scv
 adata = scv.read("mouseBM.h5ad")
 adata
 ```
 
-```{python scvelo, results="hide", eval=FALSE}
+```{python scvelo, results="hide", eval=TRUE}
 scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
 scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
 scv.tl.velocity(adata)
@@ -122,7 +110,7 @@ scv.pl.velocity_embedding_stream(adata, basis="umap", color="seurat_clusters")
 scv.pl.velocity_embedding(adata, basis="umap", color="seurat_clusters", arrow_length=3, arrow_size=2, dpi=120)
 ```
 
-```{python latent_time, results="hide", eval=FALSE}
+```{python latent_time, results="hide", eval=TRUE}
 scv.tl.recover_dynamics(adata)
 scv.tl.latent_time(adata)
 scv.pl.scatter(adata, color="latent_time", color_map="gnuplot")
