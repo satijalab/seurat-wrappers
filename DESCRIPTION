@@ -18,6 +18,8 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
+    SaskiaFreytag/schex@031320d,
+    cole-trapnell-lab/monocle3,
     mojaveazure/seurat-disk,
     SaskiaFreytag/schex@031320d
 Depends:
@@ -43,6 +45,7 @@ Collate:
     'fast_mnn.R'
     'glmpca.R'
     'liger.R'
+    'monocle3.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
@@ -56,5 +59,6 @@ Suggests:
     SeuratDisk,
     velocyto.R,
     schex,
+    monocle3,
     CoGAPS,
     glmpca

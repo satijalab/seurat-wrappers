@@ -16,6 +16,7 @@ devtools::install_github('satijalab/seurat-wrappers')
 
 | Package | Vignette | Reference | Source |
 | ------- | -------- | --------- | ------ |
+| Monocle 3 | [Calculating Trajectories with Monocle 3 and Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/monocle3.html) | Cao et al, Nature 2019 | https://cole-trapnell-lab.github.io/monocle3 |
 | scVelo | [Estimating RNA Velocity using Seurat and scVelo](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/scvelo.html) | Bergen et al, bioRxiv 2019 | https://scvelo.readthedocs.io |
 | CoGAPS  | [Running CoGAPS on Seurat Objects](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/cogaps.html) | Stein-O’Brien et al, Cell Systems 2019 | https://www.bioconductor.org/packages/release/bioc/html/CoGAPS.html |
 | glmpca  | [Running GLM-PCA on a Seurat Object](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/glmpca.html) | Townes et al, Genome Biology 2019 | https://github.com/willtownes/glmpca |
