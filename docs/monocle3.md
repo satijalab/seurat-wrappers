@@ -1,6 +1,6 @@
 Calculating Trajectories with Monocle 3 and Seurat
 ================
-Compiled: June 16, 2020
+Compiled: June 17, 2020
 
 This vigettte demonstrates how to run trajectory inference and
 pseudotime calculations with Monocle 3 on Seurat objects. If you use
