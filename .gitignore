@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 *_cache
+*.h5Seurat
+*.h5seurat
+*.h5ad
