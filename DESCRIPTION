@@ -18,6 +18,7 @@ Remotes: MacoskoLab/liger,
     immunogenomics/harmony,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
+    mojaveazure/seurat-disk,
     SaskiaFreytag/schex@031320d
 Depends:
     R (>= 3.5.0)
@@ -52,6 +53,7 @@ Suggests:
     harmony,
     batchelor,
     SeuratData,
+    SeuratDisk,
     velocyto.R,
     schex,
     CoGAPS,
