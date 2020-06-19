@@ -164,8 +164,18 @@ as.Seurat.cell_data_set <- function(
     project = project
   ))
   # Pull feature loading
-  lds.reduc <- loadings %||% rev(x = SingleCellExperiment::reducedDimNames(x = x))[1]
-  if (!is.na(x = lds.reduc)) {
+  # lds.reduc <- loadings %||% rev(x = SingleCellExperiment::reducedDimNames(x = x))[1]
+  lds.reduc <- ifelse(
+    test = is.null(x = loadings),
+    yes = grep(
+      pattern = 'pca',
+      x = SingleCellExperiment::reducedDimNames(x = x),
+      ignore.case = TRUE,
+      value = TRUE
+    ),
+    no = loadings
+  )
+  if (length(x = lds.reduc) && !is.na(x = lds.reduc)) {
     loadings <- slot(object = x, name = 'preprocess_aux')[['gene_loadings']]
     if (!is.null(x = loadings)) {
       Loadings(object = object[[lds.reduc]], projected = FALSE) <- loadings
