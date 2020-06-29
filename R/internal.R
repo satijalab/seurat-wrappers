@@ -4,6 +4,12 @@
 #'
 NULL
 
+#' @docType package
+#' @name SeuratWrappers-package
+#' @rdname SeuratWrappers-package
+#'
+"_PACKAGE"
+
 # Set a default value if an object is null
 #
 # @param lhs An object to set if it's null

@@ -62,7 +62,8 @@ Set to NULL if only counts are present}
 
 \item{loadings}{Name of dimensional reduction to save loadings to, if present;
 defaults to first dimensional reduction present (eg.
-\code{SingleCellExperiment::reducedDimNames(x)[1]})}
+\code{SingleCellExperiment::reducedDimNames(x)[1]}); pass \code{NA} to
+suppress transfer of loadings}
 
 \item{clusters}{Name of clustering method to use for setting identity classes}
 
@@ -104,6 +105,28 @@ to the resulting Seurat object as follows:
   will be set as object identity classes
 }
 
+The \code{cell_data_set} method for \code{\link[Seurat]{as.Seurat}}
+utilizes the \code{\link[Seurat::as.Seurat]{SingleCellExperiment}} method of
+\code{\link[Seurat]{as.Seurat}} to handle moving over expression data, cell
+embeddings, and cell-level metadata. The following additional information
+will also be transfered over:
+\itemize{
+ \item Feature loadings from \code{cds@preprocess_aux$gene_loadings} will be
+ added to the dimensional reduction specified by \code{loadings} or the name
+ of the first dimensional reduction that contains "pca" (case-insensitive) if
+ \code{loadings} is not set
+ \item Monocle 3 clustering will be set as the default identity class. In
+ addition, the Monocle 3 clustering will be added to cell-level metadata as
+ \dQuote{monocle3_clusters}, if present
+ \item Monocle 3 partitions will be added to cell-level metadata as
+ \dQuote{monocle3_partitions}, if present
+ \item Monocle 3 pseudotime calculations will be added to
+ \dQuote{monocle3_pseudotime}, if present
+ \item The nearest-neighbor graph, if present, will be converted to a
+ \code{\link[Seurat]{Graph}} object, and stored as
+ \dQuote{\code{assay}_monocle3_graph}
+}
+
 The \code{list} method for \code{\link[Seurat]{as.Seurat}} takes a named list
 of matrices (dense or sparse) and creates a single \code{Seurat} object where
 each matrix is its own assay. The names of the list are taken to be the names
@@ -123,4 +146,6 @@ the index number in the list of matrices. Objects will be constructed as follows
 }
 \seealso{
 \code{\link[Seurat]{as.Seurat}}
+
+\code{\link[Seurat]{as.Seurat.SingleCellExperiment}}
 }

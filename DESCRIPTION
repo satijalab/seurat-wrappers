@@ -1,7 +1,7 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.1.0
-Date: 2019-07-17
+Version: 0.2.0
+Date: 2020-06-29
 Authors@R: c(
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
@@ -20,8 +20,7 @@ Remotes: MacoskoLab/liger,
     velocyto-team/velocyto.R,
     SaskiaFreytag/schex@031320d,
     cole-trapnell-lab/monocle3,
-    mojaveazure/seurat-disk,
-    SaskiaFreytag/schex@031320d
+    mojaveazure/seurat-disk
 Depends:
     R (>= 3.5.0)
 biocViews:

@@ -40,6 +40,33 @@ as.cell_data_set <- function(x, ...) {
 #' @importFrom Seurat as.SingleCellExperiment GetAssayData Loadings
 #' Embeddings Stdev Idents
 #'
+#' @details The \code{\link[Seurat]{Seurat}} method utilizes
+#' \code{\link[Seurat]{as.SingleCellExperiment}} to transfer over expression
+#' and cell-level metadata. The following additional information is also
+#' transferred over:
+#' \itemize{
+#'  \item Cell emebeddings are transferred over to the
+#'  \code{\link[SingleCellExperiment]{reducedDims}} slot. Dimensional reduction
+#'  names are converted to upper-case (eg. \dQuote{umap} to \dQuote{UMAP}) to
+#'  match Monocle 3 style
+#'  \item Feature loadings are transfered to
+#'  \code{cds@preprocess_aux$gene_loadings} if present. \strong{NOTE}: only the
+#'  feature loadings of the last dimensional reduction are transferred over
+#'  \item Standard deviations are added to
+#'  \code{cds@preprocess_aux$prop_var_expl} if present. \strong{NOTE}: only the
+#'  standard deviations of the last dimensional reduction are transferred over
+#'  \item Clustering information is transferred over in the following manner: if
+#'  cell-level metadata entries \dQuote{monocle3_clusters} and
+#'  \dQuote{monocle3_partitions} exist, then these will be set as the clusters
+#'  and partitions, with no nearest neighbor graph being added to the object;
+#'  otherwise, Seurat's nearest-neighbor graph will be converted to an
+#'  \code{\link[igraph]{igraph}} object and added to the \code{cell_data_set}
+#'  object along with Seurat's clusters. No partition information is added when
+#'  using Seurat's clsuters
+#' }
+#'
+#' @seealso \code{\link[Seurat]{as.SingleCellExperiment}}
+#'
 #' @rdname as.cell_data_set
 #' @method as.cell_data_set Seurat
 #' @export
@@ -72,7 +99,7 @@ as.cell_data_set.Seurat <- function(
     y = AssociatedDimReducs(object = x, assay = assay)
   )
   for (reduc in reductions) {
-    SingleCellExperiment::reducedDims(x = cds)[[reduc]] <- Embeddings(object = x[[reduc]])
+    SingleCellExperiment::reducedDims(x = cds)[[toupper(x = reduc)]] <- Embeddings(object = x[[reduc]])
     loadings <- Loadings(object = x[[reduc]])
     if (!IsMatrixEmpty(x = loadings)) {
       slot(object = cds, name = 'preprocess_aux')[['gene_loadings']] <- loadings
@@ -126,7 +153,7 @@ as.cell_data_set.Seurat <- function(
     list()
   }
   if (length(x = clusters.list)) {
-    slot(object = cds, name = 'clusters')[[default.reduction]] <- clusters.list
+    slot(object = cds, name = 'clusters')[[toupper(x = default.reduction)]] <- clusters.list
   }
   # TODO: Add translated results from learn_graph
   return(cds)
@@ -134,10 +161,35 @@ as.cell_data_set.Seurat <- function(
 
 #' @param loadings Name of dimensional reduction to save loadings to, if present;
 #' defaults to first dimensional reduction present (eg.
-#' \code{SingleCellExperiment::reducedDimNames(x)[1]})
+#' \code{SingleCellExperiment::reducedDimNames(x)[1]}); pass \code{NA} to
+#' suppress transfer of loadings
 #' @param clusters Name of clustering method to use for setting identity classes
 #'
 #' @importFrom Seurat as.Seurat Loadings<- as.Graph DefaultAssay<-
+#'
+#' @details The \code{cell_data_set} method for \code{\link[Seurat]{as.Seurat}}
+#' utilizes the \code{\link[Seurat::as.Seurat]{SingleCellExperiment}} method of
+#' \code{\link[Seurat]{as.Seurat}} to handle moving over expression data, cell
+#' embeddings, and cell-level metadata. The following additional information
+#' will also be transfered over:
+#' \itemize{
+#'  \item Feature loadings from \code{cds@preprocess_aux$gene_loadings} will be
+#'  added to the dimensional reduction specified by \code{loadings} or the name
+#'  of the first dimensional reduction that contains "pca" (case-insensitive) if
+#'  \code{loadings} is not set
+#'  \item Monocle 3 clustering will be set as the default identity class. In
+#'  addition, the Monocle 3 clustering will be added to cell-level metadata as
+#'  \dQuote{monocle3_clusters}, if present
+#'  \item Monocle 3 partitions will be added to cell-level metadata as
+#'  \dQuote{monocle3_partitions}, if present
+#'  \item Monocle 3 pseudotime calculations will be added to
+#'  \dQuote{monocle3_pseudotime}, if present
+#'  \item The nearest-neighbor graph, if present, will be converted to a
+#'  \code{\link[Seurat]{Graph}} object, and stored as
+#'  \dQuote{\code{assay}_monocle3_graph}
+#' }
+#'
+#' @seealso \code{\link[Seurat]{as.Seurat.SingleCellExperiment}}
 #'
 #' @rdname as.Seurat.extras
 #' @method as.Seurat cell_data_set
@@ -163,8 +215,7 @@ as.Seurat.cell_data_set <- function(
     data = data,
     project = project
   ))
-  # Pull feature loading
-  # lds.reduc <- loadings %||% rev(x = SingleCellExperiment::reducedDimNames(x = x))[1]
+  # Pull feature loadings
   lds.reduc <- ifelse(
     test = is.null(x = loadings),
     yes = grep(
@@ -225,7 +276,7 @@ as.Seurat.cell_data_set <- function(
 #'
 #' @seealso \code{\link[monocle3]{learn_graph}} \code{\link[monocle3]{cell_data_set}}
 #'
-#' @export
+# @export
 #'
 LearnGraph <- function(object, reduction = DefaultDimReduc(object = object), ...) {
   CheckPackage(package = 'cole-trapnell-lab/monocle3', repository = 'github')
