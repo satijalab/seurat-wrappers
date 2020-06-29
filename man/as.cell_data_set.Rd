@@ -43,3 +43,32 @@ A \code{cell_data_set} object
 \description{
 Convert objects to Monocle3 \code{cell_data_set} objects
 }
+\details{
+The \code{\link[Seurat]{Seurat}} method utilizes
+\code{\link[Seurat]{as.SingleCellExperiment}} to transfer over expression
+and cell-level metadata. The following additional information is also
+transferred over:
+\itemize{
+ \item Cell emebeddings are transferred over to the
+ \code{\link[SingleCellExperiment]{reducedDims}} slot. Dimensional reduction
+ names are converted to upper-case (eg. \dQuote{umap} to \dQuote{UMAP}) to
+ match Monocle 3 style
+ \item Feature loadings are transfered to
+ \code{cds@preprocess_aux$gene_loadings} if present. \strong{NOTE}: only the
+ feature loadings of the last dimensional reduction are transferred over
+ \item Standard deviations are added to
+ \code{cds@preprocess_aux$prop_var_expl} if present. \strong{NOTE}: only the
+ standard deviations of the last dimensional reduction are transferred over
+ \item Clustering information is transferred over in the following manner: if
+ cell-level metadata entries \dQuote{monocle3_clusters} and
+ \dQuote{monocle3_partitions} exist, then these will be set as the clusters
+ and partitions, with no nearest neighbor graph being added to the object;
+ otherwise, Seurat's nearest-neighbor graph will be converted to an
+ \code{\link[igraph]{igraph}} object and added to the \code{cell_data_set}
+ object along with Seurat's clusters. No partition information is added when
+ using Seurat's clsuters
+}
+}
+\seealso{
+\code{\link[Seurat]{as.SingleCellExperiment}}
+}
