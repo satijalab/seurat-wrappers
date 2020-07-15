@@ -10,7 +10,7 @@ output:
     theme: united
 ---
   
-This vigettte demonstrates how to run GLM-PCA, which implements a generalized version of PCA for non-normally distributed data, on a Seurat object. If you use this, please cite:
+This vignette demonstrates how to run GLM-PCA, which implements a generalized version of PCA for non-normally distributed data, on a Seurat object. If you use this, please cite:
 
 > *Feature selection and dimension reduction for single-cell RNA-Seq based on a multinomial model*
 >

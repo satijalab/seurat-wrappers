@@ -1,26 +1,33 @@
 Running GLM-PCA on a Seurat Object
 ================
-Compiled: May 15, 2020
+Compiled: July 15, 2020
 
-This vigettte demonstrates how to run GLM-PCA, which implements a generalized version of PCA for non-normally distributed data, on a Seurat object. If you use this, please cite:
+This vignette demonstrates how to run GLM-PCA, which implements a
+generalized version of PCA for non-normally distributed data, on a
+Seurat object. If you use this, please cite:
 
-> *Feature selection and dimension reduction for single-cell RNA-Seq based on a multinomial model*
->
-> F. William Townes, Stephanie C. Hicks, Martin J. Aryee & Rafael A. Irizarry
->
+> *Feature selection and dimension reduction for single-cell RNA-Seq
+> based on a multinomial model*
+> 
+> F. William Townes, Stephanie C. Hicks, Martin J. Aryee & Rafael A.
+> Irizarry
+> 
 > Genome Biology, 2019
->
+> 
 > doi: <https://doi.org/10.1186/s13059-019-1861-6>
->
-> GitHub: <https://github.com/willtownes/glmpca> CRAN: <https://cran.r-project.org/web/packages/glmpca/index.html>
+> 
+> GitHub: <https://github.com/willtownes/glmpca> CRAN:
+> <https://cran.r-project.org/web/packages/glmpca/index.html>
 
 Prerequisites to install:
 
--   [Seurat](https://satijalab.org/seurat/install)
--   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
--   [SeuratData](https://github.com/satijalab/seurat-data)
--   [glmpca](https://github.com/willtownes/glmpca)
--   [scry](https://github.com/kstreet13/scry)
+  - [Seurat](https://satijalab.org/seurat/install)
+  - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+  - [SeuratData](https://github.com/satijalab/seurat-data)
+  - [glmpca](https://github.com/willtownes/glmpca)
+  - [scry](https://github.com/kstreet13/scry)
+
+<!-- end list -->
 
 ``` r
 library(Seurat)
@@ -62,7 +69,7 @@ features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
 DimPlot(pbmc3k)
 ```
 
-![](glmpca_files/figure-markdown_github/explore-1.png)
+![](glmpca_files/figure-markdown_github/explore-1.png)<!-- -->
 
 Do the learned clusters overlap with the original annotation?
 
@@ -71,20 +78,20 @@ with(pbmc3k[[]], table(seurat_annotations, seurat_clusters))
 ```
 
     ##                   seurat_clusters
-    ## seurat_annotations   0   1   2   3   4   5   6   7   8   9
-    ##       Naive CD4 T  179 467   0  49   2   0   0   0   0   0
-    ##       Memory CD4 T 408  35   0  37   0   0   0   0   0   3
-    ##       CD14+ Mono     0   0 469   0   0   7   0   4   0   0
-    ##       B              1   0   0   0 343   0   0   0   0   0
-    ##       CD8 T          8   0   0 250   0   0  12   0   0   1
-    ##       FCGR3A+ Mono   0   0   8   0   0 154   0   0   0   0
-    ##       NK             0   0   0   8   0   0 147   0   0   0
-    ##       DC             0   0   1   0   2   0   1  28   0   0
-    ##       Platelet       0   0   1   0   0   1   0   0  11   1
+    ## seurat_annotations   0   1   2   3   4   5   6   7   8
+    ##       Naive CD4 T  168 484   0   3  42   0   0   0   0
+    ##       Memory CD4 T 405  45   0   0  30   0   0   0   3
+    ##       CD14+ Mono     0   0 469   0   0   8   0   3   0
+    ##       B              0   0   0 344   0   0   0   0   0
+    ##       CD8 T          7   0   0   0 254   0   9   0   1
+    ##       FCGR3A+ Mono   0   0  12   0   0 150   0   0   0
+    ##       NK             0   0   0   0   8   0 147   0   0
+    ##       DC             0   0   2   2   0   0   1  27   0
+    ##       Platelet       0   0   1   0   0   0   0   0  13
 
 ``` r
 pbmc3k <- NormalizeData(pbmc3k, verbose = FALSE) 
 FeaturePlot(pbmc3k, features.plot, ncol = 2)
 ```
 
-![](glmpca_files/figure-markdown_github/explore2-1.png)
+![](glmpca_files/figure-markdown_github/explore2-1.png)<!-- -->

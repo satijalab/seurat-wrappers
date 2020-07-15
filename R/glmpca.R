@@ -10,7 +10,7 @@ NULL
 #' @param features A list of features to use when performing GLM-PCA. If null, defaults to variable features.
 #' @param reduction.name Name to store resulting DimReduc object as. Defaults to glmpca
 #' @param reduction.key Key for resulting DimReduc. Defaults to GLMPC_
-#' @param ... Extra parameters passed to \code{\link[batchelor]{fastMNN}}
+#' @param ... Extra parameters passed to \code{\link[glmpca]{glmpca}}
 #'
 #' @return A Seurat object containing the output of GLMPCA stored as a DimReduc object.
 #' @importFrom Seurat DefaultAssay DefaultAssay<- CreateDimReducObject Tool<- LogSeuratCommand
@@ -53,19 +53,19 @@ RunGLMPCA <- function(
   data <- data[features, ]
   glmpca_results <- glmpca:::glmpca(Y = data, L = L, ...)
   glmpca_dimnames <- paste0(reduction.key, 1:L)
-  colnames(x = glmpca_results$factors) <- glmpca_dimnames
-  colnames(x = glmpca_results$loadings) <- glmpca_dimnames
-  factors_l2_norm <- apply(
-    X = glmpca_results$factors,
-    MARGIN = 2,
-    FUN = function(x) {
-      sqrt(x = crossprod(x = x))
-    }
-  )
+  factors<-as.matrix(glmpca_results$factors)
+  loadings<-as.matrix(glmpca_results$loadings)
+  colnames(x = factors) <- glmpca_dimnames
+  colnames(x = loadings) <- glmpca_dimnames
+  factors_l2_norm <- sqrt(colSums(factors^2))
+  #strip S3 class "glmpca" to enable it to pass validObject()
+  class(glmpca_results)<-NULL
+  #save memory by removing factors and loadings since they are stored separately
+  glmpca_results$factors<-glmpca_results$loadings<-NULL
   object[[reduction.name]] <- CreateDimReducObject(
-    embeddings = as.matrix(x = glmpca_results$factors),
+    embeddings = factors,
     key = reduction.key,
-    loadings = as.matrix(x = glmpca_results$loadings),
+    loadings = loadings,
     stdev = factors_l2_norm,
     assay = assay,
     global = TRUE,

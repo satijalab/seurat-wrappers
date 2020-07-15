@@ -28,7 +28,7 @@ RunGLMPCA(
 
 \item{reduction.key}{Key for resulting DimReduc. Defaults to GLMPC_}
 
-\item{...}{Extra parameters passed to \code{\link[batchelor]{fastMNN}}}
+\item{...}{Extra parameters passed to \code{\link[glmpca]{glmpca}}}
 }
 \value{
 A Seurat object containing the output of GLMPCA stored as a DimReduc object.
