@@ -1,0 +1,448 @@
+---
+title: "Community Vignette"
+author: "Satija Lab"
+# date: "Compiled: `r format(Sys.Date(), '%B %d, %Y')`"
+output: 
+  html_document:
+    theme: united
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+library(reticulate)
+use_python(python = Sys.which(names = "python3.6"), required = TRUE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  cache.lazy = FALSE,
+  fig.height = 10,
+  fig.width = 16
+)
+```
+
+```{r packages}
+# Packages for reading in and renaming data
+library(biomaRt)
+library(tximport)
+# Packages for manipulating plots
+library(ggplot2)
+library(patchwork)
+# Packages for QC
+library(SingleCellExperiment)
+library(scater)
+# Package for data integration
+library(Seurat)
+# Package for pseudotime analysis
+library(monocle3)
+# Packages for utility and conversion functions
+library(SeuratDisk)
+library(SeuratWrappers)
+```
+
+## Download Data
+
+Download from [EMBL-EBI](https://www.ebi.ac.uk/gxa/sc/experiments/E-HCAD-4/downloads)
+
+```{r download_data, eval=FALSE}
+download.dir <- "~/cv"
+dir.create(download.dir, showWarnings = FALSE, recursive = TRUE)
+download.file(
+  "https://www.ebi.ac.uk/gxa/sc/experiment/E-HCAD-4/download/zip?fileType=quantification-raw&accessKey=",
+  destfile = file.path(download.dir, "counts.zip")
+)
+unzip(
+  file.path(download.dir, "counts.zip"),
+  exdir = file.path(download.dir, "raw")
+)
+```
+
+```{r load_data, eval=FALSE}
+counts <- Matrix::readMM(
+  file.path(download.dir, "raw", "E-HCAD-4.aggregated_filtered_counts.mtx")
+)
+counts <- as(counts, "dgCMatrix")
+cell.barcodes <- readLines(file.path(
+  download.dir,
+  "raw",
+  "E-HCAD-4.aggregated_filtered_counts.mtx_cols"
+))
+features <- read.table(
+  file.path(
+    download.dir,
+    "raw",
+    "E-HCAD-4.aggregated_filtered_counts.mtx_rows"
+  ),
+  sep = "\t",
+  header = FALSE,
+  as.is = TRUE,
+  row.names = 1
+)
+dimnames(counts) <- list(rownames(features), cell.barcodes)
+```
+
+```{r load_rds, echo=FALSE, cache=TRUE}
+counts <- readRDS("~/community_vignette/raw/E-HCAD-4.aggregated_filtered_counts.Rds")
+```
+
+```{r biomart, results="hide", cache=TRUE}
+ensembl <- biomaRt::useEnsembl(
+  biomart = "ensembl",
+  dataset = "hsapiens_gene_ensembl"
+)
+symbols <- biomaRt::getBM(
+  attributes = c("ensembl_gene_id", "external_gene_name"),
+  filters = "ensembl_gene_id",
+  values = rownames(counts),
+  mart = ensembl
+)
+rownames(symbols) <- symbols$ensembl_gene_id
+ids.use <- intersect(rownames(counts), rownames(symbols))
+symbols <- symbols[ids.use, ]
+counts <- counts[ids.use, ]
+rownames(counts) <- symbols$external_gene_name
+```
+
+```{r build_sce, cache=TRUE}
+sce <- SingleCellExperiment(assays = list(counts = counts))
+sce
+```
+
+```{r download_metadata, eval=FALSE, cache=TRUE}
+download.file(
+  "https://www.ebi.ac.uk/gxa/sc/experiment/E-HCAD-4/download?fileType=experiment-design&accessKey=",
+  destfile = file.path(download.dir, "design.tsv")
+)
+```
+
+```{r metadata, cache=TRUE}
+metadata <- read.table(
+  "~/community_vignette/metadata/design.tsv",
+  sep = "\t",
+  header = TRUE,
+  as.is = TRUE,
+  row.names = 1
+)
+metadata <- metadata[colnames(counts), ]
+sce$individual <- metadata$Sample.Characteristic.individual.
+sce$tissue <- metadata$Sample.Characteristic.organism.part.
+sce$sex <- metadata$Sample.Characteristic.sex.
+sce <- sce[, sce$tissue == "bone marrow"]
+```
+
+## QC With Scater
+
+```{r qc, cache=TRUE}
+per.cell <- scater::perCellQCMetrics(sce)
+colData(sce) <- cbind(colData(sce), per.cell)
+scater::plotColData(
+  sce,
+  x = "sum",
+  y = "detected",
+  colour_by = "individual"
+)
+qc <- scater::quickPerCellQC(per.cell, batch = factor(sce$individual))
+qc$discard[is.na(qc$discard)] <- TRUE
+sce <- sce[, !qc$discard]
+sce
+```
+
+## Integration with Seurat
+
+```{r prep_integration, results="hide", cache=TRUE}
+hca <- Seurat::as.Seurat(sce, data = NULL, project = "HCA")
+hca[["RNA"]][["ensembl_id"]] <- symbols$ensembl_gene_id
+hca[["RNA"]][["gene_name"]] <- symbols$external_gene_name
+Seurat::Idents(hca) <- "individual"
+set.seed(seed = 42L)
+hca <- subset(hca, downsample = 15000)
+hca.list <- Seurat::SplitObject(hca)
+hca.list <- hca.list[sort(names(hca.list))]
+for (i in seq_along(hca.list)) {
+  hca.list[[i]] <- Seurat::SCTransform(hca.list[[i]], ncells = 3000)
+}
+```
+
+```{r prep_rpca, results="hide", cache=TRUE}
+hca.features <- Seurat::SelectIntegrationFeatures(hca.list)
+hca.list <- Seurat::PrepSCTIntegration(hca.list)
+for (i in seq_along(hca.list)) {
+  hca.list[[i]] <- Seurat::RunPCA(hca.list[[i]], features = hca.features)
+}
+```
+
+```{r integration, results="hide", cache=TRUE}
+hca.anchors <- Seurat::FindIntegrationAnchors(
+  hca.list,
+  anchor.features = hca.features,
+  normalization.method = "SCT",
+  reference = c(1, 2),
+  reduction = "rpca",
+  dims = 1:30
+)
+hca.integrated <- Seurat::IntegrateData(
+  hca.anchors,
+  normalization.method = "SCT"
+)
+```
+
+```{r dimreduc, results="hide", fig.width=20, cache=TRUE}
+hca.integrated <- Seurat::RunPCA(hca.integrated)
+hca.integrated <- Seurat::RunUMAP(
+  hca.integrated,
+  dims = 1:30,
+  reduction.name = "UMAP"
+)
+# hca.integrated <- Seurat::FindNeighbors(hca.integrated, dims = 1:30)
+# hca.integrated <- Seurat::FindClusters(hca.integrated)
+# plots <- DimPlot(
+#   hca.integrated,
+#   group.by = c("individual", "ident"),
+#   combine = FALSE
+# )
+# plots[[2]] <- Seurat::LabelClusters(plots[[2]], "ident") +
+#   Seurat::NoLegend()
+# patchwork::wrap_plots(plots)
+DimPlot(hca.integrated, group.by = "individual")
+```
+
+## Pseudotime Analysis with Monocle 3
+
+```{r monocle3_clustering, results="hide", fig.width=20}
+cds <- SeuratWrappers::as.cell_data_set(hca.integrated)
+cds <- monocle3::cluster_cells(cds)
+p1 <- monocle3::plot_cells(cds, show_trajectory_graph = FALSE)
+p2 <- monocle3::plot_cells(
+  cds,
+  show_trajectory_graph = FALSE,
+  color_cells_by = "partition"
+)
+p1 + ggplot2::ggtitle("Monocle 3 Clusters") +
+  p2 + ggplot2::ggtitle("Monocle 3 Partitions") +
+  Seurat::FeaturePlot(hca.integrated, "sct_AVP") +
+  patchwork::plot_layout(nrow = 1)
+```
+
+```{r monocle3_trajectories2, results="hide", echo=FALSE, eval=FALSE}
+max.avp <- "group12-CTACCCACAACACCCG"
+partition.use <- monocle3::partitions(cds)[max.avp]
+cds <- cds[, monocle3::partitions(cds) == partition.use]
+cds <- monocle3::cluster_cells(cds)
+cds <- monocle3::learn_graph(cds)
+monocle3::plot_cells(
+  cds,
+  label_groups_by_cluster = FALSE,
+  label_leaves = FALSE,
+  label_branch_points = FALSE
+)
+```
+
+```{r monocle3_trajectories, results="hide", eval=FALSE, echo=FALSE}
+max.avp <- "group12-CTACCCACAACACCCG"
+integrated.sub <- Seurat::as.Seurat(cds, loadings = "pca")
+integrated.sub <- subset(
+  integrated.sub,
+  monocle3_partitions == integrated.sub$monocle3_partitions[max.avp]
+)
+integrated.sub[["monocle3_partitions"]] <- 1 # Temporary because monocle 3 is broken
+cds <- SeuratWrappers::as.cell_data_set(integrated.sub)
+cds <- monocle3::learn_graph(cds)
+monocle3::plot_cells(
+  cds,
+  label_groups_by_cluster = FALSE,
+  label_leaves = FALSE,
+  label_branch_points = FALSE
+)
+```
+
+<!-- Run order cells first, then subset partitions -->
+
+```{r monocle3_pseudotime, results="hide", fig.width=20}
+max.avp <- "group12-CTACCCACAACACCCG"
+cds <- monocle3::learn_graph(cds)
+cds <- monocle3::order_cells(cds, root_cells = max.avp)
+partition.use <- monocle3::partitions(cds)[max.avp]
+cds <- cds[, monocle3::partitions(cds) == partition.use]
+# Hide trajectory graph as subsetting will still show the graph
+# of cells not present
+p1 <- monocle3::plot_cells(
+  cds,
+  color_cells_by = "pseudotime",
+  show_trajectory_graph = FALSE,
+  label_cell_groups = FALSE
+) + ggplot2::ggtitle("Monocle 3 Pseudotime")
+integrated.sub <- Seurat::as.Seurat(cds)
+patchwork::wrap_plots(
+  # Seurat::FeaturePlot(integrated.sub, "AVP"),
+  p1,
+  Seurat::FeaturePlot(integrated.sub, "monocle3_pseudotime")
+)
+```
+
+```{r save_clusters, eval=FALSE, echo=FALSE}
+# Idents(hca.integrated) <- clusters(cds)
+# hca.integrated[["monocle3_clusters"]] <- Idents(hca.integrated)
+hca.integrated[["monocle3_clusters"]] <- clusters(cds)
+hca.integrated <- FindNeighbors(hca.integrated, dims = 1:30)
+hca.integrated <- FindClusters(hca.integrated)
+```
+
+## RNA Velocity with scVelo
+
+<details>
+  <summary>Function used to load Alevin data</summary>
+```{r LoadGroupedAlevin}
+LoadGroupedAlevin <- function(path, metadata) {
+  metadata <- metadata[which(metadata[[1]] == basename(path)), ]
+  metadata <- metadata[order(as.numeric(gsub("[[:alpha:]]", "", metadata[[2]]))), ]
+  dirs <- list.dirs(path = path, full.names = TRUE, recursive = FALSE)
+  if (nrow(metadata) != length(dirs)) {
+    stop("Mismatch between metadata and sample directories", call. = FALSE)
+  }
+  quants <- vector(mode = "list", length = length(x = dirs))
+  for (i in seq_along(along.with = dirs)) {
+    counts <- tximport(file.path(dirs[i], "alevin", "quants_mat.gz"), type = "alevin")$counts
+    colnames(counts) <- paste(metadata[i, 2, drop = TRUE], colnames(counts), sep = "-")
+    quants[[i]] <- counts
+  }
+  return(do.call("cbind", quants))
+}
+```
+</details>
+
+```{r load_aleivn}
+md <- subset(
+  x = metadata, 
+  Sample.Characteristic.organism.part. == "bone marrow",
+  "Sample.Characteristic.individual."
+)
+md$group <- sapply(strsplit(rownames(md), "-"), "[[", 1)
+md <- unique(md)
+quants <- lapply(
+  X = list.dirs("~/community_vignette/quants", full.names = TRUE, recursive = FALSE),
+  FUN = LoadGroupedAlevin,
+  metadata = md
+)
+quants <- do.call("cbind", quants)
+```
+
+```{r load_features}
+features <- read.table(
+  "~/community_vignette/quants/Homo_sapiens.GRCh38.100.features.expanded.tsv",
+  header = TRUE,
+  sep = "\t",
+  as.is = TRUE
+)
+features <- subset(features, intron %in% rownames(quants))
+symbols <- biomaRt::getBM(
+  attributes = c("ensembl_gene_id", "external_gene_name"),
+  filters = "ensembl_gene_id",
+  values = features$spliced,
+  mart = ensembl
+)
+features <- merge(
+  x = features,
+  y = symbols,
+  by.x = "spliced",
+  by.y = "ensembl_gene_id"
+)
+# DefaultAssay(hca.integrated) <- "RNA"
+DefaultAssay(integrated.sub) <- "RNA"
+features.use <- intersect(
+  rownames(integrated.sub),
+  features$external_gene_name
+)
+```
+
+```{r corr, echo=FALSE, eval=FALSE}
+corr <- vector(mode = "numeric", length = ncol(x = bm1))
+features.cor <- intersect(features.use, rownames(quants))
+pb <- txtProgressBar(style = 3, file = stderr())
+for (i in seq(1, length(x = corr))) {
+  corr[i] <- cor(
+    x = GetAssayData(object = bm1, slot = "counts", assay = "RNA")[features.cor, i],
+    y = quants[features.cor, colnames(bm1)[i]],
+  )
+  setTxtProgressBar(pb, i / length(x = corr))
+}
+close(pb)
+```
+
+```{r subset_quants}
+introns <- features[match(features.use, features$external_gene_name), "intron"]
+quants <- quants[introns, intersect(colnames(integrated.sub), colnames(quants))]
+```
+
+```{r add_introns}
+integrated.sub <- integrated.sub[features.use, ]
+integrated.sub[["unspliced"]] <- CreateAssayObject(quants)
+integrated.sub[["spliced"]] <- integrated.sub[["RNA"]]
+```
+
+```{r cleanup, echo=FALSE, results="hide"}
+outs <- c(
+  "hca.h5Seurat",
+  "hca.h5ad",
+  "~/hca_latent_time.h5ad",
+  "~/hca_latent_time.h5seurat"
+)
+for (i in outs) {
+  if (file.exists(i)) {
+    file.remove(i)
+  }
+}
+```
+
+```{r convert_h5ad}
+SaveH5Seurat(integrated.sub, "hca.h5Seurat")
+Convert("hca.h5Seurat", dest = "h5ad")
+```
+
+```{python load_adata, eval=TRUE}
+# In Python
+import os
+import scvelo as scv
+adata = scv.read("hca.h5ad")
+# Something's going on with the adata.raw slot
+# Currently preventing writing-out of h5ad file
+del adata.raw
+adata
+```
+
+```{python scvelo_pp, results="hide", eval=TRUE}
+scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
+scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
+```
+
+```{python scvelo_velocity, results="hide", eval=TRUE}
+scv.tl.velocity(adata)
+scv.tl.velocity_graph(adata)
+```
+
+```{python velocity_plots, results="hide", eval=TRUE}
+# scv.pl.velocity_embedding_stream(adata, basis="UMAP", color="seurat_clusters")
+scv.pl.velocity_embedding_stream(adata, basis="UMAP", color="monocle3_clusters")
+```
+
+```{python latent_time, results="hide", eval=TRUE}
+scv.tl.recover_dynamics(adata)
+scv.tl.latent_time(adata)
+scv.pl.scatter(adata, basis="UMAP", color="latent_time", color_map="gnuplot")
+top_genes = adata.var["fit_likelihood"].sort_values(ascending=False).index[:300]
+# scv.pl.heatmap(adata, var_names=top_genes, sortby="latent_time", col_color="seurat_clusters", n_convolve=100)
+scv.pl.heatmap(adata, var_names=top_genes, sortby="latent_time", col_color="monocle3_clusters", n_convolve=100)
+adata.write(os.path.expanduser("~/hca_latent_time.h5ad"))
+```
+
+```{r feature_scatter}
+# In R
+SeuratDisk::Convert("~/hca_latent_time.h5ad", dest = "h5seurat")
+hca.latent.time <- SeuratDisk::LoadH5Seurat(
+  "~/hca_latent_time.h5seurat",
+  assay = "RNA"
+)
+Seurat::Idents(hca.latent.time) <- "monocle3_clusters"
+Seurat::FeatureScatter(hca.latent.time, "latent_time", "monocle3_pseudotime")
+```
