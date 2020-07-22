@@ -90,6 +90,13 @@ as.cell_data_set.Seurat <- function(
   if (is.null(x = SummarizedExperiment::assays(x = cds)$counts)) {
     SummarizedExperiment::assays(x = cds)$counts <- SummarizedExperiment::assays(x = cds)[[1]]
   }
+  # Add Size_factor
+  if (!"Size_factor" %in% colnames(x = SummarizedExperiment::colData(x = cds))) {
+    size.factor <- paste0('nCount_', assay)
+    if (size.factor %in% colnames(x = x[[]])) {
+      SummarizedExperiment::colData(x = cds)$Size_factor <- x[[size.factor, drop = TRUE]]
+    }
+  }
   # Add DimReducs: Embeddings become a reduced dim, Loadings go to
   # preprocess_aux$gene_loadings, Stdev goes go preprocess@aux$prop_var_expl
   # First, reset the ones from as.SingleCellExperiment
