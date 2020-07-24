@@ -143,6 +143,7 @@ plot_cells(
   label_leaves = FALSE,
   label_branch_points = FALSE
 )
-integrated.sub <- as.Seurat(cds)
+# Set the assay back as "integrated"
+integrated.sub <- as.Seurat(cds, assay = "integrated")
 FeaturePlot(integrated.sub, "monocle3_pseudotime")
 ```
