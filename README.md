@@ -6,10 +6,10 @@ Please see our [contribution guide](https://github.com/satijalab/seurat.wrappers
 
 Individual method vignettes can be found in the [`docs/`](https://github.com/satijalab/seurat.wrappers/tree/master/docs) directory, we recommend looking at the standard markdown (`*.md`) files when viewing on GitHub
 
-Installation can be accomplished through [devtools](https://cran.r-project.org/package=devtools)
+Installation can be accomplished through [remotes](https://cran.r-project.org/package=remotes)
 
 ```R
-devtools::install_github('satijalab/seurat-wrappers')
+remotes::install_github('satijalab/seurat-wrappers')
 ```
 
 ## Method Listing
