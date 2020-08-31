@@ -1,0 +1,58 @@
+---
+title: "Data Exploration with the UCSC Cell Browser"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: false
+    toc: false
+  html_document:
+    df_print: kable
+    theme: united
+---
+  
+This vignette demonstrates how to run launch a UCSC Cell Browser instance populated with data from a Seurat object. If you use cell browser, please cite:
+
+> *UCSC Single Cell Browser*
+>
+> Maximilian Haeussler, Nikolay Markov, Brian Raney, and Lucas Seninge
+
+> Documentation: https://cellbrowser.readthedocs.io
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.height = 20,
+  fig.width = 16
+)
+```
+
+Prerequisites to install: 
+
+* [Seurat](https://satijalab.org/seurat/install) 
+* [UCSC Cell Browser](https://pypi.org/project/cellbrowser/)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
+
+```{r packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+### Viewing pbmc3k in a cell browser
+
+```{r cellbrowser, eval=FALSE}
+InstallData("pbmc3k")
+pbmc3k <- LoadData("pbmc3k", type = "pbmc3k.final")
+ExportToCellbrowser(pbmc3k, dir = "out", cb.dir = "cb_out", port = 8080, reductions = "umap")
+```
+
+![](cellbrowser.png)
+
+```{r stopcellbrowser, eval=FALSE}
+# Remember to stop your cell browser instance when done
+StopCellbrowser()
+```
