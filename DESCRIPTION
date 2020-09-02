@@ -37,8 +37,9 @@ Imports:
     stats,
     utils
 Collate:
-    'alra.R'
     'internal.R'
+    'alevin.R'
+    'alra.R'
     'cogaps.R'
     'conos.R'
     'fast_mnn.R'
@@ -48,7 +49,7 @@ Collate:
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests:
     conos,
     liger (>= 0.4.2),
@@ -58,6 +59,8 @@ Suggests:
     SeuratDisk,
     velocyto.R,
     schex,
+    tximport,
+    fishpond,
     monocle3,
     CoGAPS,
     glmpca
