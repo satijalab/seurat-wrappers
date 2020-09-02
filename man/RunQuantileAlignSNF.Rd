@@ -38,6 +38,32 @@ RunQuantileAlignSNF(
 
 \item{recalc.snf}{Recalculate \code{\link{SNF}}}
 
+\item{ref_dataset}{Name of dataset to use as a "reference" for normalization. By default,
+the dataset with the largest number of cells is used.}
+
+\item{prune.thresh}{Minimum allowed edge weight. Any edges below this are removed (given weight
+0) (default 0.2)}
+
+\item{min_cells}{Minimum number of cells to consider a cluster shared across datasets (default 2)}
+
+\item{quantiles}{Number of quantiles to use for quantile normalization (default 50).}
+
+\item{nstart}{Number of times to perform Louvain community detection with different random
+starts (default 10).}
+
+\item{resolution}{Controls the number of communities detected. Higher resolution -> more
+communities. (default 1)}
+
+\item{center}{Centers the data when scaling factors (useful for less sparse modalities like
+methylation data). (default FALSE)}
+
+\item{id.number}{Number to use for identifying edge file (when running in parallel)
+(generates random value by default).}
+
+\item{print.mod}{Print modularity output from clustering algorithm (default FALSE).}
+
+\item{print.align.summary}{Print summary of clusters which did not align normally (default FALSE).}
+
 \item{...}{Arguments passed to other methods, and to
 \code{\link[seurat.wrappers]{SNF}} if \code{recalc.snf = TRUE} or
 \code{\link[seurat.wrappers]{SNF}} hasn't been run}
@@ -47,8 +73,8 @@ A Seurat object with embeddings from \code{\link[liger]{quantileAlignSNF}}
 stored as a DimReduc object with name \code{reduction.name} (key set to \code{reduction.key})
 }
 \description{
-Run quantileAlignSNF on a Seurat object
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{quantileAlignSNF}}
+\code{\link[liger]{RunQuantileNorm}}
 }

@@ -6,16 +6,20 @@ Please see our [contribution guide](https://github.com/satijalab/seurat.wrappers
 
 Individual method vignettes can be found in the [`docs/`](https://github.com/satijalab/seurat.wrappers/tree/master/docs) directory, we recommend looking at the standard markdown (`*.md`) files when viewing on GitHub
 
-Installation can be accomplished through [devtools](https://cran.r-project.org/package=devtools)
+Installation can be accomplished through [remotes](https://cran.r-project.org/package=remotes)
 
 ```R
-devtools::install_github('satijalab/seurat-wrappers')
+remotes::install_github('satijalab/seurat-wrappers')
 ```
 
 ## Method Listing
 
 | Package | Vignette | Reference | Source |
 | ------- | -------- | --------- | ------ |
+| Monocle 3 | [Calculating Trajectories with Monocle 3 and Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/monocle3.html) | Cao et al, Nature 2019 | https://cole-trapnell-lab.github.io/monocle3 |
+| scVelo | [Estimating RNA Velocity using Seurat and scVelo](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/scvelo.html) | Bergen et al, bioRxiv 2019 | https://scvelo.readthedocs.io |
+| CoGAPS  | [Running CoGAPS on Seurat Objects](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/cogaps.html) | Stein-O’Brien et al, Cell Systems 2019 | https://www.bioconductor.org/packages/release/bioc/html/CoGAPS.html |
+| glmpca  | [Running GLM-PCA on a Seurat Object](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/glmpca.html) | Townes et al, Genome Biology 2019 | https://github.com/willtownes/glmpca |
 | Conos | [Integration of datasets using Conos](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/conos.html) | Barkas et al, Nature Methods 2019 | https://github.com/hms-dbmi/conos |
 | LIGER | [Integrating Seurat objects using LIGER](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/liger.html) | Welch et al, Cell 2019 | https://github.com/MacoskoLab/liger |
 | fastMNN | [Running fastMNN on Seurat Objects](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/fast_mnn.html) | Nature Biotechnology 2018 | https://bioconductor.org/packages/release/bioc/html/batchelor.html |

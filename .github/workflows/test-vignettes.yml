@@ -1,0 +1,27 @@
+on: [push, pull_request]
+
+jobs:
+  test-vignettes:
+    name: Test any changes to vignettes
+    runs-on: ubuntu-latest
+    container:
+      image: satijalab/seurat-wrappers:latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set R repo
+        run: echo 'options(repos = "https://cloud.r-project.org")' > ~/.Rprofile
+
+      - name: Install SeuratWrappers
+        run: devtools::install(upgrade = FALSE)
+        shell: Rscript {0}
+
+      - name: Test Vignettes
+        run: bash test-vignettes.sh
+
+      - name: Upload files
+        uses: actions/upload-artifact@master
+        with:
+          name: test-build
+          path: test-build

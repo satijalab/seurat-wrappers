@@ -1,0 +1,149 @@
+---
+title: "Calculating Trajectories with Monocle 3 and Seurat"
+output:
+  html_document:
+    df_print: kable
+    theme: united
+  github_document:
+    html_preview: no
+    toc: no
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+  
+This vigettte demonstrates how to run trajectory inference and pseudotime calculations with Monocle 3 on Seurat objects. If you use Monocle 3, please cite:
+
+> *The single-cell transcriptional landscape of mammalian organogenesis*
+>
+> Junyue Cao, Malte Spielmann, Xiaojie Qiu, Xingfan Huang, Daniel M. Ibrahim, Andrew J. Hill, Fan Zhang, Stefan Mundlos, Lena Christiansen, Frank J. Steemers, Cole Trapnell & Jay Shendure
+>
+> doi: [10.1038/s41586-019-0969-x](https://doi.org/10.1038/s41586-019-0969-x)
+>
+> Website: https://cole-trapnell-lab.github.io/monocle3/
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.height = 10,
+  fig.width = 16
+)
+```
+
+Prerequisites to install:
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [Monocle 3](https://cole-trapnell-lab.github.io/monocle3/docs/installation/)
+
+```{r install_deps, echo=FALSE, results="hide"}
+if (!requireNamespace("monocle3", quietly = TRUE)) {
+  setRepositories(ind = 1:2)
+  remotes::install_github(
+    repo = "cole-trapnell-lab/monocle3",
+    upgrade = FALSE
+  )
+}
+```
+
+```{r packages}
+library(monocle3)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(magrittr)
+```
+
+## HCA Bone Marrow 40k
+
+```{r load_hca, eval=FALSE}
+InstallData("hcabm40k")
+data("hcabm40k")
+```
+
+```{r preprocess_hca, results='hide', eval=FALSE}
+hcabm40k <- SplitObject(hcabm40k, split.by = "orig.ident")
+for (i in seq_along(hcabm40k)) {
+  hcabm40k[[i]] <- NormalizeData(hcabm40k[[i]]) %>% FindVariableFeatures()
+}
+features <- SelectIntegrationFeatures(hcabm40k)
+for (i in seq_along(along.with = hcabm40k)) {
+  hcabm40k[[i]] <- ScaleData(hcabm40k[[i]], features = features) %>%
+    RunPCA(features = features)
+}
+```
+
+```{r integration, results='hide', eval=FALSE}
+anchors <- FindIntegrationAnchors(
+  hcabm40k,
+  reference = c(1, 2),
+  reduction = "rpca",
+  dims = 1:30
+)
+integrated <- IntegrateData(anchors, dims = 1:30)
+```
+
+```{r dimreduc_hca, results='hide', eval=FALSE}
+integrated <- ScaleData(integrated)
+integrated <- RunPCA(integrated)
+integrated <- RunUMAP(integrated, dims = 1:30, reduction.name = "UMAP")
+integrated <- FindNeighbors(integrated, dims = 1:30)
+integrated <- FindClusters(integrated)
+DimPlot(integrated, group.by = c("orig.ident", "ident"))
+```
+
+```{r integrated_dimplot, echo=FALSE}
+con <- url("https://seurat.nygenome.org/monocle3/hcabm40k_integrated.Rds")
+integrated <- readRDS(file = con)
+close(con = con)
+DimPlot(object = integrated, group.by = c("orig.ident", "ident"))
+```
+
+```{r monocle3_clustering, results='hide'}
+cds <- as.cell_data_set(integrated)
+cds <- cluster_cells(cds)
+p1 <- plot_cells(cds, show_trajectory_graph = FALSE)
+p2 <- plot_cells(cds, color_cells_by = "partition", show_trajectory_graph = FALSE)
+wrap_plots(p1, p2)
+```
+
+```{r gc6, echo=FALSE, results="hide"}
+rm(integrated)
+gc(verbose = FALSE)
+```
+
+```{r subset_partitions, results="hide"}
+integrated.sub <- subset(as.Seurat(cds), monocle3_partitions == 1)
+cds <- as.cell_data_set(integrated.sub)
+cds <- learn_graph(cds)
+plot_cells(
+  cds,
+  label_groups_by_cluster = FALSE,
+  label_leaves = FALSE,
+  label_branch_points = FALSE
+)
+```
+
+```{r gc7, echo=FALSE, results="hide"}
+gc(verbose = FALSE)
+```
+
+```{r pseudotime, results="hide"}
+max.avp <- which.max(unlist(FetchData(integrated.sub, "AVP")))
+max.avp <- colnames(integrated.sub)[max.avp]
+cds <- order_cells(cds, root_cells = max.avp)
+plot_cells(
+  cds,
+  color_cells_by = "pseudotime",
+  label_cell_groups = FALSE,
+  label_leaves = FALSE,
+  label_branch_points = FALSE
+)
+# Set the assay back as "integrated"
+integrated.sub <- as.Seurat(cds, assay = "integrated")
+FeaturePlot(integrated.sub, "monocle3_pseudotime")
+```

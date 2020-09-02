@@ -1,0 +1,91 @@
+---
+title: "Running GLM-PCA on a Seurat Object"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: false
+    toc: false
+  html_document:
+    df_print: kable
+    theme: united
+---
+  
+This vignette demonstrates how to run GLM-PCA, which implements a generalized version of PCA for non-normally distributed data, on a Seurat object. If you use this, please cite:
+
+> *Feature selection and dimension reduction for single-cell RNA-Seq based on a multinomial model*
+>
+> F. William Townes, Stephanie C. Hicks, Martin J. Aryee & Rafael A. Irizarry 
+>
+> Genome Biology, 2019
+>
+> doi: https://doi.org/10.1186/s13059-019-1861-6
+>
+> GitHub: https://github.com/willtownes/glmpca
+> CRAN: https://cran.r-project.org/web/packages/glmpca/index.html
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10
+)
+```
+
+Prerequisites to install: 
+  
+* [Seurat](https://satijalab.org/seurat/install) 
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
+* [glmpca](https://github.com/willtownes/glmpca)
+* [scry](https://github.com/kstreet13/scry)
+
+```{r packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(glmpca)
+library(scry)
+```
+
+### GLM-PCA on PBMC3k
+
+To learn more about this dataset, type `?pbmc3k` 
+
+```{r glmpca, cache=TRUE, cache.lazy=TRUE}
+InstallData("pbmc3k")
+data("pbmc3k")
+
+# Initial processing to select variable features
+m <- GetAssayData(pbmc3k, slot = "counts", assay = "RNA")
+devs <- scry::devianceFeatureSelection(m)
+dev_ranked_genes <- rownames(pbmc3k)[order(devs, decreasing = TRUE)]
+topdev <- head(dev_ranked_genes, 2000)
+
+# run GLM-PCA on Seurat object. 
+# Uses Poisson model by default
+# Note that data in the counts slot is used
+# We choose 10 dimensions for computational efficiency
+
+ndims <- 10
+pbmc3k <- RunGLMPCA(pbmc3k, features = topdev, L = ndims)
+pbmc3k <- FindNeighbors(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
+pbmc3k <- FindClusters(pbmc3k, verbose = FALSE)
+pbmc3k <- RunUMAP(pbmc3k, reduction = 'glmpca', dims = 1:ndims, verbose = FALSE)
+```
+
+```{r explore, fig.width=6}
+# visualize markers
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
+DimPlot(pbmc3k)
+```
+
+Do the learned clusters overlap with the original annotation?
+
+```{r}
+with(pbmc3k[[]], table(seurat_annotations, seurat_clusters))
+```
+
+```{r explore2, fig.height=10}
+pbmc3k <- NormalizeData(pbmc3k, verbose = FALSE) 
+FeaturePlot(pbmc3k, features.plot, ncol = 2)
+```

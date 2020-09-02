@@ -32,8 +32,8 @@ A Seurat object with the SNF list stored in the \code{tool} slot,
 accessible with \code{\link[Seurat]{Tool}}
 }
 \description{
-Generate shared factor neighborhood graph
+This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{SNF}} \code{\link[Seurat]{Tool}}
+\code{\link[liger]{RunQuantileNorm}} \code{\link[Seurat]{Tool}}
 }
