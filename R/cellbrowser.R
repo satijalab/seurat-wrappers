@@ -1,13 +1,22 @@
-#' Build a UCSC cell browser website from a \code{Seurat} object
-#'
-require(reticulate)
+# Build a UCSC cell browser website from a \code{Seurat} object
+#
+NULL
+#require(reticulate)
+#require(Matrix)
+#require(R.utils)
+
 #' Used by \code{ExportToCellbrowser}:
 #' Write a big sparse matrix to a .tsv.gz file by writing chunks, concating them with the Unix cat command,
 #' then gziping the result. This does not work on Windows, we'd have to use the copy /b command there.
 #'
 #' @param inMat input matrix
 #' @param outFname output file name, has to end with .gz
-#' @param sliceSize=1000, size of each chunk in number of lines.
+#' @param sliceSize=1000, size of each chunk in number of lines
+#'
+#' @return Invisibly returns \code{NULL}
+#'
+#' @importFrom data.table setDTthreads data.table fwrite
+#'
 #' @examples
 #' \dontrun{
 #' writeSparseTsvChunks( pbmc_small@data, "exprMatrix.tsv.gz")
@@ -37,25 +46,69 @@ writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) {
         message("Concatenating chunks"); 
         system(paste("cat", paste(fnames, collapse=" "), "| gzip >", outFname, sep=" ")); 
         unlink(fnames); 
+=======
+#' writeSparseMatrix(GetAssayData(pbmc_small, slot = "data"), "exprMatrix.tsv.gz")
+#' }
+#'
+writeSparseMatrix = function(inMat, outFname, sliceSize = 1000) {
+    # require(data.table)
+    fnames <- c()
+    setDTthreads(threads = 8)  # otherwise this would use dozens of CPUs on a fat server
+    mat = inMat
+    geneCount = nrow(mat)
+    message("Writing expression matrix to ", outFname)
+    startIdx = 1
+    while (startIdx < geneCount) {
+      endIdx <- min(startIdx + sliceSize - 1, geneCount)
+      matSlice <- mat[startIdx:endIdx, ]
+      denseSlice <- as.matrix(x = matSlice)
+      dt <- data.table(denseSlice)
+      dt <- cbind(gene = rownames(x = matSlice), dt)
+      writeHeader <- startIdx == 1
+      writeHeader <- FALSE
+      # if (startIdx == 1) {
+      #   writeHeader <- TRUE
+      # }
+      sliceFname <- paste0("temp", startIdx, ".txt")
+      fwrite(
+        dt,
+        sep = "\t",
+        file = sliceFname,
+        quote = FALSE,
+        col.names = writeHeader
+      )
+      fnames <- append(x = fnames, values = sliceFname)
+      startIdx <- startIdx + sliceSize
+    }
+    message("Concatenating chunks")
+    system(command = paste(
+      "cat",
+      paste(fnames, collapse = " "), "| gzip >",
+      outFname,
+      sep = " "
+    ))
+    unlink(x = fnames)
+    return(invisible(x = NULL))
+>>>>>>> 56632af9df80c40d01bc8eba83ee3e103a5182cf
 }
 
-#' used by ExportToCellbrowser: 
+#' used by ExportToCellbrowser:
 #' Return a matrix object from a Seurat object or show an error message
 #'
 #' @param object Seurat object
 #' @param matrix.slot the name of the slot
 #'
-findMatrix = function( object, matrix.slot ) {
-      if (matrix.slot=="counts") {
-          counts <- GetAssayData(object = object, slot="counts")
-      } else if (matrix.slot=="scale.data") {
-              counts <- GetAssayData(object = object, slot="scale.data")
-      }
-      else if (matrix.slot=="data") {
-              counts <- GetAssayData(object = object)
-      } else {
-          error("matrix.slot can only be one of: counts, scale.data, data")
-      }
+findMatrix = function(object, matrix.slot ) {
+  if (matrix.slot == "counts") {
+    counts <- GetAssayData(object = object, slot = "counts")
+  } else if (matrix.slot == "scale.data") {
+    counts <- GetAssayData(object = object, slot="scale.data")
+  }
+  else if (matrix.slot=="data") {
+    counts <- GetAssayData(object = object)
+  } else {
+    stop("matrix.slot can only be one of: counts, scale.data, data")
+  }
 }
 
 #' Export \code{Seurat} objects for UCSC cell browser and stop open cell browser
@@ -68,7 +121,7 @@ findMatrix = function( object, matrix.slot ) {
 #' @param dataset.name name of the dataset. Defaults to Seurat project name
 #' @param reductions vector of reduction names to export, defaults to all reductions.
 #' @param markers.file path to file with marker genes. By defaults, marker
-#' are searched in the object itself as misc$markers. If none are supplied in 
+#' are searched in the object itself as misc$markers. If none are supplied in
 #' object or via this argument, they are recalculated with \code{FindAllMarkers}
 #' @param markers.n if no markers were supplied, FindAllMarkers is run.
 #' This parameter indicates how many markers to calculate, default is 100
@@ -81,7 +134,7 @@ findMatrix = function( object, matrix.slot ) {
 #' can be copied to any webserver. If this is specified, the cellbrowser
 #' package has to be accessible from R via reticulate.
 #' @param meta.fields vector of meta fields to export, default is all.
-#' @param meta.fields.names vector meta field names to show in UI. Must have 
+#' @param meta.fields.names vector meta field names to show in UI. Must have
 #'        same length as meta.fields. Default is meta.fields.
 #' @param skip.markers whether to skip exporting markers
 #' @param skip.expr.matrix whether to skip exporting expression matrix
@@ -114,12 +167,13 @@ findMatrix = function( object, matrix.slot ) {
 #' @name CellBrowser
 #' @rdname CellBrowser
 #'
-#' @importFrom reticulate py_module_available
-#' @importFrom reticulate import
+#' @importFrom methods slot
+#' @importFrom utils packageVersion
+#' @importFrom reticulate py_module_available import
 #'
 #' @examples
 #' \dontrun{
-#' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
+#' ExportToCellbrowser(pbmc_small, dataset.name = "PBMC", dir = "out")
 #' }
 #'
 ExportToCellbrowser <- function(
@@ -141,25 +195,25 @@ ExportToCellbrowser <- function(
   skip.metadata = FALSE,
   skip.reductions = FALSE
 ) {
-
-  if (!require("Seurat",character.only = TRUE)) {
-          stop("This script requires that Seurat (V2 or V3) is installed")
+  if (!requireNamespace("Seurat", quietly = TRUE)) {
+    stop("This script requires that Seurat (V2 or V3) is installed")
   }
+
   message("Seurat Version installed: ", packageVersion("Seurat"))
   message("Object was created with Seurat version ", object@version)
 
   objMaj = package_version(object@version)$major
   pkgMaj = package_version(packageVersion("Seurat"))$major
 
-  if (objMaj!=2 && objMaj!=3)
+  if (objMaj!=2 && objMaj!=3) {
           stop("can only process Seurat2 or Seurat3 objects, object was made with Seurat ", object@version)
   }
 
-  if (objMaj != pkgMaj)
-          stop("The installed version of Seurat is different from Seurat input object. You have to down- or upgrade your installed Seurat version. See the Seurat documentation.")
+  if (objMaj != pkgMaj) {
+          stop("The installed major version of Seurat is different from Seurat input object. You have to down- or upgrade your installed Seurat version. See the Seurat documentation.")
   }
 
-  reducNames = reductions # Seurat prefers the word reductions
+  reducNames = reductions
 
   # compatibility layer for Seurat 2 vs 3 
   # see https://satijalab.org/seurat/essential_commands.html
@@ -182,50 +236,48 @@ ExportToCellbrowser <- function(
       genes <- rownames(x = object@data)
       dr <- object@dr
   } else {
-      # Seurat 3 functions
-      idents <- Idents(object)
-      meta <- object@meta.data
-      cellOrder <- colnames(object)
-      counts <- findMatrix(object, matrix.slot)
-      if (dim(counts)[1]==0) { 
-          message(paste0("The Seurat data slot '", matrix.slot, "' contains no data. Trying default assay."))
-          defAssay = DefaultAssay(object)
-          assay = GetAssay(object, defAssay)
-          message(paste0("Default assay is ", defAssay))
-          counts <- findMatrix(assay, matrix.slot)
-          genes <- rownames(counts)
-
-          if (dim(counts)[1]==0) { 
-              stop("Could not find an expression matrix",
-                     "Please select the correct slot where the matrix is stored, possible ",
-                     "values are 'counts', 'scale.data' or 'data'. To select a slot, ",
-                   "use the option 'matrix.slot' from R or the cbImportSeurat option -s from the command line.")
-          }
+    # Seurat 3 functions
+    idents <- Idents(object = object)
+    meta <- object[[]]
+    cellOrder <- colnames(x = object)
+    counts <- findMatrix(object = object, matrix.slot = matrix.slot)
+    if (dim(x = counts)[1] == 0) {
+      message(paste0("The Seurat data slot '", matrix.slot, "' contains no data. Trying default assay."))
+      defAssay <- DefaultAssay(object)
+      assay <- GetAssay(object, defAssay)
+      message(paste0("Default assay is ", defAssay))
+      counts <- findMatrix(assay, matrix.slot)
+      genes <- rownames(counts)
+      if (dim(x = counts)[1] == 0) {
+        stop(
+          "Could not find an expression matrix",
+          "Please select the correct slot where the matrix is stored, possible ",
+          "values are 'counts', 'scale.data' or 'data'. To select a slot, ",
+          "use the option 'matrix.slot' from R or the cbImportSeurat option -s from the command line."
+        )
       }
-      else {
-          genes <- rownames(x = object)
-      }
-      dr <- object@reductions
+    }
+    else {
+      genes <- rownames(x = object)
+    }
+    dr <- object@reductions
   }
-
-  if (is.null(cluster.field)) {
-          cluster.field = "Cluster"
+  if (is.null(x = cluster.field)) {
+    cluster.field = "Cluster"
   }
-
-  if (is.null(meta.fields)) {
-    meta.fields <- colnames(meta)
-    if (length(levels(idents)) > 1) {
+  if (is.null(x = meta.fields)) {
+    meta.fields <- colnames(x = meta)
+    if (length(x = levels(x = idents)) > 1) {
       meta.fields <- c(meta.fields, ".ident")
     }
   }
-
-  if (!is.null(port) && is.null(cb.dir)) {
+  if (!is.null(x = port) && is.null(x = cb.dir)) {
     stop("cb.dir parameter is needed when port is set")
   }
-  if (!dir.exists(dir)) {
-    dir.create(dir)
+  if (!dir.exists(paths = dir)) {
+    dir.create(path = dir)
   }
-  if (!dir.exists(dir)) {
+  if (!dir.exists(paths = dir)) {
     stop("Output directory ", dir, " cannot be created or is a file")
   }
   if (dataset.name == "SeuratProject") {
@@ -234,13 +286,10 @@ ExportToCellbrowser <- function(
   enum.fields <- c()
 
   # Export expression matrix
-
   if (!skip.expr.matrix) { 
       too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix'))
       if (use.mtx || (too.big && (.Platform$OS.type=="windows") {
             # we have to write the matrix to an mtx file
-            #require(Matrix)
-            #require(R.utils)
             matrixPath <- file.path(dir, "matrix.mtx")
             genesPath <- file.path(dir, "features.tsv")
             barcodesPath <- file.path(dir, "barcodes.tsv")
@@ -280,17 +329,17 @@ ExportToCellbrowser <- function(
   foundEmbedNames = c()
   for (embedding in reducNames) {
     emb <- dr[[embedding]]
-    if (is.null(emb)) {
-        message("Embedding ",embedding," does not exist in Seurat object. Skipping. ")
+    if (is.null(x = emb)) {
+        message("Embedding ", embedding, " does not exist in Seurat object. Skipping. ")
         next
     }
     df <-  emb@cell.embeddings
-    if (ncol(df) > 2) {
+    if (ncol(x = df) > 2) {
       warning('Embedding ', embedding, ' has more than 2 coordinates, taking only the first 2')
       df <- df[, 1:2]
     }
-    colnames(df) <- c("x", "y")
-    df <- data.frame(cellId = rownames(df), df, check.names=FALSE)
+    colnames(x = df) <- c("x", "y")
+    df <- data.frame(cellId = rownames(x = df), df, check.names = FALSE)
     fname <- file.path(
       dir,
       sprintf("%s.coords.tsv", embedding)
@@ -299,7 +348,6 @@ ExportToCellbrowser <- function(
     write.table(df[cellOrder, ], sep="\t", file=fname, quote = FALSE, row.names = FALSE)
     foundEmbedNames = append(foundEmbedNames, embedding)
   }
-
   # by default, the embeddings are sorted in the object by order of creation (pca, tsne, umap).
   # But that is usually the opposite of what users want, they want the last embedding to appear first
   # in the UI, so reverse the order here
@@ -312,10 +360,8 @@ ExportToCellbrowser <- function(
       )
       embeddings.conf <- c(embeddings.conf, conf)
    }
-
-
   # Export metadata
-  df <- data.frame(row.names = cellOrder, check.names=FALSE)
+  df <- data.frame(row.names = cellOrder, check.names = FALSE)
   for (field in meta.fields) {
     if (field == ".ident") {
       df$Cluster <- idents
@@ -331,12 +377,10 @@ ExportToCellbrowser <- function(
       }
     }
   }
-  df <- data.frame(Cell=rownames(df), df, check.names=FALSE)
-
+  df <- data.frame(Cell = rownames(df), df, check.names = FALSE)
   fname <- file.path(dir, "meta.tsv")
   message("Writing meta data to ", fname)
-  write.table(as.matrix(df[cellOrder, ]), sep="\t", file=fname, quote = FALSE, row.names=FALSE)
-
+  write.table(as.matrix(df[cellOrder, ]), sep = "\t", file = fname, quote = FALSE, row.names = FALSE)
   # Export markers
   markers.string <- ''
   if (is.null(markers.file)) {
@@ -346,7 +390,6 @@ ExportToCellbrowser <- function(
   }
   file <- paste0("markers.", ext)
   fname <- file.path(dir, file)
-
   if (!is.null(markers.file) && !skip.markers) {
     message("Copying ", markers.file, " to ", fname)
     file.copy(markers.file, fname)
@@ -354,50 +397,48 @@ ExportToCellbrowser <- function(
   if (is.null(markers.file) && skip.markers) {
     file <- NULL
   }
-
   if (is.null(markers.file) && !skip.markers) {
     if (length(levels(idents)) > 1) {
-
-          markers.helper <- function(x) {
-            partition <- markers[x,]
-            ord <- order(partition$p_val_adj < 0.05, -partition$avg_logFC)
-            res <- x[ord]
-            naCount <- max(0, length(x) - markers.n)
-            res <- c(res[1:markers.n], rep(NA, naCount))
-            return(res)
-          }
-
-      if (.hasSlot(object, "misc") && !is.null(object@misc["markers"][[1]])) {
-          message("Found precomputed markers in obj@misc['markers']")
-          markers <- object@misc["markers"]$markers
-      } else {
-          message("Running FindAllMarkers(), using wilcox test, min logfc diff 0.25")
-          markers <- FindAllMarkers(object, do.print=TRUE, print.bar=TRUE, test.use="wilcox", logfc.threshold = 0.25)
+      markers.helper <- function(x) {
+        partition <- markers[x,]
+        ord <- order(partition$p_val_adj < 0.05, -partition$avg_logFC)
+        res <- x[ord]
+        naCount <- max(0, length(x) - markers.n)
+        res <- c(res[1:markers.n], rep(NA, naCount))
+        return(res)
       }
-
+      if (.hasSlot(object, "misc") && !is.null(x = object@misc["markers"][[1]])) {
+        message("Found precomputed markers in obj@misc['markers']")
+        markers <- object@misc["markers"]$markers
+      } else {
+        message("Running FindAllMarkers(), using wilcox test, min logfc diff 0.25")
+        markers <- FindAllMarkers(
+          object,
+          do.print = TRUE,
+          print.bar = TRUE,
+          test.use = "wilcox",
+          logfc.threshold = 0.25
+        )
+      }
       message("Writing top ", markers.n, ", cluster markers to ", fname)
-      markers.order <- ave(rownames(markers), markers$cluster, FUN=markers.helper)
-      top.markers <- markers[markers.order[!is.na(markers.order)],]
-      write.table(top.markers, fname, quote=FALSE, sep="\t", col.names=NA)
-
+      markers.order <- ave(x = rownames(x = markers), markers$cluster, FUN = markers.helper)
+      top.markers <- markers[markers.order[!is.na(x = markers.order)], ]
+      write.table(x = top.markers, file = fname, quote = FALSE, sep = "\t", col.names = NA)
     } else {
-
       message("No clusters found in Seurat object and no external marker file provided, so no marker genes can be computed")
       file <- NULL
     }
   }
-
   if (!is.null(file)) {
     markers.string <- sprintf(
       'markers = [{"file": "%s", "shortLabel": "Seurat Cluster Markers"}]',
       file
     )
   }
-
   matrixOutPath <- "exprMatrix.tsv.gz"
-  if (use.mtx)
-      matrixOutPath <- "matrix.mtx.gz"
-
+  if (use.mtx) {
+    matrixOutPath <- "matrix.mtx.gz"
+  }
   config <- '
 # This is a bare-bones cellbrowser config file auto-generated from R.
 # Look at https://github.com/maximilianh/cellBrowser/blob/master/src/cbPyLib/cellbrowser/sampleConfig/cellbrowser.conf
@@ -416,7 +457,6 @@ labelField="%s"
 enumFields=%s
 %s
 coords=%s'
-
   enum.string <- paste0(
     "[",
     paste(paste0('"', enum.fields, '"'), collapse = ", "),
@@ -437,26 +477,24 @@ coords=%s'
     markers.string,
     coords.string
   )
-
   confPath = file.path(dir, "cellbrowser.conf")
   message("Writing cellbrowser config to ", confPath)
-  cat(config, file=confPath)
-
+  cat(config, file = confPath)
   message("Prepared cellbrowser directory ", dir)
   if (!is.null(x = cb.dir)) {
     if (!py_module_available(module = "cellbrowser")) {
-          stop(
-            "The Python package `cellbrowser` is required to prepare and run ",
-            "Cellbrowser. Please install it ",
-            "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
-            "or `pip install cellbrowser --user` (as a non-root user). ",
-            "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
-            "or do `require(reticulate) and use one of these functions: use_python(), use_virtualenv(), use_condaenv(). ",
-            "See https://rstudio.github.io/reticulate/articles/versions.html; ",
-            "at the moment, R's reticulate is using this Python: ",
-            import(module = 'sys')$executable,
-            ". "
-         )
+      stop(
+        "The Python package `cellbrowser` is required to prepare and run ",
+        "Cellbrowser. Please install it ",
+        "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
+        "or `pip install cellbrowser --user` (as a non-root user). ",
+        "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
+        "or do `require(reticulate) and use one of these functions: use_python(), use_virtualenv(), use_condaenv(). ",
+        "See https://rstudio.github.io/reticulate/articles/versions.html; ",
+        "at the moment, R's reticulate is using this Python: ",
+        import(module = 'sys')$executable,
+        ". "
+      )
     }
     if (!is.null(x = port)) {
       port <- as.integer(x = port)
@@ -465,7 +503,6 @@ coords=%s'
     cb <- import(module = "cellbrowser")
     cb$cellbrowser$build(dir, cb.dir)
     message("HTML files are ready in ", cb.dir)
-
     if (!is.null(port)) {
       message("Starting http server")
       cb$cellbrowser$stop()
@@ -475,7 +512,6 @@ coords=%s'
     }
   }
 }
-# ---
 
 #' Stop Cellbrowser web server
 #'

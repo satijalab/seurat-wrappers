@@ -3,25 +3,28 @@
 \name{CellBrowser}
 \alias{CellBrowser}
 \alias{ExportToCellbrowser}
-\alias{StopCellbrowser}
-\title{Utilize the UCSC cell browser with \code{Seurat} objects}
+\title{Export \code{Seurat} objects for UCSC cell browser and stop open cell browser
+instances from R}
 \usage{
 ExportToCellbrowser(
   object,
   dir,
   dataset.name = Project(object = object),
-  reductions = "tsne",
+  reductions = NULL,
   markers.file = NULL,
-  cluster.field = "Cluster",
+  cluster.field = NULL,
   cb.dir = NULL,
   port = NULL,
+  use.mtx = FALSE,
+  meta.fields = NULL,
+  meta.fields.names = NULL,
+  matrix.slot = "counts",
+  markers.n = 100,
+  skip.markers = FALSE,
   skip.expr.matrix = FALSE,
   skip.metadata = FALSE,
-  skip.reductions = FALSE,
-  ...
+  skip.reductions = FALSE
 )
-
-StopCellbrowser()
 }
 \arguments{
 \item{object}{Seurat object}
@@ -32,9 +35,11 @@ cellbrowser.conf}
 
 \item{dataset.name}{name of the dataset. Defaults to Seurat project name}
 
-\item{reductions}{vector of reduction names to export}
+\item{reductions}{vector of reduction names to export, defaults to all reductions.}
 
-\item{markers.file}{path to file with marker genes}
+\item{markers.file}{path to file with marker genes. By defaults, marker
+are searched in the object itself as misc$markers. If none are supplied in
+object or via this argument, they are recalculated with \code{FindAllMarkers}}
 
 \item{cluster.field}{name of the metadata field containing cell cluster}
 
@@ -45,13 +50,28 @@ package has to be accessible from R via reticulate.}
 
 \item{port}{on which port to run UCSC cellbrowser webserver after export}
 
+\item{use.mtx}{export the matrix in .mtx.gz format. Default is False,
+unless the matrix is bigger than R's maximum matrix size.}
+
+\item{meta.fields}{vector of meta fields to export, default is all.}
+
+\item{meta.fields.names}{vector meta field names to show in UI. Must have
+same length as meta.fields. Default is meta.fields.}
+
+\item{matrix.slot}{matrix to use, default is 'counts'}
+
+\item{markers.n}{if no markers were supplied, FindAllMarkers is run.
+This parameter indicates how many markers to calculate, default is 100}
+
+\item{skip.markers}{whether to skip exporting markers}
+
 \item{skip.expr.matrix}{whether to skip exporting expression matrix}
 
 \item{skip.metadata}{whether to skip exporting metadata}
 
 \item{skip.reductions}{whether to skip exporting reductions}
 
-\item{...}{specifies the metadata fields to export. To supply field with
+\item{...}{specifies the metadata fields to export. To supply a field and its
 human readable name, pass name as \code{field="name"} parameter.}
 }
 \value{
@@ -71,11 +91,7 @@ instances from R
 }
 \examples{
 \dontrun{
-ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
-}
-
-\dontrun{
-StopCellbrowser()
+ExportToCellbrowser(pbmc_small, dataset.name = "PBMC", dir = "out")
 }
 
 }
