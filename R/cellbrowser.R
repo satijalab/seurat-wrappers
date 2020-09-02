@@ -10,10 +10,10 @@ require(reticulate)
 #' @param sliceSize=1000, size of each chunk in number of lines.
 #' @examples
 #' \dontrun{
-#' writeSparseMatrix( pbmc_small@data, "exprMatrix.tsv.gz")
+#' writeSparseTsvChunks( pbmc_small@data, "exprMatrix.tsv.gz")
 #' }
 #'
-writeSparseMatrix = function (inMat, outFname, sliceSize=1000) { 
+writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) { 
     require(data.table)
     fnames = c(); 
     setDTthreads(8);  # otherwise this would use dozens of CPUs on a fat server
@@ -104,9 +104,10 @@ findMatrix = function( object, matrix.slot ) {
 #' @author Maximilian Haeussler, Nikolay Markov
 #'
 #' @importFrom tools file_ext
-#' @importFrom utils browseURL
+#' @importFrom utils browseURL packageVersion gzip write.table
 #' @importFrom reticulate py_module_available import
 #' @importFrom Seurat Project Idents GetAssayData Embeddings FetchData
+#' @importFrom Matrix  writeMM
 #'
 #' @export
 #'
@@ -147,20 +148,24 @@ ExportToCellbrowser <- function(
   message("Seurat Version installed: ", packageVersion("Seurat"))
   message("Object was created with Seurat version ", object@version)
 
-  if (substr(object@version, 1, 1)!='2' && substr(object@version, 1, 1)!='3') {
-          stop("can only process Seurat2 or Seurat3 objects, version of rds is ", object@version)
+  objMaj = package_version(object@version)$major
+  pkgMaj = package_version(packageVersion("Seurat"))$major
+
+  if (objMaj!=2 && objMaj!=3)
+          stop("can only process Seurat2 or Seurat3 objects, object was made with Seurat ", object@version)
   }
 
-  if (substr(object@version, 1, 1)!=substr( packageVersion("Seurat"), 1, 1)) {
-          stop("The installed version of Seurat is different from Seurat object loaded. You have to down- or upgrade your installed Seurat version, see the Seurat documentation")
+  if (objMaj != pkgMaj)
+          stop("The installed version of Seurat is different from Seurat input object. You have to down- or upgrade your installed Seurat version. See the Seurat documentation.")
   }
 
-  embeddings = reductions # Seurat prefers the word reductions
+  reducNames = reductions # Seurat prefers the word reductions
 
   # compatibility layer for Seurat 2 vs 3 
   # see https://satijalab.org/seurat/essential_commands.html
-  if (substr(object@version, 1, 1)=='2') {
-      # Seurat 2 data access
+  if (inherits(x = object, what = 'seurat')) {
+      # Seurat v2 objects are called "seurat" (Paul Hoffman)
+      # -> Seurat 2 data access
       idents <- object@ident # Idents() in Seurat3
       meta <- object@meta.data
       cellOrder <- object@cell.names
@@ -231,15 +236,17 @@ ExportToCellbrowser <- function(
   # Export expression matrix
 
   if (!skip.expr.matrix) { 
-      if (use.mtx) {
-            require(Matrix)
-            require(R.utils)
+      too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix'))
+      if (use.mtx || (too.big && (.Platform$OS.type=="windows") {
+            # we have to write the matrix to an mtx file
+            #require(Matrix)
+            #require(R.utils)
             matrixPath <- file.path(dir, "matrix.mtx")
             genesPath <- file.path(dir, "features.tsv")
             barcodesPath <- file.path(dir, "barcodes.tsv")
             message("Writing expression matrix to ", matrixPath)
             writeMM(counts, matrixPath)
-            # easier to load if the genes file has at least columns even though seurat objects
+            # easier to load if the genes file has at least two columns. Even though seurat objects
             # don't have yet explicit geneIds/geneSyms data, we just duplicate whatever the matrix has now
             write.table(as.data.frame(cbind(rownames(counts), rownames(counts))), file=genesPath, sep="\t", row.names=F, col.names=F, quote=F)
             write(colnames(counts), file = barcodesPath)
@@ -248,9 +255,10 @@ ExportToCellbrowser <- function(
             gzip(genesPath)
             gzip(barcodesPath)
       } else {
+          # we can write the matrix as a tsv file
           gzPath <- file.path(dir, "exprMatrix.tsv.gz")
-          if ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix')) {
-              writeSparseMatrix(counts, gzPath);
+          if (too.big) {
+              writeSparseTsvChunks(counts, gzPath);
           } else {
               mat = as.matrix(counts)
               df <- as.data.frame(mat, check.names=FALSE)
@@ -263,20 +271,19 @@ ExportToCellbrowser <- function(
       }
   }
 
-  # Export cell embeddings
-  if (is.null(embeddings)) {
-      embeddings = names(dr)
-      message("Using all embeddings contained in the Seurat object: ", embeddings)
+  # Export cell embeddings/reductions
+  if (is.null(reducNames)) {
+      reducNames = names(dr)
+      message("Using all embeddings contained in the Seurat object: ", reducNames)
   }
 
-  embedNames = c()
-  for (embedding in embeddings) {
+  foundEmbedNames = c()
+  for (embedding in reducNames) {
     emb <- dr[[embedding]]
     if (is.null(emb)) {
         message("Embedding ",embedding," does not exist in Seurat object. Skipping. ")
         next
     }
-    #df <- slot(emb, "cell.embeddings")
     df <-  emb@cell.embeddings
     if (ncol(df) > 2) {
       warning('Embedding ', embedding, ' has more than 2 coordinates, taking only the first 2')
@@ -290,15 +297,15 @@ ExportToCellbrowser <- function(
     )
     message("Writing embeddings to ", fname)
     write.table(df[cellOrder, ], sep="\t", file=fname, quote = FALSE, row.names = FALSE)
-    embedNames = append(embedNames, embedding)
+    foundEmbedNames = append(foundEmbedNames, embedding)
   }
 
   # by default, the embeddings are sorted in the object by order of creation (pca, tsne, umap).
   # But that is usually the opposite of what users want, they want the last embedding to appear first
   # in the UI, so reverse the order here
-  embedNames = sort(embedNames, decreasing=T)
+  foundEmbedNames = sort(foundEmbedNames, decreasing=T)
   embeddings.conf <- c()
-  for (embedName in embedNames) {
+  for (embedName in foundEmbedNames) {
       conf <- sprintf(
         '{"file": "%s.coords.tsv", "shortLabel": "Seurat %1$s"}',
         embedName
