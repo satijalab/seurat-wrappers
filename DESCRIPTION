@@ -20,7 +20,8 @@ Remotes: MacoskoLab/liger,
     velocyto-team/velocyto.R,
     SaskiaFreytag/schex@031320d,
     cole-trapnell-lab/monocle3,
-    mojaveazure/seurat-disk
+    mojaveazure/seurat-disk,
+    powellgenomicslab/Nebulosa
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -63,4 +64,5 @@ Suggests:
     fishpond,
     monocle3,
     CoGAPS,
-    glmpca
+    glmpca,
+    Nebulosa
