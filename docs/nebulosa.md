@@ -2,18 +2,6 @@ Visualization of gene expression with Nebulosa
 ================
 Compiled: September 29, 2020
 
-  - [Overview](#overview)
-  - [Import libraries](#import-libraries)
-  - [Data pre-processing](#data-pre-processing)
-      - [Data normalization](#data-normalization)
-      - [Dimensionality reduction](#dimensionality-reduction)
-      - [Clustering](#clustering)
-  - [Visualize data with `Nebulosa`](#visualize-data-with-nebulosa)
-  - [Multi-feature visualization](#multi-feature-visualization)
-      - [Identifying Naive CD8+ T cells](#identifying-naive-cd8-t-cells)
-      - [Identifying Naive CD4+ T cells](#identifying-naive-cd4-t-cells)
-  - [Conclusions](#conclusions)
-
 This vignette demonstrates how to run Nebulosa on a Seurat object. If
 you use this, please cite:
 
@@ -124,10 +112,10 @@ pbmc <- FindClusters(pbmc)
     ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
     ## 
     ## Number of nodes: 2638
-    ## Number of edges: 113018
+    ## Number of edges: 113368
     ## 
     ## Running Louvain algorithm...
-    ## Maximum modularity in 10 random starts: 0.8286
+    ## Maximum modularity in 10 random starts: 0.8272
     ## Number of communities: 13
     ## Elapsed time: 0 seconds
 

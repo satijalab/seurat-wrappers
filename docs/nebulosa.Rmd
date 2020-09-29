@@ -20,10 +20,18 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r install_nebulosa, include=FALSE}
+if (!requireNamespace("Nebulosa", quietly = TRUE)) {
+  remotes::install_github(
+    repo = "powellgenomicslab/Nebulosa",
+    dependencies = TRUE,
+    upgrade = FALSE
+  )
+}
+```
 
 This vignette demonstrates how to run Nebulosa on a Seurat object. 
 If you use this, please cite:
-
 
 > *Nebulosa recovers single cell gene expression signals by kernel density estimation*
 >
@@ -34,8 +42,6 @@ If you use this, please cite:
 > doi: [10.18129](10.18129/B9.bioc.Nebulosa)
 >
 > Website: https://github.com/powellgenomicslab/Nebulosa
-
-
 
 # Overview
 
