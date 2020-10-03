@@ -67,4 +67,5 @@ Suggests:
     monocle3,
     CoGAPS,
     glmpca,
+    Nebulosa,
     presto
