@@ -16,6 +16,7 @@ License: GPL-3 | file LICENSE
 Remotes: MacoskoLab/liger,
     hms-dbmi/conos,
     immunogenomics/harmony,
+    immunogenomics/presto,
     satijalab/seurat-data,
     velocyto-team/velocyto.R,
     SaskiaFreytag/schex@031320d,
@@ -35,7 +36,8 @@ Imports:
     rsvd,
     Seurat (>= 3.0.1),
     stats,
-    utils
+    utils,
+    rlang
 Collate:
     'internal.R'
     'alevin.R'
@@ -46,6 +48,7 @@ Collate:
     'glmpca.R'
     'liger.R'
     'monocle3.R'
+    'presto.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
@@ -63,4 +66,5 @@ Suggests:
     fishpond,
     monocle3,
     CoGAPS,
-    glmpca
+    glmpca,
+    presto
