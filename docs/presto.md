@@ -1,6 +1,6 @@
 Fast Differential Expression with Presto
 ================
-Compiled: October 03, 2020
+Compiled: October 07, 2020
 
 This vignette demonstrates the use of the Presto package in Seurat.
 Commands and parameters are based off of the [Presto
