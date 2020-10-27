@@ -109,9 +109,33 @@ RunPresto <- function(
     ns = "Seurat")
 
   tryCatch(
-    expr = res <- do.call(
-      what = FindMarkers,
-      args = as.list(x = match.call()[-1])),
+    expr = res <- FindMarkers(
+      object,
+      ident.1,
+      ident.2,
+      group.by,
+      subset.ident,
+      assay,
+      slot,
+      reduction,
+      features,
+      logfc.threshold,
+      test.use,
+      min.pct,
+      min.diff.pct,
+      verbose,
+      only.pos,
+      max.cells.per.ident,
+      random.seed,
+      latent.vars,
+      min.cells.feature,
+      min.cells.group,
+      pseudocount.use,
+      mean.fxn,
+      fc.name,
+      base,
+      ...
+    ),
     finally = assignInNamespace(
       x = "WilcoxDETest",
       value = orig.fxn,
@@ -178,9 +202,30 @@ RunPrestoAll <- function(
     ns = "Seurat")
 
   tryCatch(
-    expr = res <- do.call(
-      what = FindAllMarkers,
-      args = as.list(x = match.call()[-1])),
+    expr = res <- FindAllMarkers(
+      object,
+      assay,
+      features,
+      logfc.threshold,
+      test.use,
+      slot,
+      min.pct,
+      min.diff.pct,
+      node,
+      verbose,
+      only.pos,
+      max.cells.per.ident,
+      random.seed,
+      latent.vars,
+      min.cells.feature,
+      min.cells.group,
+      pseudocount.use,
+      mean.fxn,
+      fc.name,
+      base,
+      return.thresh,
+      ...
+    ),
     finally = assignInNamespace(
       x = "WilcoxDETest",
       value = orig.fxn,
