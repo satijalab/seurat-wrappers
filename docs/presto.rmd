@@ -1,0 +1,74 @@
+
+
+---
+title: "Fast Differential Expression with Presto"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+    fig_width: 16
+  html_document:
+    df_print: kable
+    theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
+---
+
+This vignette demonstrates the use of the Presto package in Seurat. Commands and parameters are based off of the [Presto tutorial](http://htmlpreview.github.io/?https://github.com/immunogenomics/presto/blob/master/docs/getting-started.html). If you use Presto in your work, please cite:
+
+> *Presto scales Wilcoxon and auROC analyses to millions of observations*
+>
+> Ilya Korsunsky, Aparna Nathan, Nghia Millard, Soumya Raychaudhuri
+>
+> bioRxiv, 2019.
+>
+> Pre-print: https://www.biorxiv.org/content/10.1101/653253v1.full.pdf
+>
+> GitHub: https://github.com/immunogenomics/presto
+
+```{r setup, include=FALSE}
+if (!requireNamespace("presto")) {
+  remotes::install_github("immunogenomics/presto", upgrade = FALSE)
+}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+Prerequisites to install: 
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [Presto](https://github.com/immunogenomics/presto)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data) 
+
+```{r packages}
+library(presto)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+### Differential Expression Testing for PBMC scRNA-seq Data
+
+To learn more about this dataset, type `?pbmc3k` 
+
+```{r pbmc3k, cache=TRUE}
+InstallData("pbmc3k")
+data("pbmc3k")
+pbmc3k <- NormalizeData(pbmc3k)
+Idents(pbmc3k) <- 'seurat_annotations'
+
+diffexp.B.Mono <- RunPresto(pbmc3k, 'CD14+ Mono', 'B')
+head(diffexp.B.Mono, 10)
+
+diffexp.all <- RunPrestoAll(pbmc3k)
+head(diffexp.all[diffexp.all$cluster=='B', ], 10)
+```
+
