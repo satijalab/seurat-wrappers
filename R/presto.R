@@ -38,6 +38,8 @@ PrestoDETest <- function(
     data.use <- data.use[, names(x = group.info), drop = FALSE]
     p_val <- presto::wilcoxauc(X = data.use, y = group.info)$pval
     p_val <- p_val[1:(length(p_val)/2)]
+  } else {
+    stop("Overflow error. Try running with fewer cells.")
   }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
 }
