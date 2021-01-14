@@ -2,35 +2,43 @@
 % Please edit documentation in R/fasttopics.R
 \name{FitTopicModel}
 \alias{FitTopicModel}
-\title{Add Title Here}
+\title{Fit a Multinomial Topic Model Using fastTopics}
 \usage{
 FitTopicModel(
   object,
   k = 3,
   assay = NULL,
   features = NULL,
-  reduction.name = "fasttopics",
+  reduction.name = "multinom_topic_model",
   reduction.key = "k_",
   verbose = TRUE,
   ...
 )
 }
 \arguments{
-\item{object}{Describe input argument "object" here.}
+\item{object}{A Seurat object.}
 
-\item{k}{Describe input argument "k" here.}
+\item{k}{The number of topics. Must be 2 or more.}
 
-\item{assay}{Describe input argument "assay" here.}
+\item{assay}{Name of assay to use; defaults to the default
+assay of the object.}
 
-\item{features}{Describe input argument "features" here.}
+\item{features}{A list of features to use for fitting the model. If
+\code{features = NULL}, all variable features; see
+\code{\link[Seurat]{VariableFeatures}}.}
 
-\item{reduction.name}{Describe input argument "reduction.name" here.}
+\item{reduction.name}{Name of the outputted reduction.}
 
-\item{reduction.key}{Describe input argument "reduction.key" here.}
+\item{reduction.key}{Key for the outputted reduction.}
 
-\item{verbose}{Describe input argument "verbose" here.}
+\item{verbose}{When \code{verbose = TRUE}, information about the
+progress of the model fitting is printed to the console. See
+\code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
+output.}
 
-\item{\dots}{Describe "..." here.}
+\item{\dots}{\dots Additional arguments passed to
+\code{fit_topic_model}; see
+\code{\link[fastTopics]{fit_topic_model}} for details}
 }
 \value{
 Describe the return value here.
@@ -41,6 +49,37 @@ mean the opposite of what they mean in Seurat.
 \description{
 Add description here.
 }
+\examples{
+set.seed(1)
+
+# Load the PBMC data.
+data(pbmc_small)
+
+# Fit the multinomial topic model to the raw UMI count data; no
+# pre-processing is needed.
+pbmc_small <- FitTopicModel(pbmc_small,k = 3)
+
+# This plot shows the cells projected onto the top 2 principal
+# components (PCs) of the topic model mixture proportions.
+Idents(pbmc_small) <- pbmc_small$letter.idents
+DimPlot(pbmc_small,reduction = "pca")
+
+# Once fitted topic model is extracted, many functions from the
+# fastTopics package can be used. For example, the Structure plot
+# provides an evocative visual summary of the estimated mixture
+# proportions for each cell.
+fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))
+structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
+
+}
+\references{
+Dey, K. K., Hsiao, C. J. and Stephens, M. (2017). Visualizing the
+structure of RNA-seq expression data using grade of membership
+models. \emph{PLoS Genetics} \bold{13}, e1006599.
+}
 \seealso{
 \code{\link[fastTopics]{fit_topic_model}}
+}
+\author{
+Peter Carbonetto
 }
