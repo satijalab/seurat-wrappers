@@ -47,10 +47,10 @@ the dataset with the largest number of cells is used.}
 \item{do.center}{Centers the data when scaling factors (useful for less sparse modalities like
 methylation data). (default FALSE)}
 
-\item{max_sample}{Maximum number of cells used for quantile normalization of each cluster 
+\item{max_sample}{Maximum number of cells used for quantile normalization of each cluster
 and factor. (default 1000)}
 
-\item{eps}{The error bound of the nearest neighbor search. (default 0.9) Lower values give more 
+\item{eps}{The error bound of the nearest neighbor search. (default 0.9) Lower values give more
 accurate nearest neighbor graphs but take much longer to computer.}
 
 \item{refine.knn}{whether to increase robustness of cluster assignments using KNN graph.(default TRUE)}
