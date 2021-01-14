@@ -1,6 +1,28 @@
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
-#' @description Add description here.
+#' @description Fits a multinomial topic model to the count data,
+#'   hiding most of the complexities of model fitting. The default
+#'   optimization settings used here are intended to work well in a wide
+#'   range of data sets, although some fine-tuning may be needed for
+#'   more difficult cases.
+#'
+#' @details The topic model can be understood as a dimensionality
+#' reduction, in which the mixture proportions matrix, \code{L}, an n
+#' x k matrix, defines a projection of the cells onto a
+#' (k–1)-dimension space (n is the number of cells and k is the number
+#' of topics). Therefore, we use the mixture proportions to define the
+#' \dQuote{cell embedding} in the \code{DimReduc} object.
+#'
+#' There is a confusing bit of terminology here, because "loadings"
+#' means something different depending on the context In fastTopics,
+#' the \code{L} matrix is sometimes referred to as the "loadings
+#' matrix" (this is the convention used in factor analysis), but it is
+#' \emph{not} the same as the "feature loadings" matrix used here,
+#' which adopts the convention used for principal component
+#' analysis. To avoid confusion, we only refer to \code{L} as the
+#' mixture proportions matrix.
+#' 
+#' See \code{\link[fastTopics]{fit_topic_model}} for more details.
 #' 
 #' @param object A Seurat object.
 #'
@@ -10,8 +32,8 @@
 #'   assay of the object.
 #'
 #' @param features A list of features to use for fitting the model. If
-#'   \code{features = NULL}, all variable features; see
-#'   \code{\link[Seurat]{VariableFeatures}}.
+#'   \code{features = NULL}, \emph{all} features are used; see
+#'   \code{\link[Seurat]{VariableFeatures}}. NOTE: EXPAND ON THIS.
 #'
 #' @param reduction.name Name of the outputted reduction.
 #'
@@ -22,15 +44,40 @@
 #'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
 #'   output.
 #' 
-#' @param \dots \dots Additional arguments passed to
-#'   \code{fit_topic_model}; see
-#'   \code{\link[fastTopics]{fit_topic_model}} for details
+#' @param \dots Additional arguments passed to \code{fit_topic_model};
+#'   see \code{\link[fastTopics]{fit_topic_model}} for details.
 #'
-#' @return Describe the return value here.
+#' @return A Seurat object with the multinomial topic model fit stored
+#' as a \code{\link[Seurat]{DimReduc}} object. The cell embeddings
+#' are the mixture proportions, stored as an n x k matrix in the
+#' \code{cell.embeddings} slot, where n is the number of cells, and k
+#' is the number of topics.  This is the same as the \code{L} matrix
+#' output in \code{fit_topic_model}.
 #'
-#' Clarify that, unfortunately, "factors" and "loadings" in fastTopics
-#' mean the opposite of what they mean in Seurat.
+#' The feature loadings (the \code{feature.loadings} slot) are an m x
+#' k matrix in which column i is the vector of relative gene
+#' expression levels in topic i. This is the same as the \code{F}
+#' output in \code{fit_topic_model}.
 #'
+#' Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
+#' access the \dQuote{"multinom_topic_model_fit"} object outputted by
+#' \code{\link[fastTopics]{fit_topic_model}}, which contains more
+#' information about the model fit; see the example for an
+#' illustration of how to do this, and see
+#' \code{\link[fastTopics]{fit_topic_model}} more information about
+#' the "multinom_topic_model_fit" object.
+#'
+#' An additional PCA dimension reduction is provided to, for example,
+#' quickly visualize the cells using
+#' \code{\link[Seurat]{DimPlot}}. The principal components are
+#' computed from the topic model mixture proportions. However, this is
+#' for convenience only, and we recommend extracting the
+#' \dQuote{"multinom_topic_model_fit"} object and dedicated
+#' visualization tools such \code{\link[fastTopics]{structure_plot}}
+#' that are provided in the fastTopics package.
+#' 
+#' NOTE: There are only k - 1 PCs.
+#' 
 #' @author Peter Carbonetto
 #'
 #' @references
@@ -41,13 +88,15 @@
 #' @seealso \code{\link[fastTopics]{fit_topic_model}}
 #'
 #' @examples
+#' library(Seurat)
+#' library(fastTopics)
 #' set.seed(1)
 #'
 #' # Load the PBMC data.
 #' data(pbmc_small)
 #'
 #' # Fit the multinomial topic model to the raw UMI count data; no
-#' # pre-processing is needed.
+#' # pre-processing is needed. Note that all
 #' pbmc_small <- FitTopicModel(pbmc_small,k = 3)
 #'
 #' # This plot shows the cells projected onto the top 2 principal
@@ -63,7 +112,9 @@
 #' structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
 #'
 #' @importFrom stats prcomp
+#' @importFrom Matrix colSums
 #' @importFrom Matrix t
+#' @importFrom fastTopics fit_topic_model
 #' 
 #' @export
 #'
@@ -80,15 +131,19 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   # (cells) and m is the number of selected genes.
   assay <- assay %||% DefaultAssay(object)
   DefaultAssay(object) <- assay
-  features <- features %||% VariableFeatures(object)
   X <- GetAssayData(object,"counts")
-  if (length(features) == 0)
+  if (is.null(features))
     features <- rownames(X)
   else
     features <- intersect(features,rownames(X))
   X <- X[features,]
   X <- t(X)
 
+  # Remove all-zero columns.
+  i        <- which(colSums(X > 0) >= 1)
+  features <- features[i]
+  X        <- X[,i]
+  
   # Fit the multinomial topic model using fastTopics.
   fit <- fit_topic_model(X,k,verbose = verbose,...)
   class(fit) <- c("list","multinom_topic_model_fit")
