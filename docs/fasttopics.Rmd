@@ -10,21 +10,24 @@ output:
     theme: readable
 ---
 
-*Add introductory text here.*
-
-*Point to the fastTopics website and vignettes.*
+Here we illustrate the use of the [fastTopics][fasttopics] Seurat
+wrapper to analyze a Seurat data set. This vignette is only intended
+to introduce the basic fastTopics interface for Seurat objects---for
+background and practical guidance on analysis of single-cell RNA-seq
+data using a topic model, please see the
+[fastTopics vignettes][fasttopics-vignettes].
 
 If you find the **fastTopics** package useful for your work, please
 cite:
 
-> Kushal K. Dey, Chiaowen Joyce Hsiao and Matthew Stephens (2017).
-> [Visualizing the structure of RNA-seq expression data using grade of membership models.][countclust-paper]
-> *PLoS Genetics* **13**, e1006599.
->
-> Peter Carbonetto, Kevin Luo, Kushal Dey, Joyce Hsiao and Matthew
-> Stephens (2021). fastTopics: fast algorithms for fitting topic models
-> and non-negative matrix factorizations to count data. R package
-> version 0.4-11. [https://github.com/stephenslab/fastTopics][fasttopics]
+Kushal K. Dey, Chiaowen Joyce Hsiao and Matthew Stephens (2017).
+[Visualizing the structure of RNA-seq expression data using grade of
+membership models.][countclust-paper] *PLoS Genetics* **13**, e1006599.
+
+Peter Carbonetto, Kevin Luo, Kushal Dey, Joyce Hsiao and Matthew
+Stephens (2021). fastTopics: fast algorithms for fitting topic models
+and non-negative matrix factorizations to count data. R package
+version 0.4-23. [https://github.com/stephenslab/fastTopics][fasttopics]
 
 ```{r knitr-opts, include=FALSE}
 knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
@@ -70,7 +73,7 @@ of $K$ will not be known in advance, so you will you want to explore
 the results from topic models at different settings of $K$.
 
 This plot shows the cells projected onto the top two principal
-components (PCs) obtained from the topic mixture proportions.
+components (PCs) of the topic mixture proportions.
 
 ```{r pca-1, fig.width=4.5, fig.height=3}
 Idents(pbmc3k) <- pbmc3k$seurat_annotations
@@ -78,7 +81,7 @@ DimPlot(pbmc3k,reduction = "pca_topics",pt.size = 1) +
   theme_cowplot(font_size = 10)
 ```
 
-Compare this against PCs 1 and 2 of the transformed counts:
+Compare this against the top two PCs of the transformed counts:
 
 ```{r pca-2, fig.width=4.5, fig.height=3, message=FALSE}
 pbmc3k <- FindVariableFeatures(pbmc3k)
@@ -88,13 +91,20 @@ DimPlot(pbmc3k,reduction = "pca",pt.size = 1) +
   theme_cowplot(font_size = 10)
 ```
 
+The fitted topic model---a "multinom_topic_model" object---is stored
+in the "misc" slot:
+
+```{r extract-fit}
+fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
+```
+
 Once the fitted topic model is extracted, many functions from the
 **fastTopics** package can be used for analysis and visualization. For
 example, the Structure plot provides an evocative visual summary of
-the estimated mixture proportions for each cell.
+the estimated mixture proportions for each cell. Here, we have grouped
+the cells by previously inferred labels.
 
 ```{r structure-plot, fig.width=7.5, fig.height=1.75, results="hide", message=FALSE}
-fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
 
@@ -106,4 +116,5 @@ sessionInfo()
 ```
 
 [fasttopics]:  https://github.com/stephenslab/fastTopics
+[fasttopics-vignettes]:  https://stephenslab.github.io/fastTopics/articles
 [countclust-paper]: https://doi.org/10.1371/journal.pgen.1006599

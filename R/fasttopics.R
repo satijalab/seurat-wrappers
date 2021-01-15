@@ -1,9 +1,4 @@
-# TO DO:
-#
-#  - Implement FitPoissonNMF.
-#
-#  - Implement vignette.
-#
+# TO DO: Implement FitPoissonNMF.
 
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
