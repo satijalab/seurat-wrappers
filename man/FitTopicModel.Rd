@@ -124,7 +124,8 @@ structure of RNA-seq expression data using grade of membership
 models. \emph{PLoS Genetics} \bold{13}, e1006599.
 }
 \seealso{
-\code{\link[fastTopics]{fit_topic_model}}
+\code{\link{FitPoissonNMF}},
+  \code{\link[fastTopics]{fit_topic_model}}
 }
 \author{
 Peter Carbonetto

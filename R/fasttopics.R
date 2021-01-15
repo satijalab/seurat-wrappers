@@ -1,6 +1,9 @@
 # TO DO:
+#
 #  - Implement FitPoissonNMF.
+#
 #  - Implement vignette.
+#
 
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
@@ -87,7 +90,8 @@
 #' structure of RNA-seq expression data using grade of membership
 #' models. \emph{PLoS Genetics} \bold{13}, e1006599.
 #'
-#' @seealso \code{\link[fastTopics]{fit_topic_model}}
+#' @seealso \code{\link{FitPoissonNMF}},
+#'   \code{\link[fastTopics]{fit_topic_model}}
 #'
 #' @examples
 #' library(Seurat)

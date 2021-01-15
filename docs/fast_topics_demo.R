@@ -1,30 +1,39 @@
 # Load the packages used in the analysis below.
 library(Seurat)
 library(SeuratData)
-library(SeuratWrappers)
+# library(SeuratWrappers)
 library(fastTopics)
 
 # Set seed to generate results that are reproducible.
 set.seed(1)
 
-# Load the UMI count data.
+# Load (and, if necessary, install) the PBMC 3k data.
 InstallData("pbmc3k")
 data(pbmc3k)
 
-# No pre-processing is needed.
+# No pre-processing or pre-selection of genes is needed.
 
-# Fit topic model to UMI counts. Note that it may take several minutes
-# for the model fitting to complete.
+# Fit the multinomial topic model to raw UMI counts. Note that it may
+# take several minutes for the model fitting to complete on this data
+# set.
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
 
-# Plot the top two PCs of the mixture proportions.
+# This plot shows the cells projected onto the two principal
+# components (PCs) of the topic mixture proportions.
 Idents(pbmc3k) <- pbmc3k$seurat_annotations
-DimPlot(pbmc3k)
+DimPlot(pbmc3k,reduction = "pca_topics",pt.size = 1)
 
-# Create a Structure plot.
+# Compare this against the top two PCs of the transformed counts.
+pbmc3k <- FindVariableFeatures(pbmc3k)
+pbmc3k <- ScaleData(pbmc3k)
+pbmc3k <- RunPCA(pbmc3k)
+DimPlot(pbmc3k,reduction = "pca",pt.size = 1)
+
+# Once fitted topic model is extracted, many functions from the
+# fastTopics package can be used for analysis and visualization. For
+# example, the Structure plot provides an evocative visual summary of
+# the estimated mixture proportions for each cell.
 fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
-p <- structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
+structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 
-# Fit non-negative matrix factorization to UMI counts.
-# TO DO.
 
