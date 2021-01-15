@@ -96,12 +96,14 @@
 #' data(pbmc_small)
 #'
 #' # Fit the multinomial topic model to the raw UMI count data; no
-#' # pre-processing is needed. Note that all
+#' # pre-processing is needed. 
 #' pbmc_small <- FitTopicModel(pbmc_small,k = 3)
 #'
-#' # This plot shows the cells projected onto the top 2 principal
+#' # This plot shows the cells projected onto the 2 principal
 #' # components (PCs) of the topic model mixture proportions.
-#' Idents(pbmc_small) <- pbmc_small$letter.idents
+#' DimPlot(pbmc_small,reduction = "pca_topics")
+#'
+#' # Compare against PCA performed on the transformed count data.
 #' DimPlot(pbmc_small,reduction = "pca")
 #'
 #' # Once fitted topic model is extracted, many functions from the
@@ -162,11 +164,11 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
   out <- prcomp(fit$L)
-  colnames(out$x) <- paste0("PC_",1:k)
-  colnames(out$rotation) <- paste0("PC_",1:k)
-  object[["pca"]] <- 
+  colnames(out$x) <- paste0("TOPICPC_",1:k)
+  colnames(out$rotation) <- paste0("TOPICPC_",1:k)
+  object[["pca_topics"]] <- 
     CreateDimReducObject(out$x[,-k],out$rotation[,-k],assay = assay,
-                         key = "PC_",global = TRUE)
+                         key = "TOPICPC_",global = TRUE)
 
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))
