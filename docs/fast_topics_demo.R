@@ -1,7 +1,7 @@
 # Load the packages used in the analysis below.
 library(Seurat)
 library(SeuratData)
-# library(SeuratWrappers)
+library(SeuratWrappers)
 library(fastTopics)
 
 # Set seed to generate results that are reproducible.

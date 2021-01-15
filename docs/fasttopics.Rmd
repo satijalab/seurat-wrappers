@@ -1,11 +1,46 @@
 ---
-title: "Running GLM-PCA on a Seurat Object"
+title: "Add title here"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
   github_document:
     html_preview: true
-    toc: true
-    toc_depth: 3
   html_document:
     df_print: kable
 ---
+
+*Add introductory text here.*
+
+*Add citation here.*
+
+We begin by loading the packages used to perform the analysis.
+
+```{r load-pkgs, message=FALSE, warning=FALSE}
+
+```
+
+```{r load-packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(fastTopics)
+```
+
+We set the seed so that the results can be reproduced.
+
+```{r set-seed}
+set.seed(1)
+```
+
+Load---and, if necessary, install---the PBMC 3k data set.
+
+```{r load-data}
+InstallData("pbmc3k")
+data(pbmc3k)
+```
+
+This is the version of R and the packages that were used to generate
+these results.
+
+```{r session-info}
+sessionInfo()
+```
