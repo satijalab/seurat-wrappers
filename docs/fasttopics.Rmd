@@ -14,7 +14,17 @@ output:
 
 *Point to the fastTopics website and vignettes.*
 
-*Add citation here.*
+If you find the **fastTopics** package useful for your work, please
+cite:
+
+> Kushal K. Dey, Chiaowen Joyce Hsiao and Matthew Stephens (2017).
+> [Visualizing the structure of RNA-seq expression data using grade of membership models.][countclust-paper]
+> *PLoS Genetics* **13**, e1006599.
+>
+> Peter Carbonetto, Kevin Luo, Kushal Dey, Joyce Hsiao and Matthew
+> Stephens (2021). fastTopics: fast algorithms for fitting topic models
+> and non-negative matrix factorizations to count data. R package
+> version 0.4-11. [https://github.com/stephenslab/fastTopics][fasttopics]
 
 ```{r knitr-opts, include=FALSE}
 knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
@@ -28,6 +38,7 @@ library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 library(fastTopics)
+library(cowplot)
 ```
 
 We set the seed so that the results can be reproduced.
@@ -49,7 +60,7 @@ Fit the multinomial topic model to the raw UMI counts---*no
 pre-processing or pre-selection of genes is needed.* Note that it may
 take several minutes to complete this model fitting step.
 
-```{r fit-model, results="hide", cache=TRUE}
+```{r fit-model, results="hide", message=FALSE, cache=TRUE}
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
 ```
 
@@ -61,26 +72,28 @@ the results from topic models at different settings of $K$.
 This plot shows the cells projected onto the top two principal
 components (PCs) obtained from the topic mixture proportions.
 
-```{r pca-1, fig.width=4, fig.height=3}
+```{r pca-1, fig.width=4.5, fig.height=3}
 Idents(pbmc3k) <- pbmc3k$seurat_annotations
-DimPlot(pbmc3k,reduction = "pca_topics",pt.size = 1)
+DimPlot(pbmc3k,reduction = "pca_topics",pt.size = 1) +
+  theme_cowplot(font_size = 10)
 ```
 
 Compare this against PCs 1 and 2 of the transformed counts:
 
-```{r pca-2, fig.width=4, fig.height=3}
+```{r pca-2, fig.width=4.5, fig.height=3, message=FALSE}
 pbmc3k <- FindVariableFeatures(pbmc3k)
 pbmc3k <- ScaleData(pbmc3k)
 pbmc3k <- RunPCA(pbmc3k)
-DimPlot(pbmc3k,reduction = "pca",pt.size = 1)
+DimPlot(pbmc3k,reduction = "pca",pt.size = 1) +
+  theme_cowplot(font_size = 10)
 ```
 
-Once fitted topic model is extracted, many functions from the
-fastTopics package can be used for analysis and visualization. For
+Once the fitted topic model is extracted, many functions from the
+**fastTopics** package can be used for analysis and visualization. For
 example, the Structure plot provides an evocative visual summary of
 the estimated mixture proportions for each cell.
 
-```{r structure-plot, fig.width=7.5, fig.height=2}
+```{r structure-plot, fig.width=7.5, fig.height=1.75, results="hide", message=FALSE}
 fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
@@ -91,3 +104,6 @@ these results.
 ```{r session-info}
 sessionInfo()
 ```
+
+[fasttopics]:  https://github.com/stephenslab/fastTopics
+[countclust-paper]: https://doi.org/10.1371/journal.pgen.1006599
