@@ -1,5 +1,3 @@
-# TO DO: Implement FitPoissonNMF.
-
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
 #' @description Fits a multinomial topic model to the raw count data,

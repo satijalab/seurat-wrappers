@@ -13,8 +13,8 @@ output:
 Here we illustrate the use of the [fastTopics][fasttopics] Seurat
 wrapper to analyze a Seurat data set. This vignette is only intended
 to introduce the basic fastTopics interface for Seurat objects---for
-background and practical guidance on analysis of single-cell RNA-seq
-data using a topic model, please see the
+background and guidance on analysis of single-cell RNA-seq data using
+a topic model, please see the
 [fastTopics vignettes][fasttopics-vignettes].
 
 If you find the **fastTopics** package useful for your work, please
