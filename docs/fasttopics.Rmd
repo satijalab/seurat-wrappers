@@ -85,6 +85,7 @@ Compare this against the top two PCs of the transformed counts:
 
 ```{r pca-2, fig.width=4.5, fig.height=3, message=FALSE}
 pbmc3k <- FindVariableFeatures(pbmc3k)
+pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k <- ScaleData(pbmc3k)
 pbmc3k <- RunPCA(pbmc3k)
 DimPlot(pbmc3k,reduction = "pca",pt.size = 1) +

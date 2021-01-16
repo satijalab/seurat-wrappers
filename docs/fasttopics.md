@@ -6,8 +6,8 @@ Here we illustrate the use of the
 [fastTopics](https://github.com/stephenslab/fastTopics) Seurat wrapper
 to analyze a Seurat data set. This vignette is only intended to
 introduce the basic fastTopics interface for Seurat objects—for
-background and practical guidance on analysis of single-cell RNA-seq
-data using a topic model, please see the [fastTopics
+background and guidance on analysis of single-cell RNA-seq data using a
+topic model, please see the [fastTopics
 vignettes](https://stephenslab.github.io/fastTopics/articles).
 
 If you find the **fastTopics** package useful for your work, please
@@ -77,6 +77,7 @@ Compare this against the top two PCs of the transformed counts:
 
 ``` r
 pbmc3k <- FindVariableFeatures(pbmc3k)
+pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k <- ScaleData(pbmc3k)
 pbmc3k <- RunPCA(pbmc3k)
 DimPlot(pbmc3k,reduction = "pca",pt.size = 1) +
