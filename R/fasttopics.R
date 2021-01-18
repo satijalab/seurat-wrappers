@@ -1,3 +1,75 @@
+#' @title Add Title Here.
+#'
+#' @description Add description here.
+#'
+#' @param object A Seurat object.
+#' 
+#' @param k An integer 2 or greater giving the matrix rank. This
+#'   argument should only be specified if the initial fit (\code{fit0})
+#'   is not provided.
+#'
+#' @param numiter
+#' 
+#' @param assay Name of assay to use; defaults to the default
+#'   assay of the object.
+#'
+#' @details Add details here.
+#'
+#' @param reduction.name Name of the outputted reduction.
+#'
+#' @param reduction.key Key for the outputted reduction.
+#'
+#' @param verbose When \code{verbose = TRUE}, information about the
+#'   progress of the model fitting is printed to the console. See
+#'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
+#'   output.
+#' 
+#' @param \dots Additional arguments passed to \code{fit_poisson_nmf};
+#'   see \code{\link[fastTopics]{fit_poisson_nmf}} for details.
+#'
+#' @return Describe the return value here.
+#' 
+#' @author Peter Carbonetto
+#'
+#' @references
+#'   Lee, D. D. and Seung, H. S. (2001). Algorithms for non-negative
+#'   matrix factorization. In \emph{Advances in Neural Information
+#'   Processing Systems} \bold{13}, 556–562.
+#'
+#' @seealso \code{\link{FitTopicModel}},
+#'   \code{\link[fastTopics]{fit_poisson_nmf}}
+#'
+#' @examples
+#' library(Seurat)
+#' library(fastTopics)
+#' set.seed(1)
+#' data(pbmc_small)
+#'
+#' # Fit the non-negative matrix factorization to the raw UMI count
+#' # data; no pre-processing or pre-selection of genes is needed.
+#' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3)
+#' 
+#' @export
+#' 
+FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
+                           reduction.name = "poisson_nmf",
+                           reduction.key = "k_", numiter = 100,
+                           method = c("scd", "em", "mu", "ccd"),
+                           init.method = c("topicscore", "random"),
+                           control = list(), verbose = TRUE, ...) {
+
+  # Check the input arguments, and that fastTopics is installed.
+  CheckPackage(package = "stephenslab/fastTopics")
+  if (!inherits(object,"Seurat"))
+    stop("\"object\" must be a Seurat object",call. = FALSE)
+    
+  # TO DO: Check if Seurat object contains a "poisson_nmf" reduction.
+    
+  # Get the n x m counts matrix, where n is the number of samples
+  # (cells) and m is the number of selected features.
+  # TO DO.
+}
+    
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
 #' @description Fits a multinomial topic model to the raw count data,
@@ -31,9 +103,9 @@
 #'   assay of the object.
 #'
 #' @param features A list of features to use for fitting the model. If
-#' \code{features = NULL}, \emph{all} features are used; in
-#' particular, ; see \code{\link[Seurat]{VariableFeatures}} is \emph{not
-#' used to pre-select features.
+#'   \code{features = NULL}, \emph{all} features are used; in
+#'   particular, \code{\link[Seurat]{VariableFeatures}} is \emph{not}
+#'   used to pre-select features.
 #'
 #' @param reduction.name Name of the outputted reduction.
 #'
@@ -90,8 +162,6 @@
 #' library(Seurat)
 #' library(fastTopics)
 #' set.seed(1)
-#'
-#' # Load the PBMC data.
 #' data(pbmc_small)
 #'
 #' # Fit the multinomial topic model to the raw UMI count data; no
@@ -130,21 +200,11 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
     stop("\"object\" must be a Seurat object",call. = FALSE)
 
   # Get the n x m counts matrix, where n is the number of samples
-  # (cells) and m is the number of selected genes.
+  # (cells) and m is the number of selected features.
   assay <- assay %||% DefaultAssay(object)
   DefaultAssay(object) <- assay
-  X <- GetAssayData(object,"counts")
-  if (is.null(features))
-    features <- rownames(X)
-  else
-    features <- intersect(features,rownames(X))
-  X <- X[features,]
-  X <- t(X)
-
-  # Remove all-zero columns.
-  i        <- which(colSums(X > 0) >= 1)
-  features <- features[i]
-  X        <- X[,i]
+  X <- prepare_counts_fasttopics(object,features)
+  features <- colnames(X)
   
   # Fit the multinomial topic model using fastTopics.
   fit <- fit_topic_model(X,k,verbose = verbose,...)
@@ -158,18 +218,44 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 
   # Add the topic model fit to the Seurat object.
   object[[reduction.name]] <-
-    CreateDimReducObject(embeddings,loadings,assay = assay,key = reduction.key,
-                         global = TRUE,misc = fit)
+    CreateDimReducObject(embeddings,loadings,assay = assay,
+                         key = reduction.key,global = TRUE,
+                         misc = fit)
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
-  out <- prcomp(fit$L)
-  colnames(out$x) <- paste0("TOPICPC_",1:k)
-  colnames(out$rotation) <- paste0("TOPICPC_",1:k)
-  object[["pca_topics"]] <- 
-    CreateDimReducObject(out$x[,-k],out$rotation[,-k],assay = assay,
-                         key = "TOPICPC_",global = TRUE)
+  object[["pca_topics"]] <- pca_from_loadings_fasttopics(fit,assay,"TOPICPC_")
 
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))
+}
+
+# Get the n x m counts matrix, where n is the number of samples
+# (cells) and m is the number of selected features (columns). An
+# additional step is taken to remove all-zero columns.
+prepare_counts_fasttopics <- function (object, features) {
+  X <- GetAssayData(object,"counts")
+  if (is.null(features))
+    features <- rownames(X)
+  else
+    features <- intersect(features,rownames(X))
+  X <- X[features,]
+  X <- t(X)
+
+  # Remove all-zero columns.
+  i <- which(colSums(X > 0) >= 1)
+  return(X[,i])
+}
+
+# Generate a Seurat PCA dimension reduction object from the loadings
+# matrix.
+pca_from_loadings_fasttopics <- function (fit, assay, reduction.key,
+                                          min.sdev = 1e-8) {
+  k   <- ncol(fit$L)
+  out <- prcomp(fit$L)
+  colnames(out$x) <- paste0(reduction.key,1:k)
+  colnames(out$rotation) <- paste0(reduction.key,1:k)
+  cols <- which(out$sdev > min.sdev)
+  return(CreateDimReducObject(out$x[,cols],out$rotation[,cols],assay = assay,
+                              key = reduction.key,global = TRUE))
 }

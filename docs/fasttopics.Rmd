@@ -63,7 +63,7 @@ Fit the multinomial topic model to the raw UMI counts---*no
 pre-processing or pre-selection of genes is needed.* Note that it may
 take several minutes to complete this model fitting step.
 
-```{r fit-model, results="hide", message=FALSE, cache=TRUE}
+```{r fit-model, results="hide", message=FALSE}
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
 ```
 

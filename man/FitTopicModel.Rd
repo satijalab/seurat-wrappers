@@ -23,6 +23,11 @@ FitTopicModel(
 \item{assay}{Name of assay to use; defaults to the default
 assay of the object.}
 
+\item{features}{A list of features to use for fitting the model. If
+\code{features = NULL}, \emph{all} features are used; in
+particular, \code{\link[Seurat]{VariableFeatures}} is \emph{not}
+used to pre-select features.}
+
 \item{reduction.name}{Name of the outputted reduction.}
 
 \item{reduction.key}{Key for the outputted reduction.}
@@ -94,8 +99,6 @@ See \code{\link[fastTopics]{fit_topic_model}} for more details.
 library(Seurat)
 library(fastTopics)
 set.seed(1)
-
-# Load the PBMC data.
 data(pbmc_small)
 
 # Fit the multinomial topic model to the raw UMI count data; no
