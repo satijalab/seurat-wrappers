@@ -60,7 +60,21 @@ data(pbmc_small)
 
 # Fit the non-negative matrix factorization to the raw UMI count
 # data; no pre-processing or pre-selection of genes is needed.
-pbmc_small <- FitPoissonNMF(pbmc_small,k = 3)
+pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+
+# Improve the fit by running another 20 updates.
+pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+# This plot shows the cells projected onto the 2 principal
+# components (PCs) of the topic mixture proportions.
+DimPlot(pbmc_small,reduction = "pca_nmf")
+
+# Compare this against the top two PCs of the transformed count
+# data.
+DimPlot(pbmc_small,reduction = "pca")
+
+# Extract the non-negative matrix factorization.
+fit <- Misc(Reductions(pbmc_small,"poisson_nmf"))
+summary(fit)
 
 }
 \references{

@@ -47,7 +47,24 @@
 #'
 #' # Fit the non-negative matrix factorization to the raw UMI count
 #' # data; no pre-processing or pre-selection of genes is needed.
-#' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3)
+#' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+#'
+#' # Improve the fit by running another 20 updates.
+#' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+
+#' # This plot shows the cells projected onto the 2 principal
+#' # components (PCs) of the topic mixture proportions.
+#' DimPlot(pbmc_small,reduction = "pca_nmf")
+#'
+#' # Compare this against the top two PCs of the transformed count
+#' # data.
+#' DimPlot(pbmc_small,reduction = "pca")
+#'
+#' # Extract the non-negative matrix factorization.
+#' fit <- Misc(Reductions(pbmc_small,"poisson_nmf"))
+#' summary(fit)
+#' 
+#' @importFrom fastTopics fit_poisson_nmf
 #' 
 #' @export
 #' 
@@ -62,12 +79,46 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   CheckPackage(package = "stephenslab/fastTopics")
   if (!inherits(object,"Seurat"))
     stop("\"object\" must be a Seurat object",call. = FALSE)
-    
-  # TO DO: Check if Seurat object contains a "poisson_nmf" reduction.
-    
+
   # Get the n x m counts matrix, where n is the number of samples
   # (cells) and m is the number of selected features.
-  # TO DO.
+  assay <- assay %||% DefaultAssay(object)
+  DefaultAssay(object) <- assay
+  X <- prepare_counts_fasttopics(object,features)
+  features <- colnames(X)
+
+  # Fit the Poisson non-negative matrix factorization using
+  # fastTopics.  If Seurat object has an existing "poisson_nmf"
+  # reduction, use this to initialize the model fitting.
+  if (is.element("poisson_nmf",Reductions(object))) {
+    fit0 <- Misc(Reductions(object,"poisson_nmf"))
+    fit <- fit_poisson_nmf(X,fit0 = fit0,numiter = numiter,method = method,
+                           init.method = init.method,control = control,
+                           verbose = verbose,...)
+  } else
+    fit <- fit_poisson_nmf(X,k,numiter = numiter,method = method,
+                           init.method = init.method,control = control,
+                           verbose = verbose,...)
+  class(fit) <- c("list","poisson_nmf_fit")
+  
+  # Retrieve the factors matrix (n x k) and loadings matrix (m x k).
+  embeddings <- fit$L
+  loadings <- fit$F
+  colnames(embeddings) <- paste0(reduction.key,1:k)
+  colnames(loadings) <- paste0(reduction.key,1:k)
+
+  # Add the topic model fit to the Seurat object.
+  object[[reduction.name]] <-
+    CreateDimReducObject(embeddings,loadings,assay = assay,
+                         key = reduction.key,global = TRUE,
+                         misc = fit)
+
+  # Add a PCA dimension reduction calculated from the mixture
+  # proportions.
+  object[["pca_nmf"]] <- pca_from_loadings_fasttopics(fit,assay,"NMFPC_")
+
+  # Output the updated Seurat object.
+  return(LogSeuratCommand(object))
 }
     
 #' @title Fit a Multinomial Topic Model Using fastTopics
@@ -183,9 +234,6 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))
 #' structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
 #'
-#' @importFrom stats prcomp
-#' @importFrom Matrix colSums
-#' @importFrom Matrix t
 #' @importFrom fastTopics fit_topic_model
 #' 
 #' @export
@@ -233,6 +281,9 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 # Get the n x m counts matrix, where n is the number of samples
 # (cells) and m is the number of selected features (columns). An
 # additional step is taken to remove all-zero columns.
+#
+#' @importFrom Matrix colSums
+#' @importFrom Matrix t
 prepare_counts_fasttopics <- function (object, features) {
   X <- GetAssayData(object,"counts")
   if (is.null(features))
@@ -249,6 +300,8 @@ prepare_counts_fasttopics <- function (object, features) {
 
 # Generate a Seurat PCA dimension reduction object from the loadings
 # matrix.
+#
+#' @importFrom stats prcomp
 pca_from_loadings_fasttopics <- function (fit, assay, reduction.key,
                                           min.sdev = 1e-8) {
   k   <- ncol(fit$L)
