@@ -49,7 +49,8 @@ mixture proportions; this is the n x k matrix \code{L} outputted by
 number of topics).
 
 The feature loadings (stored in the \code{feature.loadings} slot)
-are an m x k matrix of relative expression levels; this is the
+are an m x k matrix of relative expression levels, where m is the
+number of features and k is the number of topics; this is the
 matrix \code{F} outputted by \code{fit_topic_model}.
 
 Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
@@ -60,15 +61,15 @@ here for an illustration of how to access the model fit, and see
 \code{\link[fastTopics]{fit_topic_model}} more information about
 the "multinom_topic_model_fit" object.
 
-An additional PCA dimension reduction on \code{k-1} dimensions is
-provided. This could be useful, for example, to quickly visualize
-the cells using \code{\link[Seurat]{DimPlot}}. The principal
-components are computed from the topic mixture
-proportions. However, this reduction is provided for convenience
-only, and we recommend to extract the
-\dQuote{"multinom_topic_model_fit"} object and use the dedicated
-visualization tools that are provided in the fastTopics package
-such as \code{\link[fastTopics]{structure_plot}}.
+An additional PCA dimension reduction on \code{k-1} dimensions,
+computed from the mixture proportions, is provided. This could be
+useful, for example, to quickly visualize the cells using
+\code{\link[Seurat]{DimPlot}}. The principal components are
+computed from the topic mixture proportions. However, this
+reduction is provided for convenience only, and we recommend to
+extract the \dQuote{"multinom_topic_model_fit"} object and use the
+dedicated visualization tools that are provided in the fastTopics
+package such as \code{\link[fastTopics]{structure_plot}}.
 }
 \description{
 Fits a multinomial topic model to the raw count data,

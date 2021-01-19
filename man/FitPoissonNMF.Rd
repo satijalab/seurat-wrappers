@@ -2,7 +2,7 @@
 % Please edit documentation in R/fasttopics.R
 \name{FitPoissonNMF}
 \alias{FitPoissonNMF}
-\title{Add Title Here.}
+\title{Fit a Non-negative Matrix Factorization Using fastTopics}
 \usage{
 FitPoissonNMF(
   object,
@@ -20,7 +20,10 @@ FitPoissonNMF(
 )
 }
 \arguments{
-\item{object}{A Seurat object.}
+\item{object}{A Seurat object. If this Seurat object contains a
+Poisson NMF dimensionality reduction object (\dQuote{DimReduc}),
+the model fitting will be initialized to this previously fitted
+Poisson NMF.}
 
 \item{k}{An integer 2 or greater giving the matrix rank. This
 argument should only be specified if the initial fit (\code{fit0})
@@ -29,28 +32,64 @@ is not provided.}
 \item{assay}{Name of assay to use; defaults to the default
 assay of the object.}
 
+\item{features}{A list of features to use for fitting the model. If
+\code{features = NULL}, \emph{all} features are used; in
+particular, \code{\link[Seurat]{VariableFeatures}} is \emph{not}
+used to pre-select features.}
+
 \item{reduction.name}{Name of the outputted reduction.}
 
 \item{reduction.key}{Key for the outputted reduction.}
 
-\item{numiter}{}
+\item{numiter}{The number of updates of the factors and loadings to
+perform.}
+
+\item{method}{The method to use for updating the factors and
+loadings. See \code{\link[fastTopics]{fit_poisson_nmf}} for
+details.}
+
+\item{init.method}{The method used to initialize the factors and
+loadings. See \code{\link[fastTopics]{fit_poisson_nmf}} for
+details.}
+
+\item{control}{A list of parameters controlling the behaviour of
+the optimization algorithm. See
+\code{\link[fastTopics]{fit_poisson_nmf}} for details.}
 
 \item{verbose}{When \code{verbose = TRUE}, information about the
 progress of the model fitting is printed to the console. See
 \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
 output.}
 
-\item{\dots}{Additional arguments passed to \code{fit_poisson_nmf};
-see \code{\link[fastTopics]{fit_poisson_nmf}} for details.}
+\item{\dots}{Additional arguments passed to \code{fit_poisson_nmf}.}
 }
 \value{
-Describe the return value here.
+A Seurat object, in which the Poisson NMF fit is stored as
+a Seurat \code{\link[Seurat]{DimReduc}} object. The cell embeddings
+(stored in the \code{cell.embeddings} slot) are the loadings; this
+is the n x k matrix \code{L} outputted by \code{fit_poisson_nmf} (n
+is the number of cells and k is the dimension of the matrix
+factorization).
+
+The feature loadings (stored in the \code{feature.loadings} slot)
+are the m x k factors matrix \code{F} outputted by
+\code{fit_poisson_nmf}, where m is the number of features.
+
+Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
+access the \dQuote{"poisson_nmf_fit"} object outputted by
+\code{\link[fastTopics]{fit_poisson_nmf}}; see the example for an
+illustration.
+
+An additional PCA dimension reduction computed from the k loadings
+is provided.
 }
 \description{
-Add description here.
-}
-\details{
-Add details here.
+Approximate the raw count data \code{X} by the
+  non-negative matrix factorization \code{tcrossprod(L,F)}, in which
+  the quality of the approximation is measured by a
+  \dQuote{divergence} criterion; equivalently, optimize the
+  likelihood under a Poisson model of the count data, \code{X}, in
+  which the Poisson rates are given by \code{tcrossprod(L,F)}.
 }
 \examples{
 library(Seurat)
@@ -64,6 +103,7 @@ pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
 
 # Improve the fit by running another 20 updates.
 pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+
 # This plot shows the cells projected onto the 2 principal
 # components (PCs) of the topic mixture proportions.
 DimPlot(pbmc_small,reduction = "pca_nmf")

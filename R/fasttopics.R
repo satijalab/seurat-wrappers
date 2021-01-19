@@ -1,33 +1,73 @@
-#' @title Add Title Here.
+#' @title Fit a Non-negative Matrix Factorization Using fastTopics
 #'
-#' @description Add description here.
+#' @description Approximate the raw count data \code{X} by the
+#'   non-negative matrix factorization \code{tcrossprod(L,F)}, in which
+#'   the quality of the approximation is measured by a
+#'   \dQuote{divergence} criterion; equivalently, optimize the
+#'   likelihood under a Poisson model of the count data, \code{X}, in
+#'   which the Poisson rates are given by \code{tcrossprod(L,F)}.
 #'
-#' @param object A Seurat object.
+#' @param object A Seurat object. If this Seurat object contains a
+#'   Poisson NMF dimensionality reduction object (\dQuote{DimReduc}),
+#'   the model fitting will be initialized to this previously fitted
+#'   Poisson NMF.
 #' 
 #' @param k An integer 2 or greater giving the matrix rank. This
 #'   argument should only be specified if the initial fit (\code{fit0})
 #'   is not provided.
 #'
-#' @param numiter
-#' 
 #' @param assay Name of assay to use; defaults to the default
 #'   assay of the object.
 #'
-#' @details Add details here.
+#' @param features A list of features to use for fitting the model. If
+#'   \code{features = NULL}, \emph{all} features are used; in
+#'   particular, \code{\link[Seurat]{VariableFeatures}} is \emph{not}
+#'   used to pre-select features.
 #'
 #' @param reduction.name Name of the outputted reduction.
 #'
 #' @param reduction.key Key for the outputted reduction.
+#'
+#' @param numiter The number of updates of the factors and loadings to
+#'   perform.
+#'
+#' @param method The method to use for updating the factors and
+#'   loadings. See \code{\link[fastTopics]{fit_poisson_nmf}} for
+#'   details.
+#'
+#' @param init.method The method used to initialize the factors and
+#'   loadings. See \code{\link[fastTopics]{fit_poisson_nmf}} for
+#'   details.
+#' 
+#' @param control A list of parameters controlling the behaviour of
+#'   the optimization algorithm. See
+#'   \code{\link[fastTopics]{fit_poisson_nmf}} for details.
 #'
 #' @param verbose When \code{verbose = TRUE}, information about the
 #'   progress of the model fitting is printed to the console. See
 #'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
 #'   output.
 #' 
-#' @param \dots Additional arguments passed to \code{fit_poisson_nmf};
-#'   see \code{\link[fastTopics]{fit_poisson_nmf}} for details.
+#' @param \dots Additional arguments passed to \code{fit_poisson_nmf}.
 #'
-#' @return Describe the return value here.
+#' @return A Seurat object, in which the Poisson NMF fit is stored as
+#' a Seurat \code{\link[Seurat]{DimReduc}} object. The cell embeddings
+#' (stored in the \code{cell.embeddings} slot) are the loadings; this
+#' is the n x k matrix \code{L} outputted by \code{fit_poisson_nmf} (n
+#' is the number of cells and k is the dimension of the matrix
+#' factorization).
+#' 
+#' The feature loadings (stored in the \code{feature.loadings} slot)
+#' are the m x k factors matrix \code{F} outputted by
+#' \code{fit_poisson_nmf}, where m is the number of features.
+#'
+#' Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
+#' access the \dQuote{"poisson_nmf_fit"} object outputted by
+#' \code{\link[fastTopics]{fit_poisson_nmf}}; see the example for an
+#' illustration.
+#'
+#' An additional PCA dimension reduction computed from the k loadings
+#' is provided.
 #' 
 #' @author Peter Carbonetto
 #'
@@ -51,7 +91,7 @@
 #'
 #' # Improve the fit by running another 20 updates.
 #' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
-
+#'
 #' # This plot shows the cells projected onto the 2 principal
 #' # components (PCs) of the topic mixture proportions.
 #' DimPlot(pbmc_small,reduction = "pca_nmf")
@@ -120,7 +160,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))
 }
-    
+
 #' @title Fit a Multinomial Topic Model Using fastTopics
 #'
 #' @description Fits a multinomial topic model to the raw count data,
@@ -178,7 +218,8 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' number of topics).
 #' 
 #' The feature loadings (stored in the \code{feature.loadings} slot)
-#' are an m x k matrix of relative expression levels; this is the
+#' are an m x k matrix of relative expression levels, where m is the
+#' number of features and k is the number of topics; this is the
 #' matrix \code{F} outputted by \code{fit_topic_model}.
 #'
 #' Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
@@ -189,15 +230,15 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' \code{\link[fastTopics]{fit_topic_model}} more information about
 #' the "multinom_topic_model_fit" object.
 #'
-#' An additional PCA dimension reduction on \code{k-1} dimensions is
-#' provided. This could be useful, for example, to quickly visualize
-#' the cells using \code{\link[Seurat]{DimPlot}}. The principal
-#' components are computed from the topic mixture
-#' proportions. However, this reduction is provided for convenience
-#' only, and we recommend to extract the
-#' \dQuote{"multinom_topic_model_fit"} object and use the dedicated
-#' visualization tools that are provided in the fastTopics package
-#' such as \code{\link[fastTopics]{structure_plot}}.
+#' An additional PCA dimension reduction on \code{k-1} dimensions,
+#' computed from the mixture proportions, is provided. This could be
+#' useful, for example, to quickly visualize the cells using
+#' \code{\link[Seurat]{DimPlot}}. The principal components are
+#' computed from the topic mixture proportions. However, this
+#' reduction is provided for convenience only, and we recommend to
+#' extract the \dQuote{"multinom_topic_model_fit"} object and use the
+#' dedicated visualization tools that are provided in the fastTopics
+#' package such as \code{\link[fastTopics]{structure_plot}}.
 #' 
 #' @author Peter Carbonetto
 #'
