@@ -128,7 +128,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   features <- colnames(X)
 
   # Fit the Poisson non-negative matrix factorization using
-  # fastTopics.  If Seurat object has an existing "poisson_nmf"
+  # fastTopics. If Seurat object has an existing "poisson_nmf"
   # reduction, use this to initialize the model fitting.
   if (is.element("poisson_nmf",Reductions(object))) {
     fit0 <- Misc(Reductions(object,"poisson_nmf"))
