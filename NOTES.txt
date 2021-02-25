@@ -27,3 +27,11 @@ The topic proportion of each cell should be visualized with
 Seurat::FeaturePlots e.g. topic 1 proportion overlayed on a UMAP as I
 shown in the vignette below add a wrapper function for visualizing
 gene proportion in each topic.
+
+Comments from Gilad Green:
+
+For the different functions of the wrapper (FitPoissonNMF and
+FitTopicModel) I see you add two DimReduction objects. For the first
+the user can specify `reduction.name` and `reduction.key` but for the
+second the user cannot do so. Will it be possible to add those to the
+function arguments too?
