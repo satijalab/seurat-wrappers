@@ -1,0 +1,56 @@
+---
+title: "Import alevin counts & generate Seurat object"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+    fig_width: 16
+  html_document:
+    df_print: kable
+    theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
+---
+
+This vignette demonstrates the import of alevin quantified counts into Seurat. Commands and parameters are based off of the [alevin tutorial](https://combine-lab.github.io/alevin-tutorial/2018/running-alevin/). If you use alevin in your work, please cite:
+
+> *Alevin efficiently estimates accurate gene abundances from dscRNA-seq data*
+>
+> Avi Srivastava, Laraib Malik, Tom Smith, Ian Sudbery & Rob Patro
+>
+> Genome Biology, 2019.
+>
+> doi: [10.1186/s13059-019-1670-y](https://doi.org/10.1186/s13059-019-1670-y)
+>
+> GitHub: https://github.com/COMBINE-lab/salmon
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+Prerequisites to install: 
+
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [tximport](https://bioconductor.org/packages/tximport)
+
+```{r packages, eval=FALSE}
+library(SeuratWrappers)
+library(tximport)
+```
+
+## {.tabset .tabset-pills}
+
+### Import alevin quantified counts
+
+```{r pbmcsca, eval = FALSE, cache=TRUE}
+pbmc <- ReadAlevin("~/alevin_out/alevin/quants_mat.gz")
+```

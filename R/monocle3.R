@@ -91,10 +91,10 @@ as.cell_data_set.Seurat <- function(
     SummarizedExperiment::assays(x = cds)$counts <- SummarizedExperiment::assays(x = cds)[[1]]
   }
   # Add Size_factor
-  if (!"Size_factor" %in% colnames(x = SummarizedExperiment::colData(x = cds))) {
+  if (!"Size_Factor" %in% colnames(x = SummarizedExperiment::colData(x = cds))) {
     size.factor <- paste0('nCount_', assay)
     if (size.factor %in% colnames(x = x[[]])) {
-      SummarizedExperiment::colData(x = cds)$Size_factor <- x[[size.factor, drop = TRUE]]
+      SummarizedExperiment::colData(x = cds)$Size_Factor <- x[[size.factor, drop = TRUE]]
     }
   }
   # Add DimReducs: Embeddings become a reduced dim, Loadings go to

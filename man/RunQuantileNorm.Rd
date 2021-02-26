@@ -32,10 +32,28 @@ RunQuantileNorm(
 
 \item{reduction.key}{Key for resulting DimReduc}
 
-\item{quantiles}{Number of quantiles to use for quantile normalization}
+\item{quantiles}{Number of quantiles to use for quantile normalization (default 50).}
 
 \item{ref_dataset}{Name of dataset to use as a "reference" for normalization. By default,
 the dataset with the largest number of cells is used.}
+
+\item{min_cells}{Minimum number of cells to consider a cluster shared across datasets (default 20)}
+
+\item{knn_k}{Number of nearest neighbors for within-dataset knn graph (default 20).}
+
+\item{dims.use}{Indices of factors to use for shared nearest factor determination (default
+1:ncol(H[[1]])).}
+
+\item{do.center}{Centers the data when scaling factors (useful for less sparse modalities like
+methylation data). (default FALSE)}
+
+\item{max_sample}{Maximum number of cells used for quantile normalization of each cluster 
+and factor. (default 1000)}
+
+\item{eps}{The error bound of the nearest neighbor search. (default 0.9) Lower values give more 
+accurate nearest neighbor graphs but take much longer to computer.}
+
+\item{refine.knn}{whether to increase robustness of cluster assignments using KNN graph.(default TRUE)}
 
 \item{...}{Arguments passed to other methods}
 }
