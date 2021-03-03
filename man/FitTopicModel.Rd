@@ -11,6 +11,8 @@ FitTopicModel(
   features = NULL,
   reduction.name = "multinom_topic_model",
   reduction.key = "k_",
+  reduction.pca.name = "pca_topics",
+  reduction.pca.key = "TOPICPC_",
   verbose = TRUE,
   ...
 )
@@ -31,6 +33,10 @@ used to pre-select features.}
 \item{reduction.name}{Name of the outputted reduction.}
 
 \item{reduction.key}{Key for the outputted reduction.}
+
+\item{reduction.pca.name}{Name of the outputted PCA reduction.}
+
+\item{reduction.pca.key}{Key for the outputted PCA reduction.}
 
 \item{verbose}{When \code{verbose = TRUE}, information about the
 progress of the model fitting is printed to the console. See

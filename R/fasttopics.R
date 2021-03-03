@@ -28,6 +28,10 @@
 #'
 #' @param reduction.key Key for the outputted reduction.
 #'
+#' @param reduction.pca.name Name of the outputted PCA reduction.
+#'
+#' @param reduction.pca.key Key for the outputted PCA reduction.
+#' 
 #' @param numiter The number of updates of the factors and loadings to
 #'   perform.
 #'
@@ -110,7 +114,9 @@
 #' 
 FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
                            reduction.name = "poisson_nmf",
-                           reduction.key = "k_", numiter = 100,
+                           reduction.key = "k_",
+                           reduction.pca.name = "pca_nmf",
+                           reduction.pca.key = "NMFPC_", numiter = 100,
                            method = c("scd", "em", "mu", "ccd"),
                            init.method = c("topicscore", "random"),
                            control = list(), verbose = TRUE, ...) {
@@ -155,7 +161,8 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
-  object[["pca_nmf"]] <- pca_from_loadings_fasttopics(fit,assay,"NMFPC_")
+  object[[reduction.pca.name]] <-
+    pca_from_loadings_fasttopics(fit,assay,reduction.pca.key)
 
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))
@@ -202,6 +209,10 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #'
 #' @param reduction.key Key for the outputted reduction.
 #'
+#' @param reduction.pca.name Name of the outputted PCA reduction.
+#'
+#' @param reduction.pca.key Key for the outputted PCA reduction.
+#' 
 #' @param verbose When \code{verbose = TRUE}, information about the
 #'   progress of the model fitting is printed to the console. See
 #'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
@@ -281,7 +292,10 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #'
 FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
                            reduction.name = "multinom_topic_model",
-                           reduction.key = "k_", verbose = TRUE, ...) {
+                           reduction.key = "k_",
+                           reduction.pca.name = "pca_topics",
+                           reduction.pca.key = "TOPICPC_",
+                           verbose = TRUE, ...) {
 
   # Check the input arguments, and that fastTopics is installed.
   CheckPackage(package = "stephenslab/fastTopics")
@@ -313,7 +327,8 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
-  object[["pca_topics"]] <- pca_from_loadings_fasttopics(fit,assay,"TOPICPC_")
+  object[[reduction.pca.name]] <-
+    pca_from_loadings_fasttopics(fit,assay,reduction.pca.key)
 
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))

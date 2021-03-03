@@ -11,6 +11,8 @@ FitPoissonNMF(
   features = NULL,
   reduction.name = "poisson_nmf",
   reduction.key = "k_",
+  reduction.pca.name = "pca_nmf",
+  reduction.pca.key = "NMFPC_",
   numiter = 100,
   method = c("scd", "em", "mu", "ccd"),
   init.method = c("topicscore", "random"),
@@ -40,6 +42,10 @@ used to pre-select features.}
 \item{reduction.name}{Name of the outputted reduction.}
 
 \item{reduction.key}{Key for the outputted reduction.}
+
+\item{reduction.pca.name}{Name of the outputted PCA reduction.}
+
+\item{reduction.pca.key}{Key for the outputted PCA reduction.}
 
 \item{numiter}{The number of updates of the factors and loadings to
 perform.}
