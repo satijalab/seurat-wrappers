@@ -17,7 +17,7 @@ FitPoissonNMF(
   method = c("scd", "em", "mu", "ccd"),
   init.method = c("topicscore", "random"),
   control = list(),
-  verbose = TRUE,
+  verbose = c("progressbar", "detailed", "none"),
   ...
 )
 }
@@ -62,10 +62,10 @@ details.}
 the optimization algorithm. See
 \code{\link[fastTopics]{fit_poisson_nmf}} for details.}
 
-\item{verbose}{When \code{verbose = TRUE}, information about the
-progress of the model fitting is printed to the console. See
-\code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
-output.}
+\item{verbose}{When \code{verbose = "progressbar"} or \code{verbose
+= "detailed"}, information about the progress of the model fitting
+is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
+for more information.}
 
 \item{\dots}{Additional arguments passed to \code{fit_poisson_nmf}.}
 }

@@ -13,7 +13,7 @@ FitTopicModel(
   reduction.key = "k_",
   reduction.pca.name = "pca_topics",
   reduction.pca.key = "TOPICPC_",
-  verbose = TRUE,
+  verbose = c("progressbar", "detailed", "none"),
   ...
 )
 }
@@ -38,10 +38,10 @@ used to pre-select features.}
 
 \item{reduction.pca.key}{Key for the outputted PCA reduction.}
 
-\item{verbose}{When \code{verbose = TRUE}, information about the
-progress of the model fitting is printed to the console. See
-\code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
-output.}
+\item{verbose}{When \code{verbose = "progressbar"} or \code{verbose
+= "detailed"}, information about the progress of the model fitting
+is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
+for more information.}
 
 \item{\dots}{Additional arguments passed to \code{fit_topic_model};
 see \code{\link[fastTopics]{fit_topic_model}} for details.}

@@ -47,10 +47,10 @@
 #'   the optimization algorithm. See
 #'   \code{\link[fastTopics]{fit_poisson_nmf}} for details.
 #'
-#' @param verbose When \code{verbose = TRUE}, information about the
-#'   progress of the model fitting is printed to the console. See
-#'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
-#'   output.
+#' @param verbose When \code{verbose = "progressbar"} or \code{verbose
+#'   = "detailed"}, information about the progress of the model fitting
+#'   is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
+#'   for more information.
 #' 
 #' @param \dots Additional arguments passed to \code{fit_poisson_nmf}.
 #'
@@ -119,13 +119,18 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
                            reduction.pca.key = "NMFPC_", numiter = 100,
                            method = c("scd", "em", "mu", "ccd"),
                            init.method = c("topicscore", "random"),
-                           control = list(), verbose = TRUE, ...) {
+                           control = list(),
+                           verbose = c("progressbar", "detailed", "none"),
+                           ...) {
 
   # Check the input arguments, and that fastTopics is installed.
   CheckPackage(package = "stephenslab/fastTopics")
   if (!inherits(object,"Seurat"))
     stop("\"object\" must be a Seurat object",call. = FALSE)
 
+  # Check and progress input argument "verbose".
+  verbose <- match.arg(verbose)
+  
   # Get the n x m counts matrix, where n is the number of samples
   # (cells) and m is the number of selected features.
   assay <- assay %||% DefaultAssay(object)
@@ -213,10 +218,10 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #'
 #' @param reduction.pca.key Key for the outputted PCA reduction.
 #' 
-#' @param verbose When \code{verbose = TRUE}, information about the
-#'   progress of the model fitting is printed to the console. See
-#'   \code{\link[fastTopics]{fit_poisson_nmf}} for an explanation of the
-#'   output.
+#' @param verbose When \code{verbose = "progressbar"} or \code{verbose
+#'   = "detailed"}, information about the progress of the model fitting
+#'   is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
+#'   for more information.
 #' 
 #' @param \dots Additional arguments passed to \code{fit_topic_model};
 #'   see \code{\link[fastTopics]{fit_topic_model}} for details.
@@ -295,13 +300,17 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
                            reduction.key = "k_",
                            reduction.pca.name = "pca_topics",
                            reduction.pca.key = "TOPICPC_",
-                           verbose = TRUE, ...) {
+                           verbose = c("progressbar", "detailed", "none"),
+                           ...) {
 
   # Check the input arguments, and that fastTopics is installed.
   CheckPackage(package = "stephenslab/fastTopics")
   if (!inherits(object,"Seurat"))
     stop("\"object\" must be a Seurat object",call. = FALSE)
 
+  # Check and progress input argument "verbose".
+  verbose <- match.arg(verbose)
+  
   # Get the n x m counts matrix, where n is the number of samples
   # (cells) and m is the number of selected features.
   assay <- assay %||% DefaultAssay(object)
