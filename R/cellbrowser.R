@@ -23,73 +23,34 @@ NULL
 #' }
 #'
 writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) { 
-    require(data.table)
-    fnames = c(); 
-    setDTthreads(8);  # otherwise this would use dozens of CPUs on a fat server
-    mat = inMat; 
-    geneCount = nrow(mat); 
-    message("Writing expression matrix to ", outFname); 
-    startIdx = 1; 
-    while (startIdx<geneCount) { 
-        endIdx=min(startIdx+sliceSize-1, geneCount); 
-        matSlice = mat[startIdx:endIdx,]; 
-        denseSlice = as.matrix(matSlice); 
-        dt <- data.table(denseSlice); 
-        dt = cbind(gene=rownames(matSlice), dt); 
-        writeHeader = FALSE; 
-        if (startIdx==1) { 
-            writeHeader = TRUE 
-        }; 
-        sliceFname=paste0("temp", startIdx,".txt"); 
-        fwrite(dt, sep="\t", file=sliceFname, quote = FALSE, col.names = writeHeader); 
-        fnames=append(fnames, sliceFname); startIdx=startIdx+sliceSize}; 
-        message("Concatenating chunks"); 
-        system(paste("cat", paste(fnames, collapse=" "), "| gzip >", outFname, sep=" ")); 
-        unlink(fnames); 
-=======
-#' writeSparseMatrix(GetAssayData(pbmc_small, slot = "data"), "exprMatrix.tsv.gz")
-#' }
-#'
-writeSparseMatrix = function(inMat, outFname, sliceSize = 1000) {
-    # require(data.table)
-    fnames <- c()
+    fnames = c() 
     setDTthreads(threads = 8)  # otherwise this would use dozens of CPUs on a fat server
-    mat = inMat
+    mat = inMat 
     geneCount = nrow(mat)
     message("Writing expression matrix to ", outFname)
     startIdx = 1
-    while (startIdx < geneCount) {
-      endIdx <- min(startIdx + sliceSize - 1, geneCount)
-      matSlice <- mat[startIdx:endIdx, ]
-      denseSlice <- as.matrix(x = matSlice)
-      dt <- data.table(denseSlice)
-      dt <- cbind(gene = rownames(x = matSlice), dt)
-      writeHeader <- startIdx == 1
-      writeHeader <- FALSE
-      # if (startIdx == 1) {
-      #   writeHeader <- TRUE
-      # }
-      sliceFname <- paste0("temp", startIdx, ".txt")
-      fwrite(
-        dt,
-        sep = "\t",
-        file = sliceFname,
-        quote = FALSE,
-        col.names = writeHeader
-      )
-      fnames <- append(x = fnames, values = sliceFname)
-      startIdx <- startIdx + sliceSize
-    }
+    while (startIdx < geneCount) { 
+        endIdx <- min(startIdx+sliceSize-1, geneCount) 
+        matSlice <- mat[startIdx:endIdx,] 
+        denseSlice <- as.matrix(x = matSlice)
+        dt <- data.table(denseSlice) 
+        dt <- cbind(gene = rownames(x = matSlice), dt) 
+        writeHeader <- startIdx == 1 
+        sliceFname <- paste0("temp", startIdx,".txt")
+        fwrite(dt, sep="\t", file=sliceFname, quote = FALSE, col.names = writeHeader)
+        fnames <- append(x = fnames, values = sliceFname);
+        startIdx <- startIdx + sliceSize
+    } 
     message("Concatenating chunks")
     system(command = paste(
-      "cat",
-      paste(fnames, collapse = " "), "| gzip >",
-      outFname,
-      sep = " "
-    ))
+       "cat", 
+       paste(fnames, collapse=" "),
+       "| gzip >",
+       outFname,
+       sep = " "
+    )) 
     unlink(x = fnames)
     return(invisible(x = NULL))
->>>>>>> 56632af9df80c40d01bc8eba83ee3e103a5182cf
 }
 
 #' used by ExportToCellbrowser:
@@ -288,7 +249,7 @@ ExportToCellbrowser <- function(
   # Export expression matrix
   if (!skip.expr.matrix) { 
       too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix'))
-      if (use.mtx || (too.big && (.Platform$OS.type=="windows") {
+      if (use.mtx || (too.big && (.Platform$OS.type=="windows"))) {
             # we have to write the matrix to an mtx file
             matrixPath <- file.path(dir, "matrix.mtx")
             genesPath <- file.path(dir, "features.tsv")
