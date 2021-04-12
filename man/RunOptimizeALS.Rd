@@ -75,5 +75,5 @@ per-dataset feature loadings matrices stored in the \code{tool} slot, accessible
 Run optimizeALS on a Seurat object
 }
 \seealso{
-\code{\link[liger]{optimizeALS}} \code{\link[Seurat]{Tool}}
+\code{\link[rliger]{optimizeALS}} \code{\link[Seurat]{Tool}}
 }

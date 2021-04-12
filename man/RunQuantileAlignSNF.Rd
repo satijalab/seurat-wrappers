@@ -76,5 +76,5 @@ stored as a DimReduc object with name \code{reduction.name} (key set to \code{re
 This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{RunQuantileNorm}}
+\code{\link[rliger]{RunQuantileNorm}}
 }
