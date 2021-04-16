@@ -36,12 +36,13 @@ PrestoDETest <- function(
       levels = c("Group1", "Group2"))
     names(group.info) <- c(cells.1, cells.2)
     data.use <- data.use[, names(x = group.info), drop = FALSE]
-    p_val <- presto::wilcoxauc(X = data.use, y = group.info)$pval
-    p_val <- p_val[1:(length(p_val)/2)]
+    res <- presto::wilcoxauc(X = data.use, y = group.info)
+    res <- res[1:(nrow(res)/2), c('pval','auc')]
+    colnames(res)[1] <- 'p_val'
   } else {
     stop("Overflow error. Try running with fewer cells.")
   }
-  return(data.frame(p_val, row.names = rownames(x = data.use)))
+  return(as.data.frame(res, row.names = rownames(x = data.use)))
 }
 
 #' A Presto-based implementation of FindMarkers that runs Wilcoxon tests for the given identity classes
