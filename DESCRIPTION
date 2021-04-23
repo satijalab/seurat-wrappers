@@ -40,6 +40,7 @@ Imports:
     utils,
     rlang
 Collate:
+    'cellbrowser.R'
     'internal.R'
     'alevin.R'
     'alra.R'
