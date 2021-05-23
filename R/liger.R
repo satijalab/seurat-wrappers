@@ -4,7 +4,7 @@ NULL
 
 #' Run optimizeALS on a Seurat object
 #'
-#' @inheritParams liger::optimizeALS
+#' @inheritParams rliger::optimizeALS
 #' @inheritParams RunFastMNN
 #' @param object A merged Seurat object
 #' @param split.by Attribute for splitting, defaults to "orig.ident"
@@ -43,7 +43,7 @@ RunOptimizeALS <- function(
   print.obj = FALSE,
   ...
 ) {
-  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
+  CheckPackage(package = 'welch-lab/liger', repository = 'github')
   assay <- assay %||% DefaultAssay(object = object)
   if (IsMatrixEmpty(x = GetAssayData(object = object, slot = 'scale.data'))) {
     stop("Data is unscaled, splease scale before running", call. = FALSE)
@@ -63,7 +63,7 @@ RunOptimizeALS <- function(
     }
   )
   # scale.data <- sapply(X = scale.data, FUN = t, simplify = FALSE)
-  out <- liger::optimizeALS(
+  out <- rliger::optimizeALS(
     object = scale.data,
     k = k,
     lambda = lambda,
@@ -100,7 +100,7 @@ RunOptimizeALS <- function(
 #'
 #' This is a deprecated function. Call 'RunQuantileNorm' instead.
 #'
-# @inheritParams liger::SNF
+# @inheritParams rliger::SNF
 #' @inheritParams RunOptimizeALS
 #' @param reduction Name of reduction to use
 #'
@@ -127,7 +127,7 @@ RunSNF <- function(
   small.clust.thresh = knn_k,
   ...
 ) {
-  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
+  CheckPackage(package = 'welch-lab/liger', repository = 'github')
   # cells <- sapply(
   #   X = SplitObject(object = object, split.by = split.by),
   #   FUN = colnames,
@@ -142,7 +142,7 @@ RunSNF <- function(
   #   simplify = FALSE,
   #   USE.NAMES = TRUE
   # )
-  # snf <- liger::SNF(
+  # snf <- rliger::SNF(
   #   object = embeddings,
   #   dims.use = dims.use,
   #   dist.use = dist.use,
@@ -169,7 +169,7 @@ RunSNF <- function(
 #' 
 #' @inheritParams RunSNF
 #' @inheritParams RunOptimizeALS
-#' @inheritParams liger::quantileAlignSNF
+#' @inheritParams rliger::quantileAlignSNF
 #' @param recalc.snf Recalculate \code{\link{SNF}}
 #' @param ... Arguments passed to other methods, and to
 #' \code{\link[seurat.wrappers]{SNF}} if \code{recalc.snf = TRUE} or
@@ -207,7 +207,7 @@ RunQuantileAlignSNF <- function(
   print.align.summary = FALSE,
   ...
 ) {
-  # CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
+  # CheckPackage(package = 'welch-lab/liger', repository = 'github')
   # if (recalc.snf || is.null(x = Tool(object = object, slot = 'RunSNF'))) {
   #   object <- RunSNF(
   #     object = object,
@@ -238,7 +238,7 @@ RunQuantileAlignSNF <- function(
   # if (is.character(x = ref_dataset) && !ref_dataset %in% names(x = embeddings)) {
   #   stop("Cannot find reference dataset '", ref_dataset, "' in the split", call. = FALSE)
   # }
-  # out <- liger::quantileAlignSNF(
+  # out <- rliger::quantileAlignSNF(
   #   object = embeddings,
   #   snf = Tool(object = object, slot = 'RunSNF'),
   #   cell.names = colnames(x = object),
@@ -300,7 +300,7 @@ RunQuantileAlignSNF <- function(
 #' Run quantile_norm on a Seurat object
 #'
 #' @inheritParams RunOptimizeALS
-#' @inheritParams liger::quantile_norm
+#' @inheritParams rliger::quantile_norm
 #' @param ... Arguments passed to other methods
 #'
 #' @return A Seurat object with embeddings from \code{\link[liger]{quantile_norm}}
@@ -333,7 +333,7 @@ RunQuantileNorm <- function(
   refine.knn = TRUE,
   ...
 ) {
-  CheckPackage(package = 'MacoskoLab/liger', repository = 'github')
+  CheckPackage(package = 'welch-lab/liger', repository = 'github')
   embeddings <- sapply(
     X = SplitObject(object = object, split.by = split.by),
     FUN = function(x) {
@@ -355,7 +355,7 @@ RunQuantileNorm <- function(
   if (is.character(x = ref_dataset) && !ref_dataset %in% names(x = embeddings)) {
     stop("Cannot find reference dataset '", ref_dataset, "' in the split", call. = FALSE)
   }
-  out <- liger::quantile_norm(
+  out <- rliger::quantile_norm(
     object = embeddings,
     quantiles = quantiles,
     ref_dataset = ref_dataset,
