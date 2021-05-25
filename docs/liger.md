@@ -1,43 +1,62 @@
 Integrating Seurat objects using LIGER
 ================
-Compiled: June 01, 2020
+Compiled: May 25, 2021
 
--   [](#section)
-    -   [Systematic comparative analysis of human PBMC](#systematic-comparative-analysis-of-human-pbmc)
-    -   [Interferon-stimulated and control PBMC](#interferon-stimulated-and-control-pbmc)
-    -   [Eight human pancreatic islet datasets](#eight-human-pancreatic-islet-datasets)
+  - [](#section)
+      - [Systematic comparative analysis of human
+        PBMC](#systematic-comparative-analysis-of-human-pbmc)
+      - [Interferon-stimulated and control
+        PBMC](#interferon-stimulated-and-control-pbmc)
+      - [Eight human pancreatic islet
+        datasets](#eight-human-pancreatic-islet-datasets)
 
-NOTE: Please update your `liger` version to 0.5.0 or above before following this tutorial.
+NOTE: Please update your `liger` version to 0.5.0 or above before
+following this tutorial.
 
-This vigettte demonstrates how to run LIGER on Seurat objects. Parameters and commands are based on the [LIGER tutorial](http://htmlpreview.github.io/?https://github.com/MacoskoLab/liger/blob/master/vignettes/Integrating_multi_scRNA_data.html). If you use LIGER, please cite:
+This vigettte demonstrates how to run LIGER on Seurat objects.
+Parameters and commands are based on the [LIGER
+tutorial](http://htmlpreview.github.io/?https://github.com/MacoskoLab/liger/blob/master/vignettes/Integrating_multi_scRNA_data.html).
+If you use LIGER, please cite:
 
-> *Single-Cell Multi-omic Integration Compares and Contrasts Features of Brain Cell Identity*
->
-> Joshua Welch, Velina Kozareva, Ashley Ferreira, Charles Vanderburg, Carly Martin, Evan Z.Macosko
->
+> *Single-Cell Multi-omic Integration Compares and Contrasts Features of
+> Brain Cell Identity*
+> 
+> Joshua Welch, Velina Kozareva, Ashley Ferreira, Charles Vanderburg,
+> Carly Martin, Evan Z.Macosko
+> 
 > Cell, 2019.
->
-> doi: [10.1016/j.cell.2019.05.006](https://doi.org/10.1016/j.cell.2019.05.006)
->
+> 
+> doi:
+> [10.1016/j.cell.2019.05.006](https://doi.org/10.1016/j.cell.2019.05.006)
+> 
 > GitHub: <https://github.com/MacoskoLab/liger>
 
 Prerequisites to install:
 
--   [Seurat](https://satijalab.org/seurat/install)
--   [LIGER](https://github.com/MacoskoLab/liger)
--   [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
--   [SeuratData](https://github.com/satijalab/seurat-data)
+  - [Seurat](https://satijalab.org/seurat/install)
+  - [LIGER](https://github.com/MacoskoLab/liger)
+  - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+  - [SeuratData](https://github.com/satijalab/seurat-data)
+
+<!-- end list -->
 
 ``` r
-library(liger)
+library(rliger)
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 ```
 
-In order to replicate LIGER's multi-dataset functionality, we will use the `split.by` parameter to preprocess the Seurat object on subsets of the data belonging to each dataset separately. Also, as LIGER does not center data when scaling, we will skip that step as well.
+In order to replicate LIGER’s multi-dataset functionality, we will use
+the `split.by` parameter to preprocess the Seurat object on subsets of
+the data belonging to each dataset separately. Also, as LIGER does not
+center data when scaling, we will skip that step as well.
 
-`RunQuantileNorm` produces joint clusters, but users can also optionally perform Louvain community detection (`FindNeighbors` and `FindClusters`) on the integrated latent space from iNMF.
+`RunQuantileNorm` produces joint clusters, but users can also optionally
+perform Louvain community detection (`FindNeighbors` and `FindClusters`)
+on the integrated latent space from iNMF.
+
+## 
 
 ### Systematic comparative analysis of human PBMC
 
@@ -61,7 +80,7 @@ pbmcsca <- RunUMAP(pbmcsca, dims = 1:ncol(pbmcsca[["iNMF"]]), reduction = "iNMF"
 DimPlot(pbmcsca, group.by = c("Method", "ident", "CellType"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/pbmcsca-1.png)
+![](/__w/seurat-wrappers/seurat-wrappers/test-build/liger_files/figure-gfm/pbmcsca-1.png)<!-- -->
 
 ### Interferon-stimulated and control PBMC
 
@@ -85,7 +104,7 @@ ifnb <- RunUMAP(ifnb, dims = 1:ncol(ifnb[["iNMF"]]), reduction = "iNMF")
 DimPlot(ifnb, group.by = c("stim", "ident", "seurat_annotations"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/ifnb-1.png)
+![](/__w/seurat-wrappers/seurat-wrappers/test-build/liger_files/figure-gfm/ifnb-1.png)<!-- -->
 
 ### Eight human pancreatic islet datasets
 
@@ -109,4 +128,4 @@ panc8 <- RunUMAP(panc8, dims = 1:ncol(panc8[["iNMF"]]), reduction = "iNMF")
 DimPlot(panc8, group.by = c("replicate", "ident", "celltype"), ncol = 3)
 ```
 
-![](liger_files/figure-markdown_github/pancreas-1.png)
+![](/__w/seurat-wrappers/seurat-wrappers/test-build/liger_files/figure-gfm/pancreas-1.png)<!-- -->
