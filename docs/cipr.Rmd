@@ -1,0 +1,321 @@
+---
+title: "Using CIPR with human PBMC data"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: "Atakan Ekiz"
+output: 
+  github_document:
+    html_preview: true
+    toc: false
+  html_document:
+    df_print: kable
+    theme: united
+---
+
+This vignette demonstrates how to run CIPR on Seurat objects. If you use CIPR, please cite:
+
+> *CIPR: a web-based R/shiny app and R package to annotate cell clusters in single cell RNA sequencing experiments*
+>
+> H. Atakan Ekiz, Christopher J. Conley, W. Zac Stephens & Ryan M. O'Connell 
+>
+> BMC Bioinformatics, 2020.
+> 
+> doi: [10.1186/s12859-020-3538-2](https://doi.org/10.1186/s12859-020-3538-2)
+>
+> Github: https://github.com/atakanekiz/CIPR-Package
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+remotes::install_github("atakanekiz/CIPR-Package")
+```
+
+# Summary 
+
+This vignette describes how to use CIPR package with 3k PBMC data freely available from 10X genomics. Here, we recycle the code described in [Seurat's guided clustering tutorial](https://satijalab.org/seurat/v3.1/pbmc3k_tutorial.html) to help users perform analyses from scratch. Using this dataset we will demonstrate the capabilities of CIPR to annotate single cell clusters in single cell RNAseq (scRNAseq) experiments. For further information about other clustering methods, please see Seurat's comprehensive [website](https://satijalab.org/seurat/)
+
+
+# Install CIPR
+
+```{r, eval=F}
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+
+# Use this option if you want to build vignettes during installation
+# This can take a long time due to the installation of suggested packages.
+remotes::install_github("atakanekiz/CIPR-Package", build_vignettes = TRUE)
+
+# Use this if you would like to install the package without vignettes
+# remotes::install_github("atakanekiz/CIPR-Package")
+```
+
+# Seurat pipeline
+
+## Setup Seurat object
+
+```{r, eval=T}
+library(dplyr)
+library(Seurat)
+library(SeuratData)
+library(CIPR)
+```
+
+```{r}
+# Load data
+InstallData("pbmc3k")
+pbmc <- pbmc3k
+```
+
+## Pre-processing
+
+The steps below encompass the standard pre-processing workflow for scRNA-seq data in Seurat. These represent the selection and filtration of cells based on QC metrics, data normalization and scaling, and the detection of highly variable features.
+
+```{r}
+
+# Calculate mitochondrial gene representation (indicative of low quality cells)
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+
+# Filter out genes with feature counts outside of 200-2500 range, and >5% mt genes 
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+```
+
+
+## Normalizing data
+
+```{r, results="hide", message=F}
+pbmc <- NormalizeData(pbmc)
+```
+
+## Variable gene detection and scaling
+
+```{r, results="hide", message=F}
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(pbmc)
+pbmc <- ScaleData(pbmc, features = all.genes)
+```
+
+## Perform PCA
+
+```{r, results="hide", message=F}
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+```
+
+
+```{r, eval=T}
+ElbowPlot(pbmc)
+```
+
+## Cluster cells
+
+```{r, results="hide", message=F}
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+```
+
+## Run non-linear dimensionality reduction (tSNE)
+
+```{r, results="hide", message=F}
+pbmc <- RunTSNE(pbmc, dims = 1:10)
+pbmc$unnamed_clusters <- Idents(pbmc)
+```
+
+```{r}
+# saveRDS(pbmc, "pbmc.rds")
+```
+
+
+
+## Find differentially expressed genes
+
+__This is the step where we generate the input for CIPR's log fold change (logFC) comparison methods.__
+
+```{r, echo=F, results="hide"}
+allmarkers <- FindAllMarkers(pbmc)
+```
+
+## Calculate average gene expression per cluster
+
+__This is the step where we generate the input for CIPR's all-genes correlation methods.__
+
+```{r, results="hide"}
+avgexp <- AverageExpression(pbmc)
+avgexp <- as.data.frame(x = avgexp$RNA)
+avgexp$gene <- rownames(avgexp)
+```
+
+## Visualize Seurat pbject
+
+```{r}
+DimPlot(pbmc)
+```
+
+# CIPR analysis
+
+The user can select one of the 7 provided reference data sets:
+
+| Reference                                 | `reference` argument |
+|-------------------------------------------|----------------------|
+| Immunological Genome Project (ImmGen)     | "immgen"             |
+| Presorted cell RNAseq (various tissues)   | "mmrnaseq"           |
+| Blueprint/ENCODE                          | "blueprint"          |
+| Human Primary Cell Atlas                  | "hpca"               |
+| Database of Immune Cell Expression (DICE) | "dice"               |
+| Hematopoietic differentiation             | "hema"               |
+| Presorted cell RNAseq (PBMC)              | "hsrnaseq"           |
+| User-provided custom reference            | "custom"             |
+
+## Standard logFC comparison method
+
+In this method CIPR accepts `allmarkers` data frame created above and performs the following analytical steps:
+
+- It calculates a vector of logFC values for each reference sample (i.e. individual columns of the reference data frame) by comparing log-normalized expression value of a gene (i.e. rows of the reference data frame) to the average gene expression across the entire reference dataset.
+- It then scores unknown cluster logFC differential gene expression data against this reference logFC values to create a vector of identity scores
+- User can select one of three methods:
+    - LogFC dot product (sum of all logFC x logFC values among matching genes). This is the recommended method in CIPR.
+    - LogFC Spearman's correlation (rank correlation of logFC values)
+    - LogFC Pearson's correlation (linear correlation of logFC values)
+
+### Plot all identity scores per cluster-reference cell pairs
+
+The code below performs analysis using sorted human PBMC RNAseq data as reference, and plots 
+
+CIPR results can be summarized for each cluster in scatter plots.
+
+```{r, eval=T, fig.width=16, fig.height=32, message=F}
+CIPR(input_dat = allmarkers,
+     comp_method = "logfc_dot_product", 
+     reference = "hsrnaseq", 
+     plot_ind = T,
+     plot_top = F, 
+     global_results_obj = T, 
+     global_plot_obj = T,
+     # axis.text.x=element_text(color="red") # arguments to pass to ggplot2::theme() to change plotting parameters
+     )
+```
+
+### Plot identity scores for a select cluster
+
+`ind_clu_plots` object is created in the global environment to help users can visualize results for a desired cluster and manipulate graphing parameters. ggplot2 functions can be iteratively added to individual plots to create annotations etc.
+
+```{r, eval=T, fig.width=16, fig.height=5, message=F}
+library(ggplot2)
+ind_clu_plots$cluster6 +
+    theme(axis.text.y = element_text(color="red"),
+          axis.text.x = element_text(color="blue")) +
+    labs(fill="Reference")+
+    ggtitle("Figure S4a. Automated cluster annotation results are shown for cluster 6") +
+    annotate("text", label="2 sd range", x=10, y= 700, size=8, color = "steelblue")+
+    annotate("text", label= "1 sd range", x=10, y=200, size=8, color ="orange2")+
+  geom_rect(aes(xmin=94, xmax=99, ymin=1000, ymax=1300), fill=NA, size=3, color="red")
+```
+
+### Plot top scoring refernce subsets for each cluster
+
+```{r, eval=T, fig.width=8, fig.height=4.5, message=F}
+CIPR(input_dat = allmarkers,
+     comp_method = "logfc_dot_product", 
+     reference = "hsrnaseq", 
+     plot_ind = F,
+     plot_top = T, 
+     global_results_obj = T, 
+     global_plot_obj = T)
+```
+
+### Tabulate CIPR results
+
+CIPR results (both top 5 scoring reference types per cluster and the entire analysis) are saved as global objects (`CIPR_top_results` and `CIPR_all_results` respectively) to allow users to explore the outputs and generate specific plots and tables.
+
+```{r}
+head(CIPR_top_results)
+head(CIPR_all_results)
+```
+
+## Standard all-genes correlation method
+
+CIPR also implements a simple correlation approach in which overall correlation in gene expression is calculated for the pairs of unknown clusters and the reference samples (regardless of the differential expression status of the gene). This approach is conceptually similar to some other automated identity prediction pipelines such as [SingleR](https://www.ncbi.nlm.nih.gov/pubmed/30643263) and [scMCA](https://www.ncbi.nlm.nih.gov/pubmed/30758821).
+
+
+- __Spearman's correlation:__ It calculates correlation based on ranked gene expression. It can be suitable for comparing experimental and reference data which were obtained using different technologies.
+- __Pearson's correlation:__ It calculates linear correlations. This can be useful when the user would like to provide a custom reference dataset to CIPR.
+
+### Plot all identity scores per cluster-reference cell pairs
+
+The code below performs analysis using sorted human PBMC RNAseq data as reference, and plots 
+
+CIPR results can be summarized for each cluster in scatter plots.
+
+```{r, eval=T, fig.width=16, fig.height=32, message=F}
+CIPR(input_dat = avgexp,
+     comp_method = "all_genes_spearman", 
+     reference = "hsrnaseq", 
+     plot_ind = T,
+     plot_top = F, 
+     global_results_obj = T, 
+     global_plot_obj = T)
+```
+
+
+### Plot top scoring refernce subsets for each cluster
+
+```{r, eval=T, fig.width=8, fig.height=4.5, message=F}
+CIPR(input_dat = avgexp,
+     comp_method = "all_genes_spearman", 
+     reference = "hsrnaseq", 
+     plot_ind = F,
+     plot_top = T, 
+     global_results_obj = T, 
+     global_plot_obj = T)
+```
+
+### Tabulate CIPR results
+
+CIPR results (both top 5 scoring reference types per cluster and the entire analysis) are saved as global objects (`CIPR_top_results` and `CIPR_all_results` respectively) to allow users to explore the outputs and generate specific plots and tables.
+
+```{r}
+head(CIPR_top_results)
+head(CIPR_all_results)
+```
+
+## Limiting analysis to the select subsets of reference data
+
+Sometimes excluding irrelevant reference cell types from the analysis can be helpful. Especially when the logFC comparison methods are utilized, removing irrelevant subsets may improve discrimination of closely related subsets, since the reference logFC values will be calculated after subsetting the data frame. Filtering out reference subsets should not impact results of the all-genes correlation methods, but it can make the graphical outputs easier to look at
+
+3k PBMC dataset may not be the best example to demonstrate benefits of reference dataset subsetting, but the code below serves as an example for this functionality.
+
+```{r, eval=T, fig.width=16, fig.height=32, message=F}
+CIPR(input_dat = allmarkers,
+     comp_method = "logfc_dot_product", 
+     reference = "hsrnaseq", 
+     plot_ind = T,
+     plot_top = F, 
+     global_results_obj = T, 
+     global_plot_obj = T,
+     select_ref_subsets = c("CD4+ T cell", "CD8+ T cell", "Monocyte", "NK cell"))
+```
+
+## Filtering out lowly variable genes
+
+Genes that have a low expression variance across the reference data frame has weaker discriminatory potential. Thus, excluding these genes from the analysis can reduce the noise and improve the prediction scores, especially when using all-genes correlation based methods.
+
+We implemented a variance filtering parameter, `keep_top_var`, which allows users to keep top Nth% variable reference genes in the analysis. For instance, by setting this argument to 10, CIPR can be instructed to use only the top 10% highly variable genes in identity score calculations. In our experience _(Ekiz HA, BMC Bioinformatics, in revision)_ limiting the analysis to highly variable genes does not significantly impact the identity scores of the top-scoring reference cell subsets, but it reduces the identity scores of intermediate/low-scoring reference cells leading to an improvement of z-scores. The "best" value for this parameter remains to be determined by the user in individual studies.
+
+```{r, eval=T, fig.width=16, fig.height=32, message=F}
+CIPR(input_dat = avgexp,
+     comp_method = "all_genes_spearman", 
+     reference = "hsrnaseq", 
+     plot_ind = T,
+     plot_top = F, 
+     global_results_obj = T, 
+     global_plot_obj = T,
+     keep_top_var = 10)
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

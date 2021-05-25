@@ -22,7 +22,8 @@ Remotes: welch-lab/liger,
     SaskiaFreytag/schex@031320d,
     cole-trapnell-lab/monocle3,
     mojaveazure/seurat-disk,
-    powellgenomicslab/Nebulosa
+    powellgenomicslab/Nebulosa,
+    atakanekiz/CIPR-Package 
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -40,6 +41,7 @@ Imports:
     utils,
     rlang
 Collate:
+    'cellbrowser.R'
     'internal.R'
     'alevin.R'
     'alra.R'
@@ -55,6 +57,7 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
 Suggests:
+    cipr,
     conos,
     rliger (>= 0.5.0),
     harmony,
