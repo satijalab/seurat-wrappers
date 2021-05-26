@@ -45,8 +45,17 @@ Prerequisites to install:
 * [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 * [SeuratData](https://github.com/satijalab/seurat-data) 
 
+```{r check, include=FALSE}
+tryCatch(
+  expr = SeuratWrappers:::CheckPackage("rliger", "cran"),
+  error = {
+    install.packages("rliger")
+  }
+)
+```
+
 ```{r packages}
-library(liger)
+library(rliger)
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)

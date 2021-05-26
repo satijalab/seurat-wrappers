@@ -35,5 +35,5 @@ accessible with \code{\link[Seurat]{Tool}}
 This is a deprecated function. Call 'RunQuantileNorm' instead.
 }
 \seealso{
-\code{\link[liger]{RunQuantileNorm}} \code{\link[Seurat]{Tool}}
+\code{\link[rliger]{RunQuantileNorm}} \code{\link[Seurat]{Tool}}
 }
