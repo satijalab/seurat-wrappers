@@ -23,22 +23,17 @@ PrestoDETest <- function(
   ...
 ) {
   data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
-  overflow.check <- ifelse(
-    test = is.na(x = suppressWarnings(length(x = data.use[1, ]) * length(x = data.use[1, ]))),
-    yes = FALSE,
-    no = TRUE
-  )
   # NOTE: do not use logfc from presto
   group.info <- factor(
-    c(rep(x = "Group1", length = length(cells.1)),
-      rep(x = "Group2", length = length(cells.2))),
+    c(rep(x = "Group1", length = length(x = cells.1)),
+      rep(x = "Group2", length = length(x = cells.2))),
     levels = c("Group1", "Group2"))
-  names(group.info) <- c(cells.1, cells.2)
+  names(x = group.info) <- c(cells.1, cells.2)
   data.use <- data.use[, names(x = group.info), drop = FALSE]
   res <- presto::wilcoxauc(X = data.use, y = group.info)
-  res <- res[1:(nrow(res)/2), c('pval','auc')]
-  colnames(res)[1] <- 'p_val'
-  return(as.data.frame(res, row.names = rownames(x = data.use)))
+  res <- res[1:(nrow(x = res)/2), c('pval','auc')]
+  colnames(x = res)[1] <- 'p_val'
+  return(as.data.frame(x = res, row.names = rownames(x = data.use)))
 }
 
 #' A Presto-based implementation of FindMarkers that runs Wilcoxon tests for the given identity classes
@@ -99,14 +94,14 @@ RunPresto <- function(
   if (test.use != 'wilcox') {
     stop("Differential expression test must be `wilcox`")
   }
-  
+
   CheckPackage(package = 'immunogenomics/presto', repository = 'github')
   orig.fxn <- rlang::duplicate(x = Seurat:::WilcoxDETest)
   assignInNamespace(
     x = "WilcoxDETest",
     value = PrestoDETest,
     ns = "Seurat")
-  
+
   tryCatch(
     expr = res <- FindMarkers(
       object,
@@ -140,7 +135,7 @@ RunPresto <- function(
       value = orig.fxn,
       ns = "Seurat")
   )
-  
+
   return(res)
 }
 
@@ -192,14 +187,14 @@ RunPrestoAll <- function(
   if (test.use != 'wilcox') {
     stop("Differential expression test must be `wilcox`")
   }
-  
+
   CheckPackage(package = 'immunogenomics/presto', repository = 'github')
   orig.fxn <- rlang::duplicate(x = Seurat:::WilcoxDETest)
   assignInNamespace(
     x = "WilcoxDETest",
     value = PrestoDETest,
     ns = "Seurat")
-  
+
   tryCatch(
     expr = res <- FindAllMarkers(
       object,
@@ -230,6 +225,6 @@ RunPrestoAll <- function(
       value = orig.fxn,
       ns = "Seurat")
   )
-  
+
   return(res)
 }
