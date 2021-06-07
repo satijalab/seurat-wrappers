@@ -72,4 +72,5 @@ Suggests:
     CoGAPS,
     glmpca,
     Nebulosa,
-    presto
+    presto,
+    flexmix
