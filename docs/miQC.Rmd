@@ -47,7 +47,6 @@ library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 library(flexmix)
-source("RunMiQC.R")
 ```
 
 ## Introduction
