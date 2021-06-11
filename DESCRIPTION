@@ -50,6 +50,7 @@ Collate:
     'fast_mnn.R'
     'glmpca.R'
     'liger.R'
+    'miqc.R'
     'monocle3.R'
     'presto.R'
     'velocity.R'
