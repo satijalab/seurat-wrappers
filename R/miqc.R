@@ -37,7 +37,6 @@ NULL
 #' @references Hippen et al. (2021) miQC: An adaptive probabilistic framework for quality control of single-cell RNA-sequencing data. bioRxiv doi: 10.1101/2021.03.03.433798
 #'
 #' @importFrom rlang %||%
-#' @importFrom flexmix flexmix parameters posterior
 #'
 #' @export
 RunMiQC <- function(
@@ -131,7 +130,6 @@ RunMiQC <- function(
 #' @references Hippen et al. (2021) miQC: An adaptive probabilistic framework for quality control of single-cell RNA-sequencing data. bioRxiv doi: 10.1101/2021.03.03.433798
 #'
 #' @importFrom rlang %||%
-#' @importFrom flexmix flexmix parameters posterior
 #'
 #' @export
 PlotMiQC <- function(seurat_object,
