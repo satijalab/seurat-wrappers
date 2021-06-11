@@ -22,33 +22,33 @@ NULL
 #' writeSparseTsvChunks( pbmc_small@data, "exprMatrix.tsv.gz")
 #' }
 #'
-writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) { 
-    fnames = c() 
+writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) {
+    fnames = c()
     setDTthreads(threads = 8)  # otherwise this would use dozens of CPUs on a fat server
-    mat = inMat 
+    mat = inMat
     geneCount = nrow(mat)
     message("Writing expression matrix to ", outFname)
     startIdx = 1
-    while (startIdx < geneCount) { 
-        endIdx <- min(startIdx+sliceSize-1, geneCount) 
-        matSlice <- mat[startIdx:endIdx,] 
+    while (startIdx < geneCount) {
+        endIdx <- min(startIdx+sliceSize-1, geneCount)
+        matSlice <- mat[startIdx:endIdx,]
         denseSlice <- as.matrix(x = matSlice)
-        dt <- data.table(denseSlice) 
-        dt <- cbind(gene = rownames(x = matSlice), dt) 
-        writeHeader <- startIdx == 1 
+        dt <- data.table(denseSlice)
+        dt <- cbind(gene = rownames(x = matSlice), dt)
+        writeHeader <- startIdx == 1
         sliceFname <- paste0("temp", startIdx,".txt")
         fwrite(dt, sep="\t", file=sliceFname, quote = FALSE, col.names = writeHeader)
         fnames <- append(x = fnames, values = sliceFname);
         startIdx <- startIdx + sliceSize
-    } 
+    }
     message("Concatenating chunks")
     system(command = paste(
-       "cat", 
+       "cat",
        paste(fnames, collapse=" "),
        "| gzip >",
        outFname,
        sep = " "
-    )) 
+    ))
     unlink(x = fnames)
     return(invisible(x = NULL))
 }
@@ -118,7 +118,8 @@ findMatrix = function(object, matrix.slot ) {
 #' @author Maximilian Haeussler, Nikolay Markov
 #'
 #' @importFrom tools file_ext
-#' @importFrom utils browseURL packageVersion gzip write.table
+#' @importFrom utils browseURL packageVersion write.table
+#' @importFrom R.utils gzip
 #' @importFrom reticulate py_module_available import
 #' @importFrom Seurat Project Idents GetAssayData Embeddings FetchData
 #' @importFrom Matrix  writeMM
@@ -176,7 +177,7 @@ ExportToCellbrowser <- function(
 
   reducNames = reductions
 
-  # compatibility layer for Seurat 2 vs 3 
+  # compatibility layer for Seurat 2 vs 3
   # see https://satijalab.org/seurat/essential_commands.html
   if (inherits(x = object, what = 'seurat')) {
       # Seurat v2 objects are called "seurat" (Paul Hoffman)
@@ -247,7 +248,7 @@ ExportToCellbrowser <- function(
   enum.fields <- c()
 
   # Export expression matrix
-  if (!skip.expr.matrix) { 
+  if (!skip.expr.matrix) {
       too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix'))
       if (use.mtx || (too.big && (.Platform$OS.type=="windows"))) {
             # we have to write the matrix to an mtx file
