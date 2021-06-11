@@ -32,6 +32,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = TRUE
 )
+remotes::install_github("greenelab/miQC")
 ```
 
 Prerequisites to install:

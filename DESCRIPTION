@@ -41,10 +41,10 @@ Imports:
     utils,
     rlang
 Collate:
-    'cellbrowser.R'
     'internal.R'
     'alevin.R'
     'alra.R'
+    'cellbrowser.R'
     'cogaps.R'
     'conos.R'
     'fast_mnn.R'
