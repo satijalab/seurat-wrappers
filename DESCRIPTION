@@ -41,15 +41,16 @@ Imports:
     utils,
     rlang
 Collate:
-    'cellbrowser.R'
     'internal.R'
     'alevin.R'
     'alra.R'
+    'cellbrowser.R'
     'cogaps.R'
     'conos.R'
     'fast_mnn.R'
     'glmpca.R'
     'liger.R'
+    'miqc.R'
     'monocle3.R'
     'presto.R'
     'velocity.R'
@@ -72,4 +73,5 @@ Suggests:
     CoGAPS,
     glmpca,
     Nebulosa,
-    presto
+    presto,
+    flexmix
