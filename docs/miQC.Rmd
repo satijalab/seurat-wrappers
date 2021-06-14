@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
-  warning = TRUE
+  warning = FALSE
 )
 remotes::install_github("greenelab/miQC")
 ```
@@ -79,7 +79,7 @@ pbmc3k
 _miQC_ requires two QC metrics for each single cell dataset: (1) the number of
 unique genes detected per cell and (2) the percent mitochondrial reads. The
 number of unique genes detected per cell are typically calculated and stored
-automaticaly as metadata (*nFeature_RNA*) upon creation of a Seurat object with
+automatically as metadata (*nFeature_RNA*) upon creation of a Seurat object with
 `CreateSeuratObject`.
 
 In order to calculate the percent mitochondrial reads in a cell we can use 
