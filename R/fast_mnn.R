@@ -25,21 +25,24 @@ NULL
 #'
 #' @seealso \code{\link[batchelor]{fastMNN}} \code{\link[Seurat]{Tool}}
 #'
-RunFastMNN <- function(
-  object.list,
-  assay = NULL,
-  features = 2000,
-  reduction.name = 'mnn',
-  reduction.key = 'mnn_',
-  verbose = TRUE,
-  ...
-) {
-  CheckPackage(package = 'batchelor', repository = 'bioconductor')
-  if (!all(sapply(X = object.list, FUN = inherits, what = 'Seurat'))) {
-    stop("'object.list' must be a list of Seurat objects", call. = FALSE)
+RunFastMNN <- function (object.list, 
+                        assay = NULL, 
+                        features = 2000, 
+                        reduction.name = "mnn", 
+                        reduction.key = "mnn_", 
+                        verbose = TRUE, ...) 
+{
+  try({
+    # Added this just so I can run function outside of Seurat
+    CheckPackage(package = "batchelor", repository = "bioconductor")
+  })
+  if (!all(sapply(X = object.list, FUN = inherits, what = "Seurat"))) {
+    stop("'object.list' must be a list of Seurat objects", 
+         call. = FALSE)
   }
   if (length(x = object.list) < 2) {
-    stop("'object.list' must contain multiple Seurat objects for integration", call. = FALSE)
+    stop("'object.list' must contain multiple Seurat objects for integration", 
+         call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object.list[[1]])
   for (i in 1:length(x = object.list)) {
@@ -49,38 +52,32 @@ RunFastMNN <- function(
     if (verbose) {
       message(paste("Computing", features, "integration features"))
     }
-    features <- SelectIntegrationFeatures(
-      object.list = object.list,
-      nfeatures = features,
-      assay = rep(assay,length(object.list))
-    )
+    features <- SelectIntegrationFeatures(object.list = object.list, 
+                                          nfeatures = features, assay = rep(assay, length(object.list)))
   }
-  objects.sce <- lapply(
-    X = object.list,
-    FUN = function(x, f) {
-      return(as.SingleCellExperiment(x = subset(x = x, features = f)))
-    },
-    f = features
-  )
-  integrated <- merge(
-    x = object.list[[1]],
-    y = object.list[2:length(x = object.list)]
-  )
-  out <- do.call(
-    what = batchelor::fastMNN,
-    args = c(
-      objects.sce,
-      list(...)
-    )
-  )
+  objects.sce <- lapply(X = object.list, FUN = function(x, 
+                                                        f) {
+    return(as.SingleCellExperiment(x = subset(x = x, features = f)))
+  }, f = features)
+  
+  integrated <- merge(x = object.list[[1]], y = object.list[2:length(x = object.list)])
+  out <- do.call(what = batchelor::fastMNN, args = c(objects.sce, 
+                                                     list(...)
+                                                     ))
   rownames(x = SingleCellExperiment::reducedDim(x = out)) <- colnames(x = integrated)
-  colnames(x = SingleCellExperiment::reducedDim(x = out)) <- paste0(reduction.key, 1:ncol(x = SingleCellExperiment::reducedDim(x = out)))
-  integrated[[reduction.name]] <- CreateDimReducObject(
-    embeddings = SingleCellExperiment::reducedDim(x = out),
-    assay = DefaultAssay(object = integrated),
-    key = reduction.key
-  )
+  colnames(x = SingleCellExperiment::reducedDim(x = out)) <- paste0(reduction.key, 
+                                                                    1:ncol(x = SingleCellExperiment::reducedDim(x = out)))
+  integrated[[reduction.name]] <- CreateDimReducObject(embeddings = SingleCellExperiment::reducedDim(x = out), 
+                                                       assay = DefaultAssay(object = integrated), key = reduction.key)
+  #### Add reconstructed matrix (gene x cell) ####
+  integrated@assays$mnn_reconstructed <- CreateAssayObject(data = as(SummarizedExperiment::assay(out),"sparseMatrix"))
+  #### Add rotation (gene loadings)  #### 
+  # integrated@assays$mnn_reconstructed@meta.features <- data.frame(SingleCellExperiment::rowData(out) )
+  integrated@reductions$mnn@feature.loadings <- as.matrix(SingleCellExperiment::rowData(out) )
+  #### Add variable features ####
+  integrated@assays$mnn_reconstructed@var.features <- features
   Tool(object = integrated) <- out
   integrated <- LogSeuratCommand(object = integrated)
   return(integrated)
 }
+
