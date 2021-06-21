@@ -54,7 +54,7 @@ library(SeuratWrappers)
 
 To learn more about this dataset, type `?pbmcsca` 
 
-```{r pbmcsca, results='hide', cache=TRUE}
+```{r pbmcsca, results='hide'}
 InstallData("pbmcsca")
 data("pbmcsca")
 pbmcsca <- NormalizeData(pbmcsca)
@@ -66,11 +66,16 @@ pbmcsca <- FindClusters(pbmcsca)
 DimPlot(pbmcsca, group.by = c('Method', 'ident',"CellType"), ncol = 3)
 ```
 
+```{r cleanup_pbmcsca, include=FALSE}
+rm(pbmcsca)
+gc(verbose = FALSE)
+```
+
 ### Interferon-stimulated and control PBMC
 
 To learn more about this dataset, type `?ifnb` 
 
-```{r ifnb_stim, results='hide', cache=TRUE}
+```{r ifnb_stim, results='hide}
 InstallData("ifnb")
 data("ifnb")
 ifnb <- NormalizeData(ifnb)
@@ -82,11 +87,16 @@ ifnb <- FindClusters(ifnb)
 DimPlot(ifnb, group.by = c('stim', 'ident', 'seurat_annotations'), ncol = 3)
 ```
 
+```{r cleanup_ifnb, include=FALSE}
+rm(ifnb)
+gc(verbose = FALSE)
+```
+
 ### Eight human pancreatic islet datasets
 
 To learn more about this dataset, type `?panc8` 
 
-```{r pancreas, results='hide', cache=TRUE}
+```{r pancreas, results='hide'}
 InstallData("panc8")
 data("panc8")
 panc8 <- NormalizeData(panc8)
