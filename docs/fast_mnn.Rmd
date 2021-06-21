@@ -75,7 +75,7 @@ gc(verbose = FALSE)
 
 To learn more about this dataset, type `?ifnb` 
 
-```{r ifnb_stim, results='hide}
+```{r ifnb_stim, results='hide'}
 InstallData("ifnb")
 data("ifnb")
 ifnb <- NormalizeData(ifnb)
