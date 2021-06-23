@@ -20,8 +20,8 @@ NULL
 #' with corrected embeddings matrix as well as the rotation matrix used for the
 #' PCA stored in the feature loadings slot. Also returns an expression matrix
 #' reconstructed from the low-rank approximation in the
-#' \code{reconstructed.assay} assay; all other return values from
-#' \code{\link[batchelor]{fastMNN}} are stored in the \code{tool} slot,
+#' \code{reconstructed.assay} assay; all other metadata info
+#' \code{\link[batchelor]{fastMNN}} is stored in the \code{tool} slot,
 #' accessible with \code{\link[Seurat]{Tool}}
 #'
 #' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures
@@ -96,7 +96,7 @@ RunFastMNN <- function(
   )
   # Add variable features
   VariableFeatures(object = integrated[[reconstructed.assay]]) <- features
-  Tool(object = integrated) <- out
+  Tool(object = integrated) <- S4Vectors::metadata(x = out)
   integrated <- LogSeuratCommand(object = integrated)
   return(integrated)
 }
