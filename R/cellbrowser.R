@@ -18,33 +18,39 @@ NULL
 #' writeSparseTsvChunks( pbmc_small@data, "exprMatrix.tsv.gz")
 #' }
 #'
-writeSparseTsvChunks = function (inMat, outFname, sliceSize=1000) { 
-    fnames = c() 
+writeSparseTsvChunks = function(inMat, outFname, sliceSize=1000) {
+    fnames = c()
     setDTthreads(threads = 8)  # otherwise this would use dozens of CPUs on a fat server
-    mat = inMat 
+    mat = inMat
     geneCount = nrow(mat)
     message("Writing expression matrix to ", outFname)
     startIdx = 1
-    while (startIdx < geneCount) { 
-        endIdx <- min(startIdx+sliceSize-1, geneCount) 
-        matSlice <- mat[startIdx:endIdx,] 
+    while (startIdx < geneCount) {
+        endIdx <- min(startIdx + sliceSize - 1, geneCount)
+        matSlice <- mat[startIdx:endIdx,]
         denseSlice <- as.matrix(x = matSlice)
-        dt <- data.table(denseSlice) 
-        dt <- cbind(gene = rownames(x = matSlice), dt) 
-        writeHeader <- startIdx == 1 
+        dt <- data.table(denseSlice)
+        dt <- cbind(gene = rownames(x = matSlice), dt)
+        writeHeader <- startIdx == 1
         sliceFname <- paste0("temp", startIdx,".txt")
-        fwrite(dt, sep="\t", file=sliceFname, quote = FALSE, col.names = writeHeader)
+        fwrite(
+          dt,
+          sep = "\t",
+          file = sliceFname,
+          quote = FALSE,
+          col.names = writeHeader
+        )
         fnames <- append(x = fnames, values = sliceFname);
         startIdx <- startIdx + sliceSize
-    } 
+    }
     message("Concatenating chunks")
     system(command = paste(
-       "cat", 
-       paste(fnames, collapse=" "),
+       "cat",
+       paste(fnames, collapse = " "),
        "| gzip >",
        outFname,
        sep = " "
-    )) 
+    ))
     unlink(x = fnames)
     return(invisible(x = NULL))
 }
@@ -64,9 +70,9 @@ findMatrices = function(object, slotNames ) {
       if (slotName == "scale.data")
           slotName <- "scale" #  dots in filenames are not good
       # do not use any prefixes if we export just a single matrix (stay compatible with old code)
-      if (length(slotNames)==1)
+      if (length(slotNames) == 1)
           slotName <- ""
-      slotMatrices [[slotName]] <- mat
+      slotMatrices[[slotName]] <- mat
   }
   return(slotMatrices)
 }
@@ -82,20 +88,27 @@ findMatrices = function(object, slotNames ) {
 saveMatrix <- function(counts, dir, prefix, use.mtx) {
   # Export expression matrix
   message("Writing matrix with prefix ",prefix," to directory ",dir, "(use.mtx is ", use.mtx, ")")
-  too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000))>2000) && is(counts, 'sparseMatrix'))
-  if (prefix!="" && !endsWith(prefix, "_"))
-      prefix <- paste0(prefix, "_")
-
+  too.big = ((((ncol(counts)/1000)*(nrow(counts)/1000)) > 2000) && is(counts, 'sparseMatrix'))
+  if (prefix != "" && !endsWith(prefix, "_")) {
+    prefix <- paste0(prefix, "_")
+  }
   if (use.mtx || too.big) {
         # we have to write the matrix to an mtx file
-        matrixPath <- file.path(dir, paste(prefix, "matrix.mtx", sep=""))
-        genesPath <- file.path(dir, paste(prefix, "features.tsv", sep=""))
-        barcodesPath <- file.path(dir, paste(prefix, "barcodes.tsv", sep=""))
+        matrixPath <- file.path(dir, paste(prefix, "matrix.mtx", sep = ""))
+        genesPath <- file.path(dir, paste(prefix, "features.tsv", sep = ""))
+        barcodesPath <- file.path(dir, paste(prefix, "barcodes.tsv", sep = ""))
         message("Writing expression matrix to ", matrixPath)
         writeMM(counts, matrixPath)
         # easier to load if the genes file has at least two columns. Even though seurat objects
         # don't have yet explicit geneIds/geneSyms data, we just duplicate whatever the matrix has now
-        write.table(as.data.frame(cbind(rownames(counts), rownames(counts))), file=genesPath, sep="\t", row.names=F, col.names=F, quote=F)
+        write.table(
+          x = as.data.frame(x = cbind(rownames(x = counts), rownames(x = counts))),
+          file = genesPath,
+          sep = "\t",
+          row.names = F,
+          col.names = F,
+          quote = F
+        )
         write(colnames(counts), file = barcodesPath)
         message("Gzipping expression matrix")
         gzip(matrixPath)
@@ -103,19 +116,20 @@ saveMatrix <- function(counts, dir, prefix, use.mtx) {
         gzip(barcodesPath)
   } else {
       # we can write the matrix as a tsv file
-      gzPath <- file.path(dir, paste(prefix, "exprMatrix.tsv.gz", sep=""))
+      gzPath <- file.path(dir, paste(prefix, "exprMatrix.tsv.gz", sep = ""))
       if (too.big) {
-          if (.Platform$OS.type=="windows")
-              error("Cannot write very big matrices to a text file on Windows. Please use the --useMtx (R: use.mtx) option")
+          if (.Platform$OS.type == "windows") {
+            error("Cannot write very big matrices to a text file on Windows. Please use the --useMtx (R: use.mtx) option")
+          }
           writeSparseTsvChunks(counts, gzPath);
       } else {
           mat = as.matrix(counts)
           genes <- rownames(counts)
-          df <- as.data.frame(mat, check.names=FALSE)
-          df <- data.frame(gene=genes, df, check.names = FALSE)
+          df <- as.data.frame(mat, check.names = FALSE)
+          df <- data.frame(gene = genes, df, check.names = FALSE)
           z <- gzfile(gzPath, "w")
           message("Writing expression matrix to ", gzPath)
-          write.table(x = df, sep="\t", file=z, quote = FALSE, row.names = FALSE)
+          write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
           close(con = z)
       }
   }
@@ -136,7 +150,7 @@ saveMatrix <- function(counts, dir, prefix, use.mtx) {
 #' @param markers.n if no markers were supplied, FindAllMarkers is run.
 #' This parameter indicates how many markers to calculate, default is 100
 #' @param matrix.slot matrix to export, default is 'counts'. Can also be a comma-separated
-#'        list, e.g. 'counts,scale.data', in which case the output filenames have 
+#'        list, e.g. 'counts,scale.data', in which case the output filenames have
 #'        a prefix to distinguish them.
 #' @param use.mtx export the matrix in .mtx.gz format. Default is False,
 #'        unless the matrix is bigger than R's maximum matrix size.
@@ -211,25 +225,19 @@ ExportToCellbrowser <- function(
   if (!requireNamespace("Seurat", quietly = TRUE)) {
     stop("This script requires that Seurat (V2 or higher) is installed")
   }
-
   # various seurat-version related business
   message("SeuratVersion installed = ", packageVersion("Seurat"))
   message("ObjectVersion Seurat object was created with Seurat version = ", object@version)
-
   objMaj <- package_version(object@version)$major
   pkgMaj <- package_version(packageVersion("Seurat"))$major
-
   if (objMaj != pkgMaj) {
           message("The installed major version of Seurat is different from Seurat input object. Running the UpdateSeuratObject() function now")
           object <- UpdateSeuratObject(object)
   }
-
   message("Seurat object summary:")
   print(object)
-
   # a vector with the slot names to export
   slotNames <- unlist(strsplit(matrix.slot, ","))
-
   # shortcuts to make the code below easier to read (originally this was also to isolate us from the Seurat2/3 issue
   idents <- Idents(object = object)
   meta <- object[[]]
@@ -237,7 +245,6 @@ ExportToCellbrowser <- function(
   slotMatrices <- findMatrices(object = object, slotNames = slotNames)
   dr <- object@reductions
   reducNames <- reductions
-
   # check input arguments
   if (is.null(x = cluster.field)) {
     cluster.field = "Cluster"
@@ -261,21 +268,18 @@ ExportToCellbrowser <- function(
     warning("Using default project name means that you may overwrite project with the same name in the cellbrowser html output folder")
   }
   enum.fields <- c()
-
-  # save the matrices 
-  if (! skip.expr.matrix) {
+  # save the matrices
+  if (!skip.expr.matrix) {
       for (prefix in names(slotMatrices)) {
           mat <- slotMatrices[[prefix]]
           saveMatrix(mat, dir, prefix, use.mtx)
       }
   }
-
   # Export cell embeddings/reductions
   if (is.null(reducNames)) {
       reducNames = names(dr)
       message("Using all embeddings contained in the Seurat object: ", reducNames)
   }
-
   foundEmbedNames = c()
   for (embedding in reducNames) {
     emb <- dr[[embedding]]
@@ -295,13 +299,13 @@ ExportToCellbrowser <- function(
       sprintf("%s.coords.tsv", embedding)
     )
     message("Writing embeddings to ", fname)
-    write.table(df[cellOrder, ], sep="\t", file=fname, quote = FALSE, row.names = FALSE)
+    write.table(df[cellOrder, ], sep = "\t", file = fname, quote = FALSE, row.names = FALSE)
     foundEmbedNames = append(foundEmbedNames, embedding)
   }
   # by default, the embeddings are sorted in the object by order of creation (pca, tsne, umap).
   # But that is usually the opposite of what users want, they want the last embedding to appear first
   # in the UI, so reverse the order here
-  foundEmbedNames = sort(foundEmbedNames, decreasing=T)
+  foundEmbedNames = sort(foundEmbedNames, decreasing = T)
   embeddings.conf <- c()
   for (embedName in foundEmbedNames) {
       conf <- sprintf(
@@ -351,13 +355,12 @@ ExportToCellbrowser <- function(
     if (length(levels(idents)) > 1) {
       markers.helper <- function(x) {
         partition <- markers[x,]
-
         # Seurat4 has changed the field name! grrrr...
-        if ("avg_log2FC" %in% colnames(markers))
-            avgs <- -partition$avg_log2FC
-        else
-            avgs <- -partition$avg_logFC
-
+        if ("avg_log2FC" %in% colnames(markers)) {
+          avgs <- -partition$avg_log2FC
+        } else {
+          avgs <- -partition$avg_logFC
+        }
         ord <- order(partition$p_val_adj < 0.05, avgs)
         res <- x[ord]
         naCount <- max(0, length(x) - markers.n)
@@ -394,30 +397,27 @@ ExportToCellbrowser <- function(
   }
 
   firstPrefix <- names(slotMatrices)[1]
-  if (length(slotMatrices)==1)
-      matSep = ""
-  else
-      matSep = "_"
-
+  if (length(slotMatrices) == 1) {
+    matSep = ""
+  } else {
+    matSep = "_"
+  }
   # we assume that any slotname is possible. (in the wild, only 'counts' and 'scale.data' seem to occur, but we tolerate others)
   matrixNames <- names(slotMatrices)
   matrixLabels <- matrixNames
-  matrixLabels[matrixLabels=="counts"] <- "read counts"
-  matrixLabels[matrixLabels=="scale.data"] <- "scaled"
+  matrixLabels[matrixLabels == "counts"] <- "read counts"
+  matrixLabels[matrixLabels == "scale.data"] <- "scaled"
   matrices.conf <- sprintf(" {'label':'%s','fileName':'%s_exprMatrix.tsv.gz'}", names(slotMatrices), names(slotMatrices))
-
-  if (length(slotMatrices)==1)
-     matrices.string <- ""
-  else
-     matrices.string <- paste0("matrices=[", paste(matrices.conf, collapse = ",\n"), "]" )
-
+  if (length(slotMatrices) == 1) {
+    matrices.string <- ""
+  } else {
+    matrices.string <- paste0("matrices=[", paste(matrices.conf, collapse = ",\n"), "]" )
+  }
   matrixOutPath <- sprintf("%s%sexprMatrix.tsv.gz", firstPrefix, matSep)
   if (use.mtx) {
     matrixOutPath <- sprintf("%s%smatrix.mtx.gz", firstPrefix, matSep)
   }
-
-
-  config <- '# This is a bare-bones cellbrowser config file auto-generated by the command-line tool cbImportSeurat 
+  config <- '# This is a bare-bones cellbrowser config file auto-generated by the command-line tool cbImportSeurat
 # or directly from R with SeuratWrappers::ExportToCellbrowser().
 # Look at https://github.com/maximilianh/cellBrowser/blob/master/src/cbPyLib/cellbrowser/sampleConfig/cellbrowser.conf
 # for a full file that shows all possible options
@@ -437,13 +437,10 @@ enumFields=%s
 %s
 coords=%s
 '
-
   # the R code continues here. Some text editors are confused and don't realize that the multi-line string
   # has ended.
   enum.string <- paste0( "[", paste(paste0('"', enum.fields, '"'), collapse = ", "), "]" )
-
   coords.string <- paste0( "[", paste(embeddings.conf, collapse = ",\n"), "]" )
-
   config <- sprintf(
     config,
     dataset.name,
@@ -455,7 +452,6 @@ coords=%s
     markers.string,
     coords.string
   )
-
   confPath <- file.path(dir, "cellbrowser.conf")
   message("Writing cellbrowser config to ", confPath)
   cat(config, file = confPath)
