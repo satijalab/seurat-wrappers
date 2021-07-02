@@ -4,7 +4,7 @@
 #' STARsolo - https://www.biorxiv.org/content/10.1101/2021.05.05.442755v1
 #'
 #'
-#' @param data.dir Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
+#' @param data.dir Directory containing the matrix.mtx, features.tsv, and barcodes.tsv
 #' files provided by STARsolo. A vector or named vector can be given in order to load
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
@@ -49,7 +49,7 @@ ReadSTARsolo <- function(
     gene.loc <- file.path(run, 'genes.tsv')
     features.loc <- file.path(run, 'features.tsv')
     matrix.loc <- file.path(run, 'matrix.mtx')
-    # Flag to indicate if this data is from CellRanger >= 3.0
+    
     if (!file.exists(barcode.loc)) {
       stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
     }
