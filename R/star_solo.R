@@ -29,7 +29,7 @@
 #' data_dir <- 'path/to/data/directory'
 #' list.files(data_dir) # Should show barcodes.tsv, features.tsv, and matrix.mtx
 #' data <- ReadSTARsolo(data.dir = data_dir)
-#' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
+#' seurat_object = CreateSeuratObject(counts = data)
 #' }
 #'
 ReadSTARsolo <- function(
