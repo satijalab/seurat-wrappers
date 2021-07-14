@@ -53,6 +53,7 @@ Collate:
     'miqc.R'
     'monocle3.R'
     'presto.R'
+    'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
@@ -74,4 +75,5 @@ Suggests:
     glmpca,
     Nebulosa,
     presto,
-    flexmix
+    flexmix,
+    tricycle
