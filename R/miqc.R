@@ -63,8 +63,8 @@ RunMiQC <- function(
   }
 
   #implementing tryCatch because of internal flexmix error when model fitting
-  #fails. see github https://github.com/satijalab/seurat-wrappers/issues/108
-  tryCatch({
+  #fails. see https://github.com/satijalab/seurat-wrappers/issues/108
+  my_model <- tryCatch({
     if (model.type == "linear") {
       my_model <- flexmix::flexmix(percent.mt~nFeature_RNA,
                                    data = my_data, k = 2)
@@ -75,7 +75,9 @@ RunMiQC <- function(
       my_model <- flexmix::flexmix(percent.mt~poly(nFeature_RNA, degree = 2),
                                    data = my_data, k = 2)
     }
-  }, error=function(e){cat("flexmix fitting error:", conditionMessage(e),"\n")})
+  }, error=function(e){
+    cat("flexmix fitting error:", conditionMessage(e),"\n")
+    my_model <- NULL})
 
   #
   #set a variable = model_status to denote the status of the model fitting
@@ -85,12 +87,13 @@ RunMiQC <- function(
   #
 
   if(is.null(my_model)){
+
     model_status <- 3
     model_message <- "flexmix internal failure"
   } else if (ncol(flexmix::parameters(my_model)) == 1){
     model_status <- 2
     model_message <- "flexmix returned only 1 cluster"
-  } else if (ncol(flexmix::paramters(my_model)) == 2){
+  } else if (ncol(flexmix::parameters(my_model)) == 2){
     model_status <- 1
     model_message <- "flexmix model fit successfully"
   } else {
@@ -98,6 +101,7 @@ RunMiQC <- function(
   }
 
   if(model_status %in% c(2,3)){
+
     if(model_status == 2){
       message(model_message)
     }
