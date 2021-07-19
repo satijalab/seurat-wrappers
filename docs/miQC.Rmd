@@ -228,7 +228,7 @@ found. In these cases, we recommend
 using other filtering methods, such as a cutoff on mitochondrial percentage or
 percentile using the `"backup.option"` parameter to one of `"c("percentile",
 "percent", "pass", "halt")`.
-```{r}
+```{r, warning=TRUE,message=TRUE}
 pbmc3k_extreme <- RunMiQC(pbmc3k_extreme,
                           percent.mt = "percent.mt",
                           nFeature_RNA = "nFeature_RNA",

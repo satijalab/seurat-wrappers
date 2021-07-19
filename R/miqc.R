@@ -103,10 +103,10 @@ RunMiQC <- function(
   if(model_status %in% c(2,3)){
 
     if(model_status == 2){
-      message(model_message)
+      warning(model_message)
     }
     if(model_status == 3){
-      message(model_message)
+      warning(model_message)
     }
 
     if(backup.option == "halt"){
@@ -115,13 +115,13 @@ RunMiQC <- function(
       message("returning object without miQC model or stats")
       return(object)}
     else if (backup.option == "percentile") {
-      warning("defaulting to backup.percentile for filtering")
+      message("defaulting to backup.percentile for filtering")
       compromised_probability <- 0
       raw_values <- my_data[,percent.mt]
       percentile_cutoff <- quantile(raw_values, probs = backup.percentile)
       cells_to_keep <- ifelse(raw_values <= percentile_cutoff, "keep", "discard")}
     else if (backup.option == "percent"){
-      warning("defaulting to backup.percent for filtering")
+      message("defaulting to backup.percent for filtering")
       compromised_probability <- 0
       raw_values <- my_data[,percent.mt]
       cells_to_keep <- ifelse(raw_values <= backup.percent, "keep", "discard")}
