@@ -1,6 +1,6 @@
 Running miQC on Seurat objects
 ================
-Compiled: June 14, 2021
+Compiled: July 19, 2021
 
 This vigettte demonstrates the use of the miQC package in Seurat.
 Vignette is based off of the [miQC
@@ -130,21 +130,21 @@ flexmix::parameters(Misc(pbmc3k, "flexmix_model"))
 ```
 
     ##                         Comp.1       Comp.2
-    ## coef.(Intercept)   7.146014573 2.005327e+00
-    ## coef.nFeature_RNA -0.004141363 3.195367e-05
-    ## sigma              2.122587311 7.410689e-01
+    ## coef.(Intercept)  2.005173e+00  7.144404951
+    ## coef.nFeature_RNA 3.205993e-05 -0.004140063
+    ## sigma             7.410023e-01  2.122227100
 
 ``` r
 head(flexmix::posterior(Misc(pbmc3k, "flexmix_model")))
 ```
 
-    ##            [,1]      [,2]
-    ## [1,] 0.07103343 0.9289666
-    ## [2,] 0.23936196 0.7606380
-    ## [3,] 0.08030089 0.9196991
-    ## [4,] 0.02884707 0.9711529
-    ## [5,] 0.01259584 0.9874042
-    ## [6,] 0.02173023 0.9782698
+    ##           [,1]       [,2]
+    ## [1,] 0.9288831 0.07111692
+    ## [2,] 0.7604008 0.23959917
+    ## [3,] 0.9196259 0.08037411
+    ## [4,] 0.9711273 0.02887266
+    ## [5,] 0.9873905 0.01260947
+    ## [6,] 0.9782491 0.02175086
 
 Or we can visualize the model results using the *PlotMiQC* function,
 where `"miQC.probability"` represents the posterior probability of the
@@ -251,6 +251,16 @@ as a cutoff on mitochondrial percentage or percentile using the
 ``` r
 pbmc3k_extreme <- RunMiQC(pbmc3k_extreme, percent.mt = "percent.mt", nFeature_RNA = "nFeature_RNA", 
     posterior.cutoff = 0.9, model.slot = "flexmix_model", backup.option = "percentile", backup.percentile = 0.95)
+```
+
+    ## Warning in RunMiQC(pbmc3k_extreme, percent.mt = "percent.mt", nFeature_RNA = "nFeature_RNA", : flexmix returned only 1
+    ## cluster
+
+    ## defaulting to backup.percentile for filtering
+
+    ## Warning: Adding a command log without an assay associated with it
+
+``` r
 FeatureScatter(pbmc3k_extreme, feature1 = "nFeature_RNA", feature2 = "percent.mt", group.by = "miQC.keep")
 ```
 
@@ -278,29 +288,29 @@ FeatureScatter(pbmc3k_extreme, feature1 = "nFeature_RNA", feature2 = "percent.mt
     ## [5] SeuratData_0.2.1        SeuratObject_4.0.1      Seurat_4.0.1           
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] plyr_1.8.6            igraph_1.2.6          lazyeval_0.2.2        splines_4.0.4         listenv_0.8.0        
-    ##   [6] scattermore_0.7       ggplot2_3.3.3         digest_0.6.27         htmltools_0.5.1.1     fansi_0.5.0          
-    ##  [11] magrittr_2.0.1        tensor_1.5            cluster_2.1.0         ROCR_1.0-11           remotes_2.3.0        
-    ##  [16] globals_0.14.0        matrixStats_0.59.0    R.utils_2.10.1        spatstat.sparse_2.0-0 prettyunits_1.1.1    
-    ##  [21] colorspace_2.0-1      rappdirs_0.3.3        ggrepel_0.9.1         xfun_0.23             dplyr_1.0.6          
-    ##  [26] callr_3.7.0           crayon_1.4.1          jsonlite_1.7.2        spatstat.data_2.1-0   survival_3.2-7       
-    ##  [31] zoo_1.8-9             glue_1.4.2            polyclip_1.10-0       gtable_0.3.0          leiden_0.3.7         
-    ##  [36] pkgbuild_1.2.0        future.apply_1.7.0    abind_1.4-5           scales_1.1.1          miniUI_0.1.1.1       
-    ##  [41] Rcpp_1.0.6            viridisLite_0.4.0     xtable_1.8-4          reticulate_1.20       spatstat.core_2.1-2  
-    ##  [46] rsvd_1.0.5            stats4_4.0.4          htmlwidgets_1.5.3     httr_1.4.2            RColorBrewer_1.1-2   
-    ##  [51] ellipsis_0.3.2        modeltools_0.2-23     ica_1.0-2             pkgconfig_2.0.3       R.methodsS3_1.8.1    
-    ##  [56] farver_2.1.0          nnet_7.3-15           sass_0.4.0            uwot_0.1.10           deldir_0.2-10        
-    ##  [61] utf8_1.2.1            tidyselect_1.1.1      labeling_0.4.2        rlang_0.4.11          reshape2_1.4.4       
-    ##  [66] later_1.2.0           munsell_0.5.0         tools_4.0.4           cli_2.5.0             generics_0.1.0       
-    ##  [71] ggridges_0.5.3        evaluate_0.14         stringr_1.4.0         fastmap_1.1.0         yaml_2.2.1           
-    ##  [76] goftest_1.2-2         processx_3.5.2        knitr_1.33            fitdistrplus_1.1-3    purrr_0.3.4          
-    ##  [81] RANN_2.6.1            pbapply_1.4-3         future_1.21.0         nlme_3.1-152          mime_0.10            
-    ##  [86] formatR_1.9           R.oo_1.24.0           compiler_4.0.4        rstudioapi_0.13       plotly_4.9.3         
-    ##  [91] curl_4.3.1            png_0.1-7             spatstat.utils_2.1-0  tibble_3.1.2          bslib_0.2.5.1        
-    ##  [96] stringi_1.6.2         highr_0.9             ps_1.6.0              Matrix_1.3-3          vctrs_0.3.8          
-    ## [101] pillar_1.6.1          lifecycle_1.0.0       BiocManager_1.30.15   spatstat.geom_2.1-0   lmtest_0.9-38        
-    ## [106] jquerylib_0.1.4       RcppAnnoy_0.0.18      data.table_1.14.0     cowplot_1.1.1         irlba_2.3.3          
-    ## [111] httpuv_1.6.1          patchwork_1.1.1       R6_2.5.0              promises_1.2.0.1      KernSmooth_2.23-18   
-    ## [116] gridExtra_2.3         parallelly_1.25.0     codetools_0.2-18      MASS_7.3-53           rprojroot_2.0.2      
-    ## [121] withr_2.4.2           sctransform_0.3.2     mgcv_1.8-33           parallel_4.0.4        grid_4.0.4           
-    ## [126] rpart_4.1-15          tidyr_1.1.3           rmarkdown_2.8         Rtsne_0.15            shiny_1.6.0
+    ##   [1] Rtsne_0.15            colorspace_2.0-2      deldir_0.2-10         modeltools_0.2-23     ellipsis_0.3.2       
+    ##   [6] ggridges_0.5.3        rprojroot_2.0.2       spatstat.data_2.1-0   farver_2.1.0          leiden_0.3.7         
+    ##  [11] listenv_0.8.0         remotes_2.3.0         ggrepel_0.9.1         fansi_0.5.0           R.methodsS3_1.8.1    
+    ##  [16] codetools_0.2-18      splines_4.0.4         knitr_1.33            polyclip_1.10-0       jsonlite_1.7.2       
+    ##  [21] ica_1.0-2             cluster_2.1.0         R.oo_1.24.0           png_0.1-7             uwot_0.1.10          
+    ##  [26] shiny_1.6.0           sctransform_0.3.2     spatstat.sparse_2.0-0 BiocManager_1.30.15   compiler_4.0.4       
+    ##  [31] httr_1.4.2            Matrix_1.3-3          fastmap_1.1.0         lazyeval_0.2.2        cli_3.0.1            
+    ##  [36] later_1.2.0           formatR_1.9           htmltools_0.5.1.1     prettyunits_1.1.1     tools_4.0.4          
+    ##  [41] rsvd_1.0.5            igraph_1.2.6          gtable_0.3.0          glue_1.4.2            RANN_2.6.1           
+    ##  [46] reshape2_1.4.4        dplyr_1.0.6           rappdirs_0.3.3        Rcpp_1.0.6            scattermore_0.7      
+    ##  [51] jquerylib_0.1.4       vctrs_0.3.8           nlme_3.1-152          lmtest_0.9-38         xfun_0.23            
+    ##  [56] stringr_1.4.0         globals_0.14.0        ps_1.6.0              mime_0.10             miniUI_0.1.1.1       
+    ##  [61] lifecycle_1.0.0       irlba_2.3.3           goftest_1.2-2         future_1.21.0         MASS_7.3-53          
+    ##  [66] zoo_1.8-9             scales_1.1.1          spatstat.core_2.1-2   promises_1.2.0.1      spatstat.utils_2.1-0 
+    ##  [71] parallel_4.0.4        RColorBrewer_1.1-2    yaml_2.2.1            curl_4.3.1            reticulate_1.20      
+    ##  [76] pbapply_1.4-3         gridExtra_2.3         ggplot2_3.3.5         sass_0.4.0            rpart_4.1-15         
+    ##  [81] stringi_1.6.2         highr_0.9             pkgbuild_1.2.0        rlang_0.4.11          pkgconfig_2.0.3      
+    ##  [86] matrixStats_0.59.0    evaluate_0.14         tensor_1.5            ROCR_1.0-11           purrr_0.3.4          
+    ##  [91] labeling_0.4.2        patchwork_1.1.1       htmlwidgets_1.5.3     cowplot_1.1.1         processx_3.5.2       
+    ##  [96] tidyselect_1.1.1      parallelly_1.25.0     RcppAnnoy_0.0.18      plyr_1.8.6            magrittr_2.0.1       
+    ## [101] R6_2.5.0              generics_0.1.0        mgcv_1.8-33           pillar_1.6.1          withr_2.4.2          
+    ## [106] fitdistrplus_1.1-3    nnet_7.3-15           abind_1.4-5           survival_3.2-7        tibble_3.1.2         
+    ## [111] future.apply_1.7.0    crayon_1.4.1          KernSmooth_2.23-18    utf8_1.2.1            spatstat.geom_2.1-0  
+    ## [116] plotly_4.9.3          rmarkdown_2.8         grid_4.0.4            data.table_1.14.0     callr_3.7.0          
+    ## [121] digest_0.6.27         xtable_1.8-4          tidyr_1.1.3           httpuv_1.6.1          R.utils_2.10.1       
+    ## [126] stats4_4.0.4          munsell_0.5.0         viridisLite_0.4.0     bslib_0.2.5.1
