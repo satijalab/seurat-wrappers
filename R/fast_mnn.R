@@ -24,7 +24,7 @@ NULL
 #' \code{\link[batchelor]{fastMNN}} is stored in the \code{tool} slot,
 #' accessible with \code{\link[Seurat]{Tool}}
 #'
-#' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures
+#' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures VariableFeatures VariableFeatures<-
 #' as.SingleCellExperiment CreateDimReducObject Tool<- LogSeuratCommand
 #'
 #' @export
