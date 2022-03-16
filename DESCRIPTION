@@ -79,4 +79,5 @@ Suggests:
     flexmix,
     tricycle,
     parallel,
+    magrittr,
     CIARA
