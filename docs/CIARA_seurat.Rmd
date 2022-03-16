@@ -1,0 +1,118 @@
+---
+title: "Running CIARA on Seurat Objects"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+    fig_width: 16
+  html_document:
+    df_print: kable
+    theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
+---
+
+This vigettte demonstrates how to run CIARA (Cluster Independent Algorithm for the identification of RAre cell types) on Seurat objects. Functions and parameters are based on the CRAN package [CIARA](https://CRAN.R-project.org/package=CIARA). If you use CIARA, please cite:
+> CIARA: Cluster Independent Algorithm for Rare Cell Types Identification
+>
+> Gabriele Lubatti
+>
+> CRAN: https://CRAN.R-project.org/package=CIARA
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+options(timeout = 1000)
+```
+
+Prerequisites to install: 
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [CIARA](https://CRAN.R-project.org/package=CIARA)
+
+```{r packages}
+library(Seurat)
+library(SeuratWrappers)
+library(SeuratData)
+```
+
+## Analysis of human PBMC
+
+To learn more about this dataset, type `?pbmc_small`
+
+```{r}
+InstallData("pbmcsca")
+data("pbmc_small")
+```
+
+
+
+```{r}
+pbmc_small <- FindVariableFeatures(pbmc_small, selection.method = "vst", nfeatures = 2000)
+pbmc_small <- ScaleData(pbmc_small, verbose = FALSE)
+pbmc_small <- RunPCA(pbmc_small, npcs = 30, verbose = FALSE)
+pbmc_small <- RunUMAP(pbmc_small, reduction = "pca", dims = 1:20, set.seed = 42)
+pbmc_small <- FindNeighbors(pbmc_small, reduction = "pca", dims = 1:30, k.param = 5)
+pbmc_small <- FindClusters(pbmc_small, resolution = 0.1)
+pbmc_small <- get_background_full_seurat(pbmc_small,threshold = 1, n_cells_low = 3, n_cells_high = 20)
+    
+```
+
+
+
+## Run CIARA 
+
+CIARA (Cluster Independent Algorithm for the identification of RAre cell types) is a cluster independent approach that selects genes localized in a small number of neighboring cells from high dimensional PCA space.
+We don't execute the CIARA algorithm and we directly load the result
+
+```{r }
+pbmc_small <- CIARA_seurat( pbmc_small, cores_number = 1, p_value = 0.001, odds_ratio = 2, local_region = 1, approximation = FALSE)
+```
+
+## Identifying highly localized genes 
+
+```{r }
+result <- pbmc_small[["RNA"]][['CIARA_p_value']]
+genes_name <- row.names(result)[! (is.na(result[,1]))]
+result <- result[genes_name, ]
+names(result) <- genes_name
+
+
+ciara_genes <- names(result)[result<1]
+ciara_genes_top <- names(result)[order(as.numeric(result))]
+
+
+
+```
+
+
+```{r }
+FeaturePlot(pbmc_small, features = ciara_genes_top[1:2])
+```
+```{r}
+DimPlot(pbmc_small)
+```
+```{r}
+DotPlot(pbmc_small, features = ciara_genes_top[1:10]) + RotatedAxis()
+```
+
+
+For more down stream analysis, including cluster analysis using CIARA highly localized genes, please see  utils::vignette("CIARA") in [CIARA](https://CRAN.R-project.org/package=CIARA).
+
+
+```{r}
+utils::sessionInfo()
+```
+
+
