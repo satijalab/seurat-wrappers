@@ -9,9 +9,8 @@ NULL
 #' @param lambda (numeric) Spatial weight parameter
 #' @param assay (character) Assay in Seurat object to use
 #' @param slot (character) Slot in Seurat assay to use
-#' @param locations (data.frame) Centroids of samples. Number of rows should
-#'   correspond to the number of samples in the Seurat object, and rownames
-#'   should correspond to sample names in Seurat object
+#' @param dimx (character) Column name of spatial x dimension (must be in metadata)
+#' @param dimy (character) Column name of spatial y dimension (must be in metadata)
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
 #' @param k_geom (numeric) kNN parameter - number of neighbors to use
@@ -35,7 +34,7 @@ NULL
 #'
 #' @export
 RunBanksy <- function(object, lambda, assay='RNA', slot='data',
-                      locations=NULL, features='variable',
+                      dimx=NULL, dimy=NULL, features='variable',
                       k_geom=10, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
                       assay_name='BANKSY', verbose=TRUE) {
@@ -51,7 +50,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     data_own <- get_data(object, assay, slot, features, verbose)
 
     # Get locs
-    locs <- get_locs(object, locations, data_own, verbose)
+    locs <- get_locs(object, dimx, dimy, data_own, verbose)
 
     # Compute neighbor matrix
     if (verbose) message('Computing neighbor matrix')
@@ -110,9 +109,14 @@ get_data <- function(object, assay, slot, features, verbose) {
 }
 
 # Get locations from Seurat object
-get_locs <- function(object, locations, data_own, verbose) {
-    if (!is.null(locations)) {
+get_locs <- function(object, dimx, dimy, data_own, verbose) {
+    if (!is.null(dimx) & !is.null(dimy)) {
         # Convert locations data to data table
+        locations <- data.frame(
+            sdimx = unlist(object[[dimx]]),
+            sdimy = unlist(object[[dimy]])
+        )
+        rownames(locations) <- colnames(object)
         locs <- data.table::data.table(locations, keep.rownames = TRUE)
         data.table::setnames(locs, 'rn', 'cell_ID')
 
