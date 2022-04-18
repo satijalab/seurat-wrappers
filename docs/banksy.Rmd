@@ -59,7 +59,7 @@ users to run BANKSY with Seurat objects. We describe two options of running
 requires a Seurat object and a lambda parameter as mandatory input. The second 
 option works with Seurat objects that do not have spatial information stored 
 within, and therefore requires an additional argument giving the locations of 
-the cell centroids or spots.
+the cell centroids or spots. 
 
 Prerequisites to install:
 
@@ -193,8 +193,9 @@ SpatialFeaturePlot(ss.hippo, features = genes, pt.size.factor = 3,
 ## Running BANKSY with locations provided explicitly
 
 One can also call `RunBanksy` on a Seurat object created from counts by 
-providing the location of cell centroids or spots explicitly. Here, we use
-a mouse hippocampus VeraFISH dataset provided with the *Banksy* package.
+providing the location of cell centroids or spots explicitly. In this case, 
+the locations must be stored as metadata. Here, we use a mouse hippocampus 
+VeraFISH dataset provided with the *Banksy* package.
 
 ```{r hippo_load}
 data(hippocampus)
@@ -222,12 +223,12 @@ vf.hippo <- NormalizeData(vf.hippo, scale.factor = 100, normalization.method = '
 vf.hippo <- ScaleData(vf.hippo)
 ```
 
-Now, run BANKSY. Here, we provide the locations of cell centroids explicitly
-with the `locations` argument:
+Now, run BANKSY. Here, we provide the column names of the x and y spatial 
+coordinates as stored in the metadata to `dimx` and `dimy` respectively:
 
 ```{r hippo_banksy}
 # Run BANKSY
-vf.hippo <- RunBanksy(vf.hippo, lambda = 0.3, locations = hippocampus$locations, 
+vf.hippo <- RunBanksy(vf.hippo, lambda = 0.3, dimx = 'sdimx', dimy = 'sdimy', 
                       assay = 'RNA', slot = 'data', features = 'all', k_geom = 10)
 ```
 

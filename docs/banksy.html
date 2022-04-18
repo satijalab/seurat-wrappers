@@ -270,7 +270,7 @@ ss.hippo &lt;- FindClusters(ss.hippo, resolution = 0.6)</code></pre>
 ## Running Louvain algorithm...
 ## Maximum modularity in 10 random starts: 0.8985
 ## Number of communities: 15
-## Elapsed time: 1 seconds</code></pre>
+## Elapsed time: 3 seconds</code></pre>
 <p>Visualize the UMAP and Spatial plot:</p>
 <pre class="r"><code># Viz
 grid.arrange(
@@ -382,7 +382,7 @@ SpatialFeaturePlot(ss.hippo, features = genes, pt.size.factor = 3,
 </div>
 <div id="running-banksy-with-locations-provided-explicitly" class="section level2">
 <h2>Running BANKSY with locations provided explicitly</h2>
-<p>One can also call <code>RunBanksy</code> on a Seurat object created from counts by providing the location of cell centroids or spots explicitly. Here, we use a mouse hippocampus VeraFISH dataset provided with the <em>Banksy</em> package.</p>
+<p>One can also call <code>RunBanksy</code> on a Seurat object created from counts by providing the location of cell centroids or spots explicitly. In this case, the locations must be stored as metadata. Here, we use a mouse hippocampus VeraFISH dataset provided with the <em>Banksy</em> package.</p>
 <pre class="r"><code>data(hippocampus)
 head(hippocampus$expression[,1:5])</code></pre>
 <pre><code>##         cell_1276 cell_8890 cell_691 cell_396 cell_9818
@@ -447,9 +447,9 @@ vf.hippo &lt;- subset(vf.hippo,
 <pre class="r"><code># Normalize
 vf.hippo &lt;- NormalizeData(vf.hippo, scale.factor = 100, normalization.method = &#39;RC&#39;)
 vf.hippo &lt;- ScaleData(vf.hippo)</code></pre>
-<p>Now, run BANKSY. Here, we provide the locations of cell centroids explicitly with the <code>locations</code> argument:</p>
+<p>Now, run BANKSY. Here, we provide the column names of the x and y spatial coordinates as stored in the metadata to <code>dimx</code> and <code>dimy</code> respectively:</p>
 <pre class="r"><code># Run BANKSY
-vf.hippo &lt;- RunBanksy(vf.hippo, lambda = 0.3, locations = hippocampus$locations, 
+vf.hippo &lt;- RunBanksy(vf.hippo, lambda = 0.3, dimx = &#39;sdimx&#39;, dimy = &#39;sdimy&#39;, 
                       assay = &#39;RNA&#39;, slot = &#39;data&#39;, features = &#39;all&#39;, k_geom = 10)</code></pre>
 <p>Scale the BANKSY matrix and run PCA:</p>
 <pre class="r"><code># Scale
@@ -468,7 +468,7 @@ vf.hippo &lt;- FindClusters(vf.hippo, resolution = 0.5)</code></pre>
 ## Running Louvain algorithm...
 ## Maximum modularity in 10 random starts: 0.8957
 ## Number of communities: 16
-## Elapsed time: 1 seconds</code></pre>
+## Elapsed time: 2 seconds</code></pre>
 <p>Visualise BANKSY clusters in spatial dimensions:</p>
 <pre class="r"><code># Viz
 FeatureScatter(vf.hippo, &#39;sdimx&#39;, &#39;sdimy&#39;, cols = mypal, pt.size = 0.75)</code></pre>
@@ -504,7 +504,7 @@ genePlot(vf.hippo, &#39;sdimx&#39;, &#39;sdimy&#39;, &#39;Gfap&#39;)</code></pre
 <summary>
 Vignette runtime
 </summary>
-<pre><code>## Time difference of 1.870634 mins</code></pre>
+<pre><code>## Time difference of 2.588851 mins</code></pre>
 </details>
 <details>
 <summary>
@@ -539,7 +539,7 @@ Session info
 ##  [16] progressr_0.10.0            Biobase_2.54.0              highr_0.9                  
 ##  [19] knitr_1.37                  ggalluvial_0.12.3           rstudioapi_0.13            
 ##  [22] stats4_4.1.2                ROCR_1.0-11                 tensor_1.5                 
-##  [25] listenv_0.8.0               MatrixGenerics_1.6.0        labeling_0.4.2             
+##  [25] listenv_0.8.0               labeling_0.4.2              MatrixGenerics_1.6.0       
 ##  [28] GenomeInfoDbData_1.2.7      polyclip_1.10-0             farver_2.1.0               
 ##  [31] parallelly_1.30.0           Matrix.utils_0.9.8          vctrs_0.3.8                
 ##  [34] generics_0.1.2              xfun_0.29                   R6_2.5.1                   
@@ -560,7 +560,7 @@ Session info
 ##  [79] GetoptLong_1.0.5            cowplot_1.1.1               S4Vectors_0.32.3           
 ##  [82] zoo_1.8-9                   SummarizedExperiment_1.24.0 grr_0.9.5                  
 ##  [85] ggrepel_0.9.1               cluster_2.1.2               magrittr_2.0.1             
-##  [88] data.table_1.14.2           RSpectra_0.16-0             scattermore_0.8            
+##  [88] RSpectra_0.16-0             data.table_1.14.2           scattermore_0.8            
 ##  [91] circlize_0.4.14             lmtest_0.9-39               RANN_2.6.1                 
 ##  [94] fitdistrplus_1.1-8          matrixStats_0.61.0          patchwork_1.1.1            
 ##  [97] mime_0.12                   evaluate_0.15               xtable_1.8-4               
