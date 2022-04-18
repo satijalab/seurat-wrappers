@@ -9,7 +9,8 @@ RunBanksy(
   lambda,
   assay = "RNA",
   slot = "data",
-  locations = NULL,
+  dimx = NULL,
+  dimy = NULL,
   features = "variable",
   k_geom = 10,
   n = 2,
@@ -30,9 +31,9 @@ RunBanksy(
 
 \item{slot}{(character) Slot in Seurat assay to use}
 
-\item{locations}{(data.frame) Centroids of samples. Number of rows should
-correspond to the number of samples in the Seurat object, and rownames
-should correspond to sample names in Seurat object}
+\item{dimx}{(character) Column name of spatial x dimension (must be in metadata)}
+
+\item{dimy}{(character) Column name of spatial y dimension (must be in metadata)}
 
 \item{features}{(character) Features to compute. Can be 'all', 'variable' or
 a vector of feature names}
