@@ -42,6 +42,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
     SeuratWrappers:::CheckPackage(package = 'Matrix', repository = 'CRAN')
+    SeuratWrappers:::CheckPackage(package = 'Banksy', repository = 'github')
 
     # Check lambda param
     if (lambda < 0 || lambda > 1) stop('Lambda must be between 0 and 1')
