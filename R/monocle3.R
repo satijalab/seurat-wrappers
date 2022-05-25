@@ -50,10 +50,10 @@ as.cell_data_set <- function(x, ...) {
 #'  names are converted to upper-case (eg. \dQuote{umap} to \dQuote{UMAP}) to
 #'  match Monocle 3 style
 #'  \item Feature loadings are transfered to
-#'  \code{cds@preprocess_aux$gene_loadings} if present. \strong{NOTE}: only the
+#'  \code{cds@reduce_dim_aux$gene_loadings} if present. \strong{NOTE}: only the
 #'  feature loadings of the last dimensional reduction are transferred over
 #'  \item Standard deviations are added to
-#'  \code{cds@preprocess_aux$prop_var_expl} if present. \strong{NOTE}: only the
+#'  \code{cds@reduce_dim_aux$prop_var_expl} if present. \strong{NOTE}: only the
 #'  standard deviations of the last dimensional reduction are transferred over
 #'  \item Clustering information is transferred over in the following manner: if
 #'  cell-level metadata entries \dQuote{monocle3_clusters} and
@@ -98,7 +98,7 @@ as.cell_data_set.Seurat <- function(
     }
   }
   # Add DimReducs: Embeddings become a reduced dim, Loadings go to
-  # preprocess_aux$gene_loadings, Stdev goes go preprocess@aux$prop_var_expl
+  # reduce_dim_aux$gene_loadings, Stdev goes go reduce_dim_aux$prop_var_expl
   # First, reset the ones from as.SingleCellExperiment
   SingleCellExperiment::reducedDims(x = cds)[SingleCellExperiment::reducedDimNames(x = cds)] <- NULL
   reductions <- intersect(
@@ -109,11 +109,11 @@ as.cell_data_set.Seurat <- function(
     SingleCellExperiment::reducedDims(x = cds)[[toupper(x = reduc)]] <- Embeddings(object = x[[reduc]])
     loadings <- Loadings(object = x[[reduc]])
     if (!IsMatrixEmpty(x = loadings)) {
-      slot(object = cds, name = 'preprocess_aux')[['gene_loadings']] <- loadings
+      slot(object = cds, name = 'reduce_dim_aux')[['gene_loadings']] <- loadings
     }
     stdev <- Stdev(object = x[[reduc]])
     if (length(x = stdev)) {
-      slot(object = cds, name = 'preprocess_aux')[['prop_var_expl']] <- stdev
+      slot(object = cds, name = 'reduce_dim_aux')[['prop_var_expl']] <- stdev
     }
   }
   # Add clustering information
@@ -180,7 +180,7 @@ as.cell_data_set.Seurat <- function(
 #' embeddings, and cell-level metadata. The following additional information
 #' will also be transfered over:
 #' \itemize{
-#'  \item Feature loadings from \code{cds@preprocess_aux$gene_loadings} will be
+#'  \item Feature loadings from \code{cds@reduce_dim_aux$gene_loadings} will be
 #'  added to the dimensional reduction specified by \code{loadings} or the name
 #'  of the first dimensional reduction that contains "pca" (case-insensitive) if
 #'  \code{loadings} is not set
@@ -234,7 +234,7 @@ as.Seurat.cell_data_set <- function(
     no = loadings
   )
   if (length(x = lds.reduc) && !is.na(x = lds.reduc)) {
-    loadings <- slot(object = x, name = 'preprocess_aux')[['gene_loadings']]
+    loadings <- slot(object = x, name = 'reduce_dim_aux')[['gene_loadings']]
     if (!is.null(x = loadings)) {
       Loadings(object = object[[lds.reduc]], projected = FALSE) <- loadings
     }
