@@ -55,6 +55,7 @@ Collate:
     'presto.R'
     'tricycle.R'
     'velocity.R'
+    'CIARA_seurat.R'
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
@@ -76,4 +77,7 @@ Suggests:
     Nebulosa,
     presto,
     flexmix,
-    tricycle
+    tricycle,
+    parallel,
+    magrittr,
+    CIARA
