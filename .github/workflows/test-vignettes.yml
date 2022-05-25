@@ -6,6 +6,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: satijalab/seurat-wrappers:latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
