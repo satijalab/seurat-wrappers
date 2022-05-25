@@ -54,10 +54,10 @@ transferred over:
  names are converted to upper-case (eg. \dQuote{umap} to \dQuote{UMAP}) to
  match Monocle 3 style
  \item Feature loadings are transfered to
- \code{cds@preprocess_aux$gene_loadings} if present. \strong{NOTE}: only the
+ \code{cds@reduce_dim_aux$gene_loadings} if present. \strong{NOTE}: only the
  feature loadings of the last dimensional reduction are transferred over
  \item Standard deviations are added to
- \code{cds@preprocess_aux$prop_var_expl} if present. \strong{NOTE}: only the
+ \code{cds@reduce_dim_aux$prop_var_expl} if present. \strong{NOTE}: only the
  standard deviations of the last dimensional reduction are transferred over
  \item Clustering information is transferred over in the following manner: if
  cell-level metadata entries \dQuote{monocle3_clusters} and

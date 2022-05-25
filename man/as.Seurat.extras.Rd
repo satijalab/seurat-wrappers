@@ -88,7 +88,7 @@ utilizes the \code{\link[Seurat::as.Seurat]{SingleCellExperiment}} method of
 embeddings, and cell-level metadata. The following additional information
 will also be transfered over:
 \itemize{
- \item Feature loadings from \code{cds@preprocess_aux$gene_loadings} will be
+ \item Feature loadings from \code{cds@reduce_dim_aux$gene_loadings} will be
  added to the dimensional reduction specified by \code{loadings} or the name
  of the first dimensional reduction that contains "pca" (case-insensitive) if
  \code{loadings} is not set
