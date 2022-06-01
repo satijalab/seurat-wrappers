@@ -23,7 +23,8 @@ Remotes: welch-lab/liger,
     cole-trapnell-lab/monocle3,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
-    atakanekiz/CIPR-Package 
+    atakanekiz/CIPR-Package,
+    prabhakarlab/Banksy
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -44,6 +45,7 @@ Collate:
     'internal.R'
     'alevin.R'
     'alra.R'
+    'banksy.R' 
     'cellbrowser.R'
     'cogaps.R'
     'conos.R'
@@ -76,4 +78,5 @@ Suggests:
     Nebulosa,
     presto,
     flexmix,
-    tricycle
+    tricycle,
+    Banksy
