@@ -35,6 +35,7 @@ Imports:
     Matrix,
     methods,
     remotes,
+    R.utils,
     rsvd,
     Seurat (>= 3.0.1),
     stats,
