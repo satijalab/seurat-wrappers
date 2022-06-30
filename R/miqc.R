@@ -53,51 +53,88 @@ RunMiQC <- function(
   ...
 ) {
   SeuratWrappers:::CheckPackage(package = 'flexmix', repository = "CRAN")
-  
+
   my_data <- Seurat::FetchData(object, vars = c(percent.mt, nFeature_RNA))
   colnames(my_data) <- c("percent.mt", "nFeature_RNA")
-  if (model.type == "linear") {
-    my_model <- flexmix::flexmix(percent.mt~nFeature_RNA,
-                                 data = my_data, k = 2)
-  } else if (model.type == "spline") {
-    my_model <- flexmix::flexmix(percent.mt~splines::bs(nFeature_RNA),
-                                 data = my_data, k = 2)
-  } else if (model.type == "polynomial") {
-    my_model <- flexmix::flexmix(percent.mt~poly(nFeature_RNA, degree = 2),
-                                 data = my_data, k = 2)
-  } else {
+
+
+  if(!(model.type %in% c("linear", "spline", "polynomial"))){
     stop("model.type must be one of \"linear\", \"spline\", or \"polynomial\"")
   }
 
-  Misc(object, model.slot) <- my_model
+  #implementing tryCatch because of internal flexmix error when model fitting
+  #fails. see https://github.com/satijalab/seurat-wrappers/issues/108
+  my_model <- tryCatch({
+    if (model.type == "linear") {
+      my_model <- flexmix::flexmix(percent.mt~nFeature_RNA,
+                                   data = my_data, k = 2)
+    } else if (model.type == "spline") {
+      my_model <- flexmix::flexmix(percent.mt~splines::bs(nFeature_RNA),
+                                   data = my_data, k = 2)
+    } else if (model.type == "polynomial") {
+      my_model <- flexmix::flexmix(percent.mt~poly(nFeature_RNA, degree = 2),
+                                   data = my_data, k = 2)
+    }
+  }, error=function(e){
+    cat("flexmix fitting error:", conditionMessage(e),"\n")
+    my_model <- NULL})
 
-  my_model_parameters <- flexmix::parameters(my_model)
-  my_model_posterior <- flexmix::posterior(my_model)
+  #
+  #set a variable = model_status to denote the status of the model fitting
+  #1 = model fit successfully
+  #2 = model fit only 1 cluster
+  #3 = model fails at flexmix stage
+  #
 
-  if(ncol(my_model_parameters) == 1){
+  if(is.null(my_model)){
+
+    model_status <- 3
+    model_message <- "flexmix internal failure"
+  } else if (ncol(flexmix::parameters(my_model)) == 1){
+    model_status <- 2
+    model_message <- "flexmix returned only 1 cluster"
+  } else if (ncol(flexmix::parameters(my_model)) == 2){
+    model_status <- 1
+    model_message <- "flexmix model fit successfully"
+  } else {
+    stop("model_status error, please post issue on GitHub")
+  }
+
+  if(model_status %in% c(2,3)){
+
+    if(model_status == 2){
+      warning(model_message)
+    }
+    if(model_status == 3){
+      warning(model_message)
+    }
 
     if(backup.option == "halt"){
-      stop("flexmix model fit returned only 1 cluster for sample. Halting.")}
+      stop("Halting.")}
     else if (backup.option == "pass") {
-      message("flexmix model fit returned only 1 cluster for sample ",
-              unique(object$orig.ident))
       message("returning object without miQC model or stats")
       return(object)}
     else if (backup.option == "percentile") {
-      warning("flexmix model fit returned only 1 cluster for sample ",
-              unique(object$orig.ident), "\n defaulting to backup.percentile for filtering")
+      message("defaulting to backup.percentile for filtering")
       compromised_probability <- 0
       raw_values <- my_data[,percent.mt]
       percentile_cutoff <- quantile(raw_values, probs = backup.percentile)
       cells_to_keep <- ifelse(raw_values <= percentile_cutoff, "keep", "discard")}
     else if (backup.option == "percent"){
+      message("defaulting to backup.percent for filtering")
       compromised_probability <- 0
       raw_values <- my_data[,percent.mt]
       cells_to_keep <- ifelse(raw_values <= backup.percent, "keep", "discard")}
     else {
       stop("backup.option must be one of \"percentile\", \"percent\", \"halt\", or \"pass\"")
     }
-  } else {
+  } else if (model_status == 1){
+
+    Misc(object, model.slot) <- my_model
+
+    my_model_parameters <- flexmix::parameters(my_model)
+    my_model_posterior <- flexmix::posterior(my_model)
+
     intercept1 <- my_model_parameters[,1][1]
     intercept2 <- my_model_parameters[,2][1]
     if (intercept1 > intercept2) {
@@ -108,6 +145,8 @@ RunMiQC <- function(
     compromised_probability <- my_model_posterior[,compromised_dist]
     cells_to_keep <- ifelse(compromised_probability <= posterior.cutoff, "keep", "discard")
 
+  } else {
+    stop("model_status error, please post issue on GitHub")
   }
 
   object <- Seurat::AddMetaData(object = object,
@@ -117,7 +156,7 @@ RunMiQC <- function(
                                 metadata = cells_to_keep,
                                 col.name = "miQC.keep")
   object <- Seurat::LogSeuratCommand(object)
-  
+
   return(object)
 }
 

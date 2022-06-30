@@ -1,0 +1,308 @@
+---
+title: "Running BANKSY with Seurat"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: true
+    toc: true
+  html_document:
+    df_print: kable
+    theme: simplex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r include=FALSE}
+t0 <- Sys.time()
+```
+
+## Introduction
+
+In this vignette, we describe how to run BANKSY with Seurat objects. If you use 
+BANKSY in your research, please cite
+
+> *BANKSY: A Spatial Omics Algorithm that Unifies Cell Type Clustering and Tissue Domain Segmentation*
+>
+> Vipul Singhal, Nigel Chou, Joseph Lee, Jinyue Liu, Wan Kee Chock, Li Lin, 
+Yun-Ching Chang, Erica Teo, Hwee Kuan Lee, Kok Hao Chen, Shyam Prabhakar
+>
+> bioRxiv, 2022
+>
+> doi: [10.1101/2022.04.14.488259](https://www.biorxiv.org/content/10.1101/2022.04.14.488259)
+>
+> Website: https://prabhakarlab.github.io/Banksy
+
+
+BANKSY is a method that incorporates neighborhood information for clustering 
+spatial omics data. By doing so, BANKSY is able to
+
+- improve cell-type assignment in noisy data
+- distinguish subtly different cell-types stratified by microenvironment
+- identify spatial domains sharing the same microenvironment
+
+The amount of neighborhood information incorporated is controlled by a parameter
+`lambda` in [0,1], with higher values giving more weight to the neighbourhood 
+information during clustering.
+
+## Overview
+
+The `RunBanksy` function implemented with the *SeuratWrappers* package allows
+users to run BANKSY with Seurat objects. We describe two options of running
+`RunBanksy`. The first is within Seurat's spatial framework (see 
+[here](https://satijalab.org/seurat/articles/spatial_vignette.html) and 
+[here](https://satijalab.org/seurat/articles/spatial_vignette_2.html)) and 
+requires a Seurat object and a lambda parameter as mandatory input. The second 
+option works with Seurat objects that do not have spatial information stored 
+within, and therefore requires an additional argument giving the locations of 
+the cell centroids or spots. 
+
+Prerequisites to install:
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [Banksy](https://github.com/prabhakarlab/Banksy/)
+
+
+```{r lib_load}
+library(Banksy)
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+
+library(ggplot2)
+library(gridExtra)
+library(pals)
+
+# Kelly palette for visualization
+mypal <- kelly()[-1]
+```
+
+## Running BANKSY within Seurat's spatial framework
+
+We demonstrate how to run BANKSY within Seurat's spatial analysis framework
+with a mouse hippocampus Slide-seq v2 dataset from the *SeuratData* package.
+
+After installing *SeuratData*, the data can be accessed as follows:
+
+```{r ss_install, eval = FALSE}
+InstallData('ssHippo')
+ss.hippo <- LoadData("ssHippo")
+``` 
+
+```{r, include=FALSE}
+ss.hippo <- LoadData("ssHippo")
+``` 
+
+We perform simple preprocessing by filtering beads with high mito percentage and
+keeping only beads within the 5th and 98th percentile of total UMI counts. To
+keep runtime of this vignette short, we downsample the data to 10,000 beads.
+
+```{r ss_load}
+# Filtering
+ss.hippo[['percent.mt']] <- PercentageFeatureSet(ss.hippo, pattern = '^MT-')
+ss.hippo <- subset(ss.hippo, percent.mt < 10 &
+                    nCount_Spatial > quantile(ss.hippo$nCount_Spatial, 0.05) &
+                    nCount_Spatial < quantile(ss.hippo$nCount_Spatial, 0.98))
+# Downsample
+set.seed(42)
+ss.hippo <- ss.hippo[,sample(colnames(ss.hippo), 1e4)]
+```
+
+Next, normalize the data and find variable genes:
+
+```{r ss_norm}
+# Normalize
+ss.hippo <- NormalizeData(ss.hippo)
+ss.hippo <- FindVariableFeatures(ss.hippo)
+```
+
+To run BANKSY, we specify the following:
+
+- `lambda`: a numeric value in [0,1]. With low values of lambda, BANKSY operates
+in cell-typing mode, while high values of lambda find spatial domains.
+- `assay` and `slot`: determines where to pull the expression data from
+- `features`: specifies features for downstream analysis. This can be `'all'`, 
+  `'variable'` or a subset of features.  
+- `k_geom`: the number of neighbors that defines a cell's neighborhood
+
+Call `?RunBanksy` for more details on function parameters.
+
+```{r ss_banksy}
+# Run BANKSY
+ss.hippo <- RunBanksy(ss.hippo, lambda = 0.15, verbose=TRUE, 
+                      assay = 'Spatial', slot = 'data', features = 'variable',
+                      k_geom = 10)
+ss.hippo
+```
+
+Note that the `RunBanksy` function sets the default assay to `BANKSY` (
+determined by the `assay_name` argument). 
+
+The rest of the pipeline is similar to the 'default' Seurat pipline. We 
+scale the data and run dimensionality reduction with PCA and UMAP:
+
+```{r ss_pca}
+# Scale
+ss.hippo <- ScaleData(ss.hippo)
+# Run PCA and UMAP
+ss.hippo <- RunPCA(ss.hippo, assay = 'BANKSY', features = rownames(ss.hippo), npcs = 50)
+ss.hippo <- RunUMAP(ss.hippo, dims = 1:30)
+```
+
+Next, find BANKSY clusters:
+
+```{r ss_cluster}
+# Clustering
+ss.hippo <- FindNeighbors(ss.hippo, dims = 1:30)
+ss.hippo <- FindClusters(ss.hippo, resolution = 0.6)
+```
+
+Visualize the UMAP and Spatial plot:
+
+```{r ss_viz, fig.align='center', fig.height=5, fig.width=10}
+# Viz
+grid.arrange(
+    DimPlot(ss.hippo, cols = mypal, pt.size = 0.25),
+    SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
+                   repel = TRUE, alpha = 0.5, cols = mypal, pt.size.factor = 3),
+    ncol = 2
+)
+```
+
+Find markers based on the BANKSY clusters and visualize them. Here, we find 
+differentially expressed genes between the CA1 and CA3 regions.
+
+```{r ss_markers, fig.align='center', fig.height=5, fig.width=10}
+# Find markers
+DefaultAssay(ss.hippo) <- 'Spatial'
+markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 5, only.pos = F, 
+                       logfc.threshold = 1, min.pct = 0.5)
+markers <- markers[markers$p_val_adj < 0.01,]
+markers
+genes <- c('ATP2B1', 'CHGB')
+SpatialFeaturePlot(ss.hippo, features = genes, pt.size.factor = 3, 
+                   stroke = NA, alpha = 0.5, max.cutoff = 'q95')
+```
+
+## Running BANKSY with locations provided explicitly
+
+One can also call `RunBanksy` on a Seurat object created from counts by 
+providing the location of cell centroids or spots explicitly. In this case, 
+the locations must be stored as metadata. Here, we use a mouse hippocampus 
+VeraFISH dataset provided with the *Banksy* package.
+
+```{r hippo_load}
+data(hippocampus)
+head(hippocampus$expression[,1:5])
+head(hippocampus$locations)
+```
+
+Construct the Seurat object by storing the locations of cell centroids as 
+metadata. We keep cells with total count between 5th and 98th percentile:
+
+```{r hippo_create}
+# Create manually
+vf.hippo <- CreateSeuratObject(counts = hippocampus$expression,
+                               meta.data = hippocampus$locations)
+vf.hippo <- subset(vf.hippo,
+                   nCount_RNA > quantile(vf.hippo$nCount_RNA, 0.05) & 
+                   nCount_RNA < quantile(vf.hippo$nCount_RNA, 0.98))
+``` 
+
+Next, we normalize the data by library size and scale the data:
+
+```{r hippo_norm}
+# Normalize
+vf.hippo <- NormalizeData(vf.hippo, scale.factor = 100, normalization.method = 'RC')
+vf.hippo <- ScaleData(vf.hippo)
+```
+
+Now, run BANKSY. Here, we provide the column names of the x and y spatial 
+coordinates as stored in the metadata to `dimx` and `dimy` respectively:
+
+```{r hippo_banksy}
+# Run BANKSY
+vf.hippo <- RunBanksy(vf.hippo, lambda = 0.3, dimx = 'sdimx', dimy = 'sdimy', 
+                      assay = 'RNA', slot = 'data', features = 'all', k_geom = 10)
+```
+
+Scale the BANKSY matrix and run PCA:
+
+```{r hippo_pca}
+# Scale
+vf.hippo <- ScaleData(vf.hippo)
+# PCA
+vf.hippo <- RunPCA(vf.hippo, assay = 'BANKSY', features = rownames(vf.hippo), npcs = 50)
+```
+
+Find BANKSY clusters:
+
+```{r hippo_cluster}
+# Cluster
+vf.hippo <- FindNeighbors(vf.hippo, dims = 1:30)
+vf.hippo <- FindClusters(vf.hippo, resolution = 0.5)
+```
+
+Visualise BANKSY clusters in spatial dimensions:
+
+```{r hippo_viz, fig.align='center', fig.height=5, fig.width=6}
+# Viz
+FeatureScatter(vf.hippo, 'sdimx', 'sdimy', cols = mypal, pt.size = 0.75)
+```
+
+Find markers and visualise them. Here, we do so for a cluster defined by a thin 
+layer of cells expressing Gfap. We also write a simple function `genePlot` that 
+plots marker genes in spatial dimensions.
+
+```{r hippo_gene, fig.align='center', fig.height=5, fig.width=6}
+# Find markers
+DefaultAssay(vf.hippo) <- 'RNA'
+markers <- FindMarkers(vf.hippo, ident.1 = 6, only.pos = TRUE)
+
+genePlot <- function(object, dimx, dimy, gene, 
+                     slot = 'scale.data', q.low = 0.01, q.high = 0.99,
+                     col.low='blue', col.high='red') {
+    val <- GetAssayData(object, slot)[gene,]
+    val.low <- quantile(val, q.low)
+    val.high <- quantile(val, q.high)
+    val[val < val.low] <- val.low
+    val[val > val.high] <- val.high
+    pdf <- data.frame(x=object[[dimx]], y=object[[dimy]], gene=val)
+    colnames(pdf) <- c('sdimx','sdimy', 'gene')
+    ggplot(pdf, aes(x=sdimx,y=sdimy,color=gene)) + geom_point(size = 1) + 
+        theme_minimal() + theme(legend.title = element_blank()) +
+        scale_color_gradient2(low = col.low, high = col.high) +
+        ggtitle(gene)
+}
+
+genePlot(vf.hippo, 'sdimx', 'sdimy', 'Gfap')
+```
+
+## Getting help
+
+For more information, visit https://github.com/prabhakarlab/Banksy. 
+
+<details>
+  <summary>Vignette runtime</summary>
+
+```{r echo=FALSE}
+Sys.time() - t0
+```
+
+</details>
+
+
+<details>
+  <summary>Session info</summary>
+  
+```{r, sess}
+sessionInfo()
+```
+
+</details>
