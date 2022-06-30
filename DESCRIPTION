@@ -30,6 +30,7 @@ Depends:
 biocViews:
 Imports:
     BiocManager,
+    reticulate,
     cowplot,
     ggplot2,
     igraph,
