@@ -59,6 +59,10 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
         kspatial = k_spatial, k_geom = k_geom, n = n, spatialMode = spatial_mode,
         verbose = verbose)
 
+    data_scaled <- as.matrix(
+      rbind(sqrt(1 - lambda) * Seurat:::FastRowScale(data_own),
+            sqrt(lambda) * Seurat:::FastRowScale(data_nbr)))
+
     # Create Banksy matrix
     if (verbose) message('Creating Banksy matrix')
     data_banksy <- Matrix::Matrix(
@@ -76,6 +80,8 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     if (verbose) message('Setting default assay to ', assay_name)
     object[[assay_name]] <- banksy_assay
     DefaultAssay(object) <- assay_name
+    object <- SetAssayData(object, slot = 'scale.data', new.data = data_scaled,
+                           assay = assay_name)
 
     # Log commands
     object <- Seurat::LogSeuratCommand(object = object)
