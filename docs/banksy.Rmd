@@ -135,21 +135,19 @@ Call `?RunBanksy` for more details on function parameters.
 
 ```{r ss_banksy}
 # Run BANKSY
-ss.hippo <- RunBanksy(ss.hippo, lambda = 0.15, verbose=TRUE, 
+ss.hippo <- RunBanksy(ss.hippo, lambda = 0.3, verbose=TRUE, 
                       assay = 'Spatial', slot = 'data', features = 'variable',
                       k_geom = 10)
 ss.hippo
 ```
 
 Note that the `RunBanksy` function sets the default assay to `BANKSY` (
-determined by the `assay_name` argument). 
+determined by the `assay_name` argument) and fills the `scale.data` slot. 
 
 The rest of the pipeline is similar to the 'default' Seurat pipline. We 
 scale the data and run dimensionality reduction with PCA and UMAP:
 
 ```{r ss_pca}
-# Scale
-ss.hippo <- ScaleData(ss.hippo)
 # Run PCA and UMAP
 ss.hippo <- RunPCA(ss.hippo, assay = 'BANKSY', features = rownames(ss.hippo), npcs = 50)
 ss.hippo <- RunUMAP(ss.hippo, dims = 1:30)
@@ -160,7 +158,7 @@ Next, find BANKSY clusters:
 ```{r ss_cluster}
 # Clustering
 ss.hippo <- FindNeighbors(ss.hippo, dims = 1:30)
-ss.hippo <- FindClusters(ss.hippo, resolution = 0.6)
+ss.hippo <- FindClusters(ss.hippo, resolution = 0.5)
 ```
 
 Visualize the UMAP and Spatial plot:
@@ -170,7 +168,7 @@ Visualize the UMAP and Spatial plot:
 grid.arrange(
     DimPlot(ss.hippo, cols = mypal, pt.size = 0.25),
     SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
-                   repel = TRUE, alpha = 0.5, cols = mypal, pt.size.factor = 3),
+                   repel = TRUE, alpha = 0.5, cols = mypal, pt.size.factor = 2),
     ncol = 2
 )
 ```
@@ -181,7 +179,7 @@ differentially expressed genes between the CA1 and CA3 regions.
 ```{r ss_markers, fig.align='center', fig.height=5, fig.width=10}
 # Find markers
 DefaultAssay(ss.hippo) <- 'Spatial'
-markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 5, only.pos = F, 
+markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 8, only.pos = F, 
                        logfc.threshold = 1, min.pct = 0.5)
 markers <- markers[markers$p_val_adj < 0.01,]
 markers
@@ -235,8 +233,6 @@ vf.hippo <- RunBanksy(vf.hippo, lambda = 0.3, dimx = 'sdimx', dimy = 'sdimy',
 Scale the BANKSY matrix and run PCA:
 
 ```{r hippo_pca}
-# Scale
-vf.hippo <- ScaleData(vf.hippo)
 # PCA
 vf.hippo <- RunPCA(vf.hippo, assay = 'BANKSY', features = rownames(vf.hippo), npcs = 50)
 ```
