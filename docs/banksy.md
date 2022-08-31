@@ -56,6 +56,11 @@ The second option works with Seurat objects that do not have spatial
 information stored within, and therefore requires an additional argument
 giving the locations of the cell centroids or spots.
 
+**Caveat**: `ScaleData` should not be run after a call to `RunBanksy`;
+`RunBanksy` populates the `scale.data` slot with the scaled BANKSY
+matrix. Calling `ScaleData` after `RunBanksy` performs gene-wise
+z-scaling, negating the effect of `lambda`.
+
 Prerequisites to install:
 
 -   [Seurat](https://satijalab.org/seurat/install)
@@ -177,9 +182,9 @@ Visualize the UMAP and Spatial plot:
 ``` r
 # Viz
 grid.arrange(
-    DimPlot(ss.hippo, cols = mypal, pt.size = 0.25),
+    DimPlot(ss.hippo, pt.size = 0.25),
     SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
-                   repel = TRUE, alpha = 0.5, cols = mypal, pt.size.factor = 2),
+                   repel = TRUE, alpha = 0.5, pt.size.factor = 2),
     ncol = 2
 )
 ```
@@ -353,7 +358,7 @@ For more information, visit <https://github.com/prabhakarlab/Banksy>.
 Vignette runtime
 </summary>
 
-    ## Time difference of 1.868142 mins
+    ## Time difference of 1.752437 mins
 
 </details>
 <details>
@@ -365,107 +370,105 @@ Session info
 sessionInfo()
 ```
 
-    ## R version 4.1.2 (2021-11-01)
+    ## R version 4.2.1 (2022-06-23 ucrt)
     ## Platform: x86_64-w64-mingw32/x64 (64-bit)
     ## Running under: Windows 10 x64 (build 19043)
     ## 
     ## Matrix products: default
     ## 
     ## locale:
-    ## [1] LC_COLLATE=English_Singapore.1252  LC_CTYPE=English_Singapore.1252   
-    ## [3] LC_MONETARY=English_Singapore.1252 LC_NUMERIC=C                      
-    ## [5] LC_TIME=English_Singapore.1252    
+    ## [1] LC_COLLATE=English_Singapore.utf8  LC_CTYPE=English_Singapore.utf8   
+    ## [3] LC_MONETARY=English_Singapore.utf8 LC_NUMERIC=C                      
+    ## [5] LC_TIME=English_Singapore.utf8    
     ## 
     ## attached base packages:
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] pals_1.7                  gridExtra_2.3            
-    ##  [3] ggplot2_3.3.6             SeuratWrappers_0.3.0     
-    ##  [5] stxBrain.SeuratData_0.1.1 ssHippo.SeuratData_3.1.4 
-    ##  [7] SeuratData_0.2.1          sp_1.4-6                 
-    ##  [9] SeuratObject_4.0.999.9011 Seurat_4.1.0.9004        
-    ## [11] Banksy_0.1.3             
+    ##  [1] pals_1.7                 gridExtra_2.3            ggplot2_3.3.6           
+    ##  [4] SeuratWrappers_0.3.0     ssHippo.SeuratData_3.1.4 SeuratData_0.2.2        
+    ##  [7] sp_1.5-0                 SeuratObject_4.1.0       Seurat_4.1.1            
+    ## [10] Banksy_0.1.3            
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] utf8_1.2.2                  reticulate_1.24            
-    ##   [3] R.utils_2.11.0              tidyselect_1.1.2           
-    ##   [5] htmlwidgets_1.5.4           grid_4.1.2                 
-    ##   [7] Rtsne_0.15                  munsell_0.5.0              
-    ##   [9] codetools_0.2-18            ica_1.0-2                  
-    ##  [11] future_1.24.0               miniUI_0.1.1.1             
-    ##  [13] withr_2.5.0                 spatstat.random_2.1-0      
-    ##  [15] colorspace_2.0-2            progressr_0.10.0           
-    ##  [17] Biobase_2.54.0              highr_0.9                  
-    ##  [19] knitr_1.37                  ggalluvial_0.12.3          
-    ##  [21] rstudioapi_0.13             stats4_4.1.2               
+    ##   [1] utf8_1.2.2                  reticulate_1.25            
+    ##   [3] R.utils_2.12.0              tidyselect_1.1.2           
+    ##   [5] htmlwidgets_1.5.4           grid_4.2.1                 
+    ##   [7] Rtsne_0.16                  munsell_0.5.0              
+    ##   [9] codetools_0.2-18            ica_1.0-3                  
+    ##  [11] future_1.27.0               miniUI_0.1.1.1             
+    ##  [13] withr_2.5.0                 spatstat.random_2.2-0      
+    ##  [15] colorspace_2.0-3            progressr_0.10.1           
+    ##  [17] Biobase_2.56.0              highr_0.9                  
+    ##  [19] knitr_1.39                  ggalluvial_0.12.3          
+    ##  [21] rstudioapi_0.13             stats4_4.2.1               
     ##  [23] ROCR_1.0-11                 tensor_1.5                 
     ##  [25] listenv_0.8.0               labeling_0.4.2             
-    ##  [27] MatrixGenerics_1.6.0        GenomeInfoDbData_1.2.7     
-    ##  [29] polyclip_1.10-0             farver_2.1.0               
-    ##  [31] parallelly_1.30.0           Matrix.utils_0.9.8         
-    ##  [33] vctrs_0.3.8                 generics_0.1.2             
-    ##  [35] xfun_0.29                   R6_2.5.1                   
-    ##  [37] doParallel_1.0.17           GenomeInfoDb_1.30.1        
-    ##  [39] clue_0.3-60                 rsvd_1.0.5                 
-    ##  [41] bitops_1.0-7                spatstat.utils_2.3-0       
-    ##  [43] DelayedArray_0.20.0         assertthat_0.2.1           
+    ##  [27] MatrixGenerics_1.8.1        GenomeInfoDbData_1.2.8     
+    ##  [29] polyclip_1.10-0             farver_2.1.1               
+    ##  [31] parallelly_1.32.1           Matrix.utils_0.9.8         
+    ##  [33] vctrs_0.4.1                 generics_0.1.3             
+    ##  [35] xfun_0.31                   R6_2.5.1                   
+    ##  [37] doParallel_1.0.17           GenomeInfoDb_1.32.2        
+    ##  [39] clue_0.3-61                 rsvd_1.0.5                 
+    ##  [41] bitops_1.0-7                spatstat.utils_2.3-1       
+    ##  [43] DelayedArray_0.22.0         assertthat_0.2.1           
     ##  [45] promises_1.2.0.1            scales_1.2.0               
     ##  [47] rgeos_0.5-9                 gtable_0.3.0               
-    ##  [49] globals_0.14.0              goftest_1.2-3              
-    ##  [51] rlang_1.0.2                 GlobalOptions_0.1.2        
-    ##  [53] splines_4.1.2               lazyeval_0.2.2             
-    ##  [55] dichromat_2.0-0.1           spatstat.geom_2.3-2        
-    ##  [57] BiocManager_1.30.16         yaml_2.2.1                 
+    ##  [49] globals_0.15.1              goftest_1.2-3              
+    ##  [51] rlang_1.0.4                 GlobalOptions_0.1.2        
+    ##  [53] splines_4.2.1               lazyeval_0.2.2             
+    ##  [55] dichromat_2.0-0.1           spatstat.geom_2.4-0        
+    ##  [57] BiocManager_1.30.18         yaml_2.3.5                 
     ##  [59] reshape2_1.4.4              abind_1.4-5                
-    ##  [61] httpuv_1.6.5                tools_4.1.2                
+    ##  [61] httpuv_1.6.5                tools_4.2.1                
     ##  [63] sccore_1.0.1                ellipsis_0.3.2             
-    ##  [65] spatstat.core_2.4-0         RColorBrewer_1.1-3         
-    ##  [67] BiocGenerics_0.40.0         ggridges_0.5.3             
-    ##  [69] Rcpp_1.0.9                  plyr_1.8.6                 
-    ##  [71] zlibbioc_1.40.0             purrr_0.3.4                
-    ##  [73] RCurl_1.98-1.6              rpart_4.1-15               
+    ##  [65] spatstat.core_2.4-4         RColorBrewer_1.1-3         
+    ##  [67] BiocGenerics_0.42.0         ggridges_0.5.3             
+    ##  [69] Rcpp_1.0.9                  plyr_1.8.7                 
+    ##  [71] zlibbioc_1.42.0             purrr_0.3.4                
+    ##  [73] RCurl_1.98-1.7              rpart_4.1.16               
     ##  [75] dbscan_1.1-10               deldir_1.0-6               
     ##  [77] pbapply_1.5-0               GetoptLong_1.0.5           
-    ##  [79] cowplot_1.1.1               S4Vectors_0.32.3           
-    ##  [81] zoo_1.8-9                   SummarizedExperiment_1.24.0
+    ##  [79] cowplot_1.1.1               S4Vectors_0.34.0           
+    ##  [81] zoo_1.8-10                  SummarizedExperiment_1.26.1
     ##  [83] grr_0.9.5                   ggrepel_0.9.1              
-    ##  [85] cluster_2.1.2               magrittr_2.0.1             
+    ##  [85] cluster_2.1.3               magrittr_2.0.3             
     ##  [87] RSpectra_0.16-1             data.table_1.14.2          
     ##  [89] scattermore_0.8             circlize_0.4.15            
-    ##  [91] lmtest_0.9-39               RANN_2.6.1                 
-    ##  [93] fitdistrplus_1.1-8          matrixStats_0.61.0         
+    ##  [91] lmtest_0.9-40               RANN_2.6.1                 
+    ##  [93] fitdistrplus_1.1-8          matrixStats_0.62.0         
     ##  [95] patchwork_1.1.1             mime_0.12                  
     ##  [97] evaluate_0.15               xtable_1.8-4               
-    ##  [99] mclust_5.4.9                IRanges_2.28.0             
-    ## [101] shape_1.4.6                 compiler_4.1.2             
-    ## [103] tibble_3.1.6                maps_3.4.0                 
+    ##  [99] mclust_5.4.10               IRanges_2.30.0             
+    ## [101] shape_1.4.6                 compiler_4.2.1             
+    ## [103] tibble_3.1.8                maps_3.4.0                 
     ## [105] KernSmooth_2.23-20          crayon_1.5.1               
-    ## [107] R.oo_1.24.0                 htmltools_0.5.2            
-    ## [109] mgcv_1.8-39                 later_1.3.0                
-    ## [111] tidyr_1.2.0                 DBI_1.1.2                  
-    ## [113] ComplexHeatmap_2.10.0       MASS_7.3-54                
-    ## [115] rappdirs_0.3.3              Matrix_1.3-4               
-    ## [117] cli_3.1.0                   R.methodsS3_1.8.1          
-    ## [119] parallel_4.1.2              RcppHungarian_0.2          
-    ## [121] igraph_1.3.4                GenomicRanges_1.46.1       
+    ## [107] R.oo_1.25.0                 htmltools_0.5.3            
+    ## [109] mgcv_1.8-40                 later_1.3.0                
+    ## [111] tidyr_1.2.0                 DBI_1.1.3                  
+    ## [113] ComplexHeatmap_2.12.0       MASS_7.3-57                
+    ## [115] rappdirs_0.3.3              Matrix_1.4-1               
+    ## [117] cli_3.3.0                   R.methodsS3_1.8.2          
+    ## [119] parallel_4.2.1              RcppHungarian_0.2          
+    ## [121] igraph_1.3.4                GenomicRanges_1.48.0       
     ## [123] pkgconfig_2.0.3             plotly_4.10.0              
-    ## [125] spatstat.sparse_2.1-0       foreach_1.5.2              
-    ## [127] XVector_0.34.0              leidenAlg_1.0.3            
+    ## [125] spatstat.sparse_2.1-1       foreach_1.5.2              
+    ## [127] XVector_0.36.0              leidenAlg_1.0.3            
     ## [129] stringr_1.4.0               digest_0.6.29              
     ## [131] sctransform_0.3.3           RcppAnnoy_0.0.19           
-    ## [133] spatstat.data_2.1-2         rmarkdown_2.13             
-    ## [135] leiden_0.3.9                uwot_0.1.11                
-    ## [137] shiny_1.7.1                 rjson_0.2.21               
-    ## [139] lifecycle_1.0.1             nlme_3.1-153               
+    ## [133] spatstat.data_2.2-0         rmarkdown_2.14             
+    ## [135] leiden_0.4.2                uwot_0.1.11                
+    ## [137] shiny_1.7.2                 rjson_0.2.21               
+    ## [139] lifecycle_1.0.1             nlme_3.1-157               
     ## [141] jsonlite_1.8.0              mapproj_1.2.8              
-    ## [143] limma_3.50.1                viridisLite_0.4.0          
-    ## [145] fansi_0.5.0                 pillar_1.7.0               
+    ## [143] limma_3.52.2                viridisLite_0.4.0          
+    ## [145] fansi_1.0.3                 pillar_1.8.0               
     ## [147] lattice_0.20-45             fastmap_1.1.0              
-    ## [149] httr_1.4.2                  survival_3.2-13            
-    ## [151] glue_1.6.0                  remotes_2.4.2              
+    ## [149] httr_1.4.3                  survival_3.3-1             
+    ## [151] glue_1.6.2                  remotes_2.4.2              
     ## [153] png_0.1-7                   iterators_1.0.14           
-    ## [155] stringi_1.7.6               dplyr_1.0.7                
-    ## [157] irlba_2.3.5                 future.apply_1.8.1
+    ## [155] stringi_1.7.8               dplyr_1.0.9                
+    ## [157] irlba_2.3.5                 future.apply_1.9.0
 
 </details>

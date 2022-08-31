@@ -59,15 +59,16 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
         kspatial = k_spatial, k_geom = k_geom, n = n, spatialMode = spatial_mode,
         verbose = verbose)
 
-    data_scaled <- as.matrix(
-      rbind(sqrt(1 - lambda) * Seurat:::FastRowScale(data_own),
-            sqrt(lambda) * Seurat:::FastRowScale(data_nbr)))
-
     # Create Banksy matrix
     if (verbose) message('Creating Banksy matrix')
     data_banksy <- Matrix::Matrix(
         rbind(sqrt(1 - lambda) * data_own, sqrt(lambda) * data_nbr),
         sparse = TRUE)
+
+    # Scaled Banksy matrix
+    data_scaled <- as.matrix(
+      rbind(sqrt(1 - lambda) * Seurat:::FastRowScale(data_own),
+            sqrt(lambda) * Seurat:::FastRowScale(data_nbr)))
 
     # Create an assay object
     if (grepl(pattern = 'counts', x = slot)) {
@@ -95,9 +96,9 @@ get_data <- function(object, assay, slot, features, verbose) {
     if (verbose) message('Fetching data from slot ', slot,' from assay ', assay)
     data_own <- Seurat::GetAssayData(object = object, assay = assay, slot = slot)
     # Feature subset
-    if (features != 'all') {
+    if (features[1] != 'all') {
         if (verbose) message('Subsetting by features')
-        if (features == 'variable') {
+        if (features[1] == 'variable') {
             feat <- Seurat::VariableFeatures(object)
             if (length(feat) == 0) {
                 warning('No variable features found. Running Seurat::FindVariableFeatures')

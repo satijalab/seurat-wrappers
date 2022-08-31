@@ -61,6 +61,10 @@ option works with Seurat objects that do not have spatial information stored
 within, and therefore requires an additional argument giving the locations of 
 the cell centroids or spots. 
 
+**Caveat**: `ScaleData` should not be run after a call to `RunBanksy`; `RunBanksy`
+populates the `scale.data` slot with the scaled BANKSY matrix. Calling `ScaleData`
+after `RunBanksy` performs gene-wise z-scaling, negating the effect of `lambda`. 
+
 Prerequisites to install:
 
 * [Seurat](https://satijalab.org/seurat/install)
@@ -166,9 +170,9 @@ Visualize the UMAP and Spatial plot:
 ```{r ss_viz, fig.align='center', fig.height=5, fig.width=10}
 # Viz
 grid.arrange(
-    DimPlot(ss.hippo, cols = mypal, pt.size = 0.25),
+    DimPlot(ss.hippo, pt.size = 0.25),
     SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
-                   repel = TRUE, alpha = 0.5, cols = mypal, pt.size.factor = 2),
+                   repel = TRUE, alpha = 0.5, pt.size.factor = 2),
     ncol = 2
 )
 ```
