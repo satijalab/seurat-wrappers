@@ -13,6 +13,7 @@ NULL
 #' @param dimy (character) Column name of spatial y dimension (must be in metadata)
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
+#' @param M (numeric) highest azimuthal harmonic
 #' @param k_geom (numeric) kNN parameter - number of neighbors to use
 #' @param n (numeric) kNN_rn parameter - exponent of radius
 #' @param sigma (numeric) rNN parameter - standard deviation of Gaussian kernel
@@ -35,7 +36,7 @@ NULL
 #' @export
 RunBanksy <- function(object, lambda, assay='RNA', slot='data',
                       dimx=NULL, dimy=NULL, features='variable',
-                      k_geom=10, n=2, sigma=1.5,
+                      M=0, k_geom=10, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
                       assay_name='BANKSY', verbose=TRUE) {
     # Check packages
@@ -53,22 +54,40 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     locs <- get_locs(object, dimx, dimy, data_own, verbose)
 
     # Compute neighbor matrix
-    if (verbose) message('Computing neighbor matrix')
-    data_nbr <- Banksy:::compute.banksyMatrices(
-        gcm = data_own, locs = locs, sigma = sigma, alpha = alpha,
-        kspatial = k_spatial, k_geom = k_geom, n = n, spatialMode = spatial_mode,
-        verbose = verbose)
+    if (verbose) message('Computing neighbors')
+    knn_list <- lapply(k_geom, function(kg) {
+      Banksy:::computeNeighbors(locs,
+                                spatial_mode = spatial_mode, k_geom = kg, n = n,
+                                sigma=sigma, alpha=alpha, k_spatial=k_spatial,
+                                verbose = FALSE)
+    })
+
 
     # Create Banksy matrix
-    if (verbose) message('Creating Banksy matrix')
-    data_banksy <- Matrix::Matrix(
-        rbind(sqrt(1 - lambda) * data_own, sqrt(lambda) * data_nbr),
-        sparse = TRUE)
+    M <- seq(0, M)
+    # Compute harmonics
+    center <- rep(TRUE, length(M))
+    # Only center higher harmonics
+    center[1] <- FALSE
+    har <- Map(function(knn_df, M, center) {
+      Banksy:::computeHarmonics(data_own, knn_df, M, center)
+    }, knn_list, M, center)
 
-    # Scaled Banksy matrix
-    data_scaled <- as.matrix(
-      rbind(sqrt(1 - lambda) * Seurat:::FastRowScale(data_own),
-            sqrt(lambda) * Seurat:::FastRowScale(data_nbr)))
+    # Scale by lambdas
+    lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
+
+    # Merge with own expression
+    if (verbose) message('Creating Banksy matrix')
+    data_banksy <- c(list(data_own), har)
+    data_scaled <- lapply(data_banksy, Seurat:::FastRowScale)
+
+    # Multiple by lambdas
+    data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
+    data_scaled <- Map(function(lam, mat) lam * mat, lambdas, data_scaled)
+
+    # Rbind
+    data_banksy <- do.call(rbind, data_banksy)
+    data_scaled <- do.call(rbind, data_scaled)
 
     # Create an assay object
     if (grepl(pattern = 'counts', x = slot)) {
