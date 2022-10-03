@@ -12,6 +12,7 @@ RunBanksy(
   dimx = NULL,
   dimy = NULL,
   features = "variable",
+  M = 0,
   k_geom = 10,
   n = 2,
   sigma = 1.5,
@@ -37,6 +38,8 @@ RunBanksy(
 
 \item{features}{(character) Features to compute. Can be 'all', 'variable' or
 a vector of feature names}
+
+\item{M}{(numeric) highest azimuthal harmonic}
 
 \item{k_geom}{(numeric) kNN parameter - number of neighbors to use}
 
