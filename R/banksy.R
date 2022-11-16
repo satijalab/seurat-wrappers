@@ -59,7 +59,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
       Banksy:::computeNeighbors(locs,
                                 spatial_mode = spatial_mode, k_geom = kg, n = n,
                                 sigma=sigma, alpha=alpha, k_spatial=k_spatial,
-                                verbose = FALSE)
+                                verbose=verbose)
     })
 
 
@@ -70,7 +70,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     # Only center higher harmonics
     center[1] <- FALSE
     har <- Map(function(knn_df, M, center) {
-      Banksy:::computeHarmonics(data_own, knn_df, M, center)
+      Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose)
     }, knn_list, M, center)
 
     # Scale by lambdas
