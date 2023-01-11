@@ -17,8 +17,8 @@ NULL
 #' @param subcategory MSigDB sub-collection abbreviation, such as CGP or BP
 #' @param rescale If different by none, pathway's activity scores are resealed as Z-score. Possible values are none, byGS or byCell. Default is none
 #'
+#' @return returns a Seurat object with pathways x cell matrix 
 #' @export
-#'
 
 RunScGSEA <- function(
     object,
