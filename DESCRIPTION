@@ -24,7 +24,8 @@ Remotes: welch-lab/liger,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
     atakanekiz/CIPR-Package,
-    prabhakarlab/Banksy
+    prabhakarlab/Banksy,
+    gambalab/gficf
 Depends:
     R (>= 3.5.0)
 biocViews:
