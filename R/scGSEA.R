@@ -18,6 +18,7 @@ NULL
 #' @param rescale If different by none, pathway's activity scores are resealed as Z-score. Possible values are none, byGS or byCell. Default is none
 #'
 #' @export
+#'
 
 gficfScGSEA <- function(
     object,
@@ -30,27 +31,27 @@ gficfScGSEA <- function(
     subcategory = NULL,
     verbose = F) {
       
-    SeuratWrappers:::CheckPackage(package = 'gficf', repository = 'CRAN')
+    SeuratWrappers:::CheckPackage(package = 'gambalab/gficf', repository = 'github')
     assay <- assay %||% DefaultAssay(object = object)
     
     # Get raw count matrix from Seurat object
     M <- GetAssayData(object = object, slot = "counts")
     # Data normalization and gene filtering
-    data <- gficf::gficf(M = M, filterGenes = filterGenes)
+    M <- gficf::gficf(M = M, filterGenes = filterGenes)
     # Create NMF-subspace 
-    data <- gficf::runNMF(data = data, dim = nmf.dim)
+    M <- gficf::runNMF(data = M, dim = nmf.dim)
     # Create t-UMAP space
-    data <- gficf::runReduction(data = data, reduction = "umap", verbose = verbose)
+    M <- gficf::runReduction(data = M, reduction = "umap", verbose = verbose)
     # Compute GSEA for each cells across a set of input pathways by using NMF
-    data <- gficf::runScGSEA(data = data,
-                             geneID = geneID,
-                             species = species,
-                             category = category,
-                             subcategory = subcategory,
-                             nmf.k = nmf.dim,
-                             fdr.th = .1,
-                             rescale = 'none',
-                             verbose = verbose)
+    M <- gficf::runScGSEA(data = M,
+                          geneID = geneID,
+                          species = species,
+                          category = category,
+                          subcategory = subcategory,
+                          nmf.k = nmf.dim,
+                          fdr.th = .1,
+                          rescale = 'none',
+                          verbose = verbose)
     
     # Add cell names to enrichment results
     raw_enrich <- t(data$scgsea$x)
@@ -74,8 +75,5 @@ gficfScGSEA <- function(
     return(path_obj)
       
 }
-
-#'umap'%in%names(object@reductions)
-
 
 
