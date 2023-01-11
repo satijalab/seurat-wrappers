@@ -55,6 +55,7 @@ Collate:
     'miqc.R'
     'monocle3.R'
     'presto.R'
+    'scGSEA.R'
     'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
