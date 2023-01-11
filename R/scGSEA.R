@@ -20,7 +20,7 @@ NULL
 #' @export
 #'
 
-gficfScGSEA <- function(
+RunScGSEA <- function(
     object,
     assay = NULL,
     filterGenes = TRUE,
@@ -54,7 +54,7 @@ gficfScGSEA <- function(
                           verbose = verbose)
     
     # Add cell names to enrichment results
-    raw_enrich <- t(data$scgsea$x)
+    raw_enrich <- t(M$scgsea$x)
     colnames(raw_enrich) <- colnames(object)
     # Normalize enrichment results by computing pathway's activity z-scores
     norm_enrich <- Matrix::Matrix((raw_enrich - rowMeans(raw_enrich)) / apply(raw_enrich, 1, sd), sparse=T)
@@ -64,8 +64,8 @@ gficfScGSEA <- function(
     path_obj <- SetAssayData(object = path_obj, slot = 'data', new.data = norm_enrich)
     path_obj <- SetAssayData(object = path_obj, slot = 'scale.data', new.data = as.matrix(norm_enrich))
     # Store pathways metadata 
-    feat.meta <- data.frame(data$scgsea$stat, row.names = 1)
-    feat.meta$genes <- do.call(c, lapply(data$scgsea$pathways[data$scgsea$stat$pathway], function(x) paste(x, collapse = ',')))
+    feat.meta <- data.frame(M$scgsea$stat, row.names = 1)
+    feat.meta$genes <- do.call(c, lapply(M$scgsea$pathways[M$scgsea$stat$pathway], function(x) paste(x, collapse = ',')))
     path_obj[[assay]]@meta.features <- feat.meta
     
     # Store dimensionality reduction results computed on genes x cells matrix
