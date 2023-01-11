@@ -57,8 +57,9 @@ RunScGSEA <- function(
     # Add cell names to enrichment results
     raw_enrich <- t(M$scgsea$x)
     colnames(raw_enrich) <- colnames(object)
+    print(dim(raw_enrich))
     # Normalize enrichment results by computing pathway's activity z-scores
-    norm_enrich <- Matrix::Matrix((raw_enrich - rowMeans(raw_enrich)) / apply(raw_enrich, 1, sd), sparse=T)
+    norm_enrich <- Matrix::Matrix((raw_enrich - Matrix::rowMeans(raw_enrich)) / apply(raw_enrich, 1, sd), sparse=T)
     # Create a new Seurat object containing the raw pathway x cell matrix in counts slot
     path_obj <- CreateSeuratObject(counts = raw_enrich, meta.data = object@meta.data)
     # And the z-score-normalized one in data and scale.data slots
