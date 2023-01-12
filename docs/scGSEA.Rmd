@@ -5,12 +5,12 @@ output:
   github_document:
     html_preview: true
     toc: true
+    toc_depth: 3
   html_document:
     df_print: kable
-    theme: united
 ---
 
-This vigettte demonstrates how to run single-cell gene set enrichment analysis with gficf on Seurat objects. 
+This vignette demonstrates how to run single-cell gene set enrichment analysis with gficf on Seurat objects. 
 
 > *Single-cell gene set enrichment analysis and transfer learning for functional annotation of scRNA-seq data*
 >
@@ -25,14 +25,16 @@ This vigettte demonstrates how to run single-cell gene set enrichment analysis w
 > <https://github.com/gambalab/gficf>
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  fig.height = 20,
-  fig.width = 16
+  fig.height = 10,
+  fig.width = 20
 )
+
 ```
 
 
@@ -44,10 +46,12 @@ Prerequisites to install:
 * [gficf](https://github.com/gambalab/gficf)
 
 ```{r looad libraries}
+
 library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)
 library(gficf)
+
 ```
 
 
@@ -57,7 +61,7 @@ GF-ICF is an R package for normalization, visualization and analysis of of singl
 
 ## Load examle data from SeuratData
 To demonstrate how to run runScGSEA() function on a single-cell RNA-seq dataset.
-We will use the pbmc3k dataset from the SeuratData package which contains 2,700 Peripheral Blood Mononuclear Cells (PBMC) which were sequenced on the Illumina NextSeq 500. 
+We will use the pbmc3k.final dataset from the SeuratData package which contains 2,638 PBMCs processed using the standard Seurat workflow as demonstrated in Seurat's guided clustering tutorial.
 
 ```{r load example data}
 
@@ -133,36 +137,37 @@ DimPlot(pbmc.ptw, reduction = "umap", group.by = 'seurat_annotations')
 ```
 
 ## Cluster cells based on pathways activity scores
-Now that we reconstructed pathway’s activity at single cell level we can try to cluster cell according to these values using Seurat functions FindNeighbors() and FindClusters() and, finally, we graph results ad UMAP plot form.
-
+Now that we reconstructed pathway’s activity at single cell level we can try to cluster cell according to these values using Seurat functions FindNeighbors() and FindClusters(). Finally, we graph clustering results computed both on gene expression and pathway activity scores as UMAP plot form.
 ```{r UMAPclustersPathways}
 
-DimPlot(pbmc.ptw, reduction = "umap", group.by = 'seurat_clusters_byGenes')
 pbmc.ptw <- FindNeighbors(pbmc.ptw, dims = 1:10)
 pbmc.ptw <- FindClusters(pbmc.ptw, resolution = 0.5)
-DimPlot(pbmc.ptw, reduction = "umap", group.by = 'seurat_clusters')
+DimPlot(pbmc.ptw, reduction = "umap", group.by = c('seurat_clusters_byGenes', 'seurat_clusters'))
 
 ```
 
 
 # TIPS
-## Perform linear dimensional reduction (PCA)
-Next we perform PCA on the scaled data. By default, only the previously determined variable features are used as input, but can be defined using features argument if you wish to choose a different subset.
+## How can I handle collection with an high number of genesets?
+In the case you are handling collections containing a lot of gene-sets, it could be useful to perform a feature selection step. To this end, we first store pathways metadata in a separate variable (i.e. feat.meta), then we create an empty dataframe in the meta.features slot to enable the storing of the output of the Seurat function FindVariableFeatures() setting nfeatures equal to 10% of the number of genesets used.
 
-```{r runFunction2, results='hide'}
+```{r PCAselection, results='hide'}
 
-# pbmc.ptw.kegg <- gficfScGSEA(object = pbmc3k.final,
-#                               geneID = "symbol",
-#                               species = "human",
-#                               category = "C2", 
-#                               subcategory = 'CP:KEGG')
-# 
-# feat.meta <- pbmc.ptw.kegg[['RNA']]@meta.features
-# pbmc.ptw.kegg[['RNA']]@meta.features <- NULL
-# pbmc.ptw.kegg <- FindVariableFeatures(pbmc.ptw.kegg, selection.method = "vst", nfeatures = ..)
-# plot1 <- VariableFeaturePlot(pbmc.ptw.kegg)
-# 
-# pbmc.ptw.kegg <- RunPCA(pbmc.ptw.kegg, features = VariableFeatures(object = pbmc.ptw.kegg))
+pbmc.ptw.kegg <- RunScGSEA(object = pbmc3k.final,
+                           geneID = "symbol",
+                           species = "human",
+                           category = "C2",
+                           subcategory = 'CP:KEGG')
+
+feat.meta <- pbmc.ptw.kegg[['RNA']]@meta.features
+pbmc.ptw.kegg[['RNA']]@meta.features <- data.frame(row.names = rownames(pbmc.ptw.kegg))
+nfeatures <- round(nrow(pbmc.ptw.kegg)*0.10)
+pbmc.ptw.kegg <- FindVariableFeatures(pbmc.ptw.kegg, selection.method = "vst", nfeatures = nfeatures)
+top <- head(VariableFeatures(pbmc.ptw.kegg), nfeatures)
+LabelPoints(plot = VariableFeaturePlot(pbmc.ptw.kegg), points = top, repel = TRUE)
+
+pbmc.ptw.kegg <- RunPCA(pbmc.ptw.kegg, features = VariableFeatures(object = pbmc.ptw.kegg))
+VizDimLoadings(pbmc.ptw.kegg, dims = 1:2, reduction = "pca")
 
 ```
 
