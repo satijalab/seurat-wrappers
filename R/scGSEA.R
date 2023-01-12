@@ -67,9 +67,10 @@ RunScGSEA <- function(
     # And the z-score-normalized one in data and scale.data slots
     path_obj <- SetAssayData(object = path_obj, slot = 'data', new.data = norm_enrich)
     path_obj <- SetAssayData(object = path_obj, slot = 'scale.data', new.data = as.matrix(norm_enrich))
-    # Store pathways metadata 
-    feat.meta <- data.frame(M$scgsea$stat, row.names = 1)
-    feat.meta$genes <- do.call(c, lapply(M$scgsea$pathways[M$scgsea$stat$pathway], function(x) paste(x, collapse = ',')))
+    # Store metadata of pathways retained after significance filtering
+    feat.meta <- M$scgsea$stat[M$scgsea$stat$pathway%in%colnames(M$scgsea$x), ] 
+    feat.meta <- data.frame(feat.meta, row.names = 1)
+    feat.meta$genes <- do.call(c, lapply(M$scgsea$pathways[rownames(feat.meta)], function(x) paste(x, collapse = ',')))
     path_obj[[assay]]@meta.features <- feat.meta
     
     # Store dimensionality reduction results computed on genes x cells matrix
