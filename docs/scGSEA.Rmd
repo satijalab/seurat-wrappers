@@ -2,12 +2,12 @@
 title: "Running ScGSEA from gficf on Seurat Objects"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output: 
+  html_document:
+    df_print: kable
   github_document:
     html_preview: true
     toc: true
     toc_depth: 3
-  html_document:
-    df_print: kable
 ---
 
 This vignette demonstrates how to run single-cell gene set enrichment analysis with gficf on Seurat objects. 
