@@ -15,3 +15,4 @@ This directory contains individual method vignettes for each method provided by 
 | Harmony | [Integration of datasets using Harmony](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/harmony.html) | Korsunsky et al, bioRxiv 2018 | https://github.com/immunogenomics/harmony |
 | ALRA | [Zero-preserving imputation with ALRA](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/alra.html) | Linderman et al, bioRxiv 2018 | https://github.com/KlugerLab/ALRA |
 | Velocity | [Estimating RNA Velocity using Seurat](http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/velocity.html) | La Manno et al, Nature 2018 | https://velocyto.org |
+| fastTopics | [](http://htmlpreview.github.io/?https://github.com/stephenslab/seurat-wrappers/blob/master/docs/fasttopics.html) | Carbonetto et al, bioRxiv 2023 | https://github.com/stephenslab/fastTopics |
