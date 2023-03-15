@@ -10,38 +10,55 @@ output:
     df_print: kable
 ---
 
-Here we illustrate the use of the [fastTopics][fasttopics] Seurat
-wrapper to analyze a Seurat data set. This vignette is only intended
-to introduce the basic fastTopics interface for Seurat objects---for
-background and guidance on analysis of single-cell RNA-seq data using
-a topic model, please see the
+```{r knitr-opts, include=FALSE}
+knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
+                      fig.align = "center",dpi = 120,tidy = TRUE,
+                      tidy.opts = list(width.cutoff = 95))
+```
+
+This vignette illustrates the use of the [fastTopics][fasttopics]
+Seurat wrapper to analyze a Seurat data set. This vignette is only
+intended to introduce the basic fastTopics interface for Seurat
+objects---for more guidance on analyzing single-cell RNA-seq data
+using a topic model, please see the
 [fastTopics vignettes][fasttopics-vignettes].
 
 If you find the **fastTopics** package useful for your work, please
 cite:
 
-K. K. Dey, C. Joyce Hsiao and M. Stephens (2017). [Visualizing the
-structure of RNA-seq expression data using grade of membership 
-models.][countclust-paper] PLoS Genetics 13, e1006599.
+> *Visualizing the structure of RNA-seq expression data using grade of
+> membership models.*
+>
+> K. K. Dey, C. Joyce Hsiao and M. Stephens.
+>
+> PLoS Genetics, 2017.
+>
+> doi: [10.1371/journal.pgen.1006599][countclust-paper]
 
-P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens (2021).
-[Non-negative matrix factorization algorithms greatly improve topic
-model fits.][fasttopics-paper] arXiv 2105.13440
+and
 
-If you used the `de_analysis` function in fastTopics, please cite:
+> Non-negative matrix factorization algorithms greatly improve topic
+> model fits.
+>
+> P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens.
+>
+> arXiv, 2021
+>
+> [arXiv 2105.13440][https://arxiv.org/abs/2105.13440]
 
-P. Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and
-M. Stephens (2023). [Interpreting structure in sequence count data
-with differential expression analysis allowing for grades of
-membership.][single-cell-topics-paper]
-bioRxiv doi:10.1101/2023.03.03.531029
+If you use the **de_analysis** function in fastTopics, please cite:
 
-```{r knitr-opts, include=FALSE}
-knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
-                      fig.align = "center",dpi = 120)
-```
+> Interpreting structure in sequence count data with differential
+> expression analysis allowing for grades of membership.
+> 
+> P. Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and
+> M. Stephens
+>
+> bioRxiv, 2023.
+>
+> doi: [10.1101/2023.03.03.531029][https://doi.org/10.1101/2023.03.03.531029]
 
-We begin by loading the packages used to perform the analysis.
+To begin, loading the packages used to perform the analysis.
 
 ```{r load-pkgs, message=FALSE, warning=FALSE}
 library(Seurat)
@@ -51,13 +68,13 @@ library(fastTopics)
 library(cowplot)
 ```
 
-We set the seed so that the results can be reproduced.
+And set the seed so that the results can be reproduced.
 
 ```{r set-seed}
 set.seed(1)
 ```
 
-Load---and, if necessary, install---the PBMC 3k data set containing
+Load and, if necessary, install the PBMC 3k data set containing
 transcription profiles for 2,700 cells.
 
 ```{r load-data, warning=FALSE}
@@ -66,9 +83,9 @@ data(pbmc3k)
 dim(GetAssayData(pbmc3k))
 ```
 
-Fit the multinomial topic model to the raw UMI counts---*no
-pre-processing or pre-selection of genes is needed.* Note that it may
-take several minutes to complete this model fitting step.
+Fit the multinomial topic model to the *raw UMI counts.* **No
+preprocessing or pre-selection of genes is needed.** It may
+take several minutes to fit the model.
 
 ```{r fit-model, results="hide", message=FALSE}
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
@@ -79,8 +96,8 @@ Here, we have chosen $K = 6$ topics. In most settings, a good choice
 of $K$ will not be known in advance, so you will you want to explore
 the results from topic models at different settings of $K$.
 
-This plot shows the cells projected onto the top two principal
-components (PCs) of the topic mixture proportions.
+This first plot shows the cells projected onto the top two PCs of the
+topic proportions.
 
 ```{r pca-1, fig.width=4.5, fig.height=3}
 Idents(pbmc3k) <- pbmc3k$seurat_annotations
@@ -106,18 +123,20 @@ in the "misc" slot:
 fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 ```
 
-Once the fitted topic model is extracted, many functions from the
-**fastTopics** package can be used for analysis and visualization. For
-example, the Structure plot provides an evocative visual summary of
-the estimated mixture proportions for each cell. Here, we have grouped
-the cells by previously inferred labels.
+Once the fitted topic model is extracted, many fastTopics functions
+can be used for analysis and visualization. For example, the Structure
+plot provides an evocative visual summary of the estimated mixture
+proportions for each cell. Here, we have grouped the cells by
+previously inferred labels.
 
 ```{r structure-plot, fig.width=7.5, fig.height=1.75, results="hide", message=FALSE}
 structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
 
+TO DO: Illustrate the use of the de_analysis.
+
 This is the version of R and the packages that were used to generate
-these results.
+these results:
 
 ```{r session-info}
 sessionInfo()
@@ -125,6 +144,3 @@ sessionInfo()
 
 [fasttopics]:  https://github.com/stephenslab/fastTopics
 [fasttopics-vignettes]:  https://stephenslab.github.io/fastTopics/articles
-[countclust-paper]: https://doi.org/10.1371/journal.pgen.1006599
-[fasttopics-paper]: https://arxiv.org/abs/2105.13440
-[single-cell-topics-paper]: https://doi.org/10.1101/2023.03.03.531029 
