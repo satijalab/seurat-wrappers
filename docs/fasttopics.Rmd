@@ -83,9 +83,9 @@ data(pbmc3k)
 dim(GetAssayData(pbmc3k))
 ```
 
-Fit the multinomial topic model to the *raw UMI counts.* **No
-preprocessing or pre-selection of genes is needed.** It may
-take several minutes to fit the model.
+Fit the multinomial topic model to the raw UMI counts. *No data
+preprocessing or gene filtering is needed.* It may take several
+minutes to fit the model.
 
 ```{r fit-model, results="hide", message=FALSE}
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
@@ -125,7 +125,7 @@ fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 
 Once the fitted topic model is extracted, many fastTopics functions
 can be used for analysis and visualization. For example, the Structure
-plot provides an evocative visual summary of the estimated mixture
+plot provides an evocative visual summary of the estimated topic
 proportions for each cell. Here, we have grouped the cells by
 previously inferred labels.
 
