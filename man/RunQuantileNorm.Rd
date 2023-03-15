@@ -65,5 +65,5 @@ stored as a DimReduc object with name \code{reduction.name} (key set to \code{re
 Run quantile_norm on a Seurat object
 }
 \seealso{
-\code{\link[liger]{quantile_norm}}
+\code{\link[rliger]{quantile_norm}}
 }

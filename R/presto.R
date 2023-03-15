@@ -23,23 +23,17 @@ PrestoDETest <- function(
   ...
 ) {
   data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
-  overflow.check <- ifelse(
-    test = is.na(x = suppressWarnings(length(x = data.use[1, ]) * length(x = data.use[1, ]))),
-    yes = FALSE,
-    no = TRUE
-  )
-  if (overflow.check) {
-    # NOTE: do not use logfc from presto
-    group.info <- factor(
-      c(rep(x = "Group1", length = length(cells.1)),
-        rep(x = "Group2", length = length(cells.2))),
-      levels = c("Group1", "Group2"))
-    names(group.info) <- c(cells.1, cells.2)
-    data.use <- data.use[, names(x = group.info), drop = FALSE]
-    p_val <- presto::wilcoxauc(X = data.use, y = group.info)$pval
-    p_val <- p_val[1:(length(p_val)/2)]
-  }
-  return(data.frame(p_val, row.names = rownames(x = data.use)))
+  # NOTE: do not use logfc from presto
+  group.info <- factor(
+    c(rep(x = "Group1", length = length(x = cells.1)),
+      rep(x = "Group2", length = length(x = cells.2))),
+    levels = c("Group1", "Group2"))
+  names(x = group.info) <- c(cells.1, cells.2)
+  data.use <- data.use[, names(x = group.info), drop = FALSE]
+  res <- presto::wilcoxauc(X = data.use, y = group.info)
+  res <- res[1:(nrow(x = res)/2), c('pval','auc')]
+  colnames(x = res)[1] <- 'p_val'
+  return(as.data.frame(x = res, row.names = rownames(x = data.use)))
 }
 
 #' A Presto-based implementation of FindMarkers that runs Wilcoxon tests for the given identity classes
@@ -91,7 +85,6 @@ RunPresto <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -110,30 +103,29 @@ RunPresto <- function(
 
   tryCatch(
     expr = res <- FindMarkers(
-      object,
-      ident.1,
-      ident.2,
-      group.by,
-      subset.ident,
-      assay,
-      slot,
-      reduction,
-      features,
-      logfc.threshold,
-      test.use,
-      min.pct,
-      min.diff.pct,
-      verbose,
-      only.pos,
-      max.cells.per.ident,
-      random.seed,
-      latent.vars,
-      min.cells.feature,
-      min.cells.group,
-      pseudocount.use,
-      mean.fxn,
-      fc.name,
-      base,
+      object = object,
+      ident.1 = ident.1,
+      ident.2 = ident.2,
+      group.by = group.by,
+      subset.ident = subset.ident,
+      assay = assay,
+      slot = slot,
+      reduction = reduction,
+      features = features,
+      logfc.threshold = logfc.threshold,
+      test.use = "wilcox",
+      min.pct = min.pct,
+      min.diff.pct = min.diff.pct,
+      verbose = verbose,
+      only.pos = only.pos,
+      max.cells.per.ident = max.cells.per.ident,
+      random.seed = random.seed,
+      latent.vars = latent.vars,
+      min.cells.feature = min.cells.feature,
+      min.cells.group = min.cells.group,
+      mean.fxn = mean.fxn,
+      fc.name = fc.name,
+      base = base,
       ...
     ),
     finally = assignInNamespace(
@@ -183,7 +175,6 @@ RunPrestoAll <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -203,27 +194,26 @@ RunPrestoAll <- function(
 
   tryCatch(
     expr = res <- FindAllMarkers(
-      object,
-      assay,
-      features,
-      logfc.threshold,
-      test.use,
-      slot,
-      min.pct,
-      min.diff.pct,
-      node,
-      verbose,
-      only.pos,
-      max.cells.per.ident,
-      random.seed,
-      latent.vars,
-      min.cells.feature,
-      min.cells.group,
-      pseudocount.use,
-      mean.fxn,
-      fc.name,
-      base,
-      return.thresh,
+      object = object,
+      assay = assay,
+      features = features,
+      logfc.threshold = logfc.threshold,
+      test.use = "wilcox",
+      slot = slot,
+      min.pct = min.pct,
+      min.diff.pct = min.diff.pct,
+      node = node,
+      verbose = verbose,
+      only.pos = only.pos,
+      max.cells.per.ident = max.cells.per.ident,
+      random.seed = random.seed,
+      latent.vars = latent.vars,
+      min.cells.feature = min.cells.feature,
+      min.cells.group = min.cells.group,
+      mean.fxn = mean.fxn,
+      fc.name = fc.name,
+      base = base,
+      return.thresh = return.thresh,
       ...
     ),
     finally = assignInNamespace(

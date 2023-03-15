@@ -1,0 +1,252 @@
+---
+title: "Running miQC on Seurat objects"
+date: "Compiled: `r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: kable
+    theme: united
+  github_document:
+    html_preview: no
+    toc: no
+---
+
+This vigettte demonstrates the use of the miQC package in Seurat. Vignette is
+based off of the [miQC vignette](https://github.com/greenelab/miQC).
+If you use miQC in your work, please cite:
+
+> *miQC: An adaptive probabilistic framework for quality control of single-cell RNA-sequencing data*
+>
+> Ariel A. Hippen,  Matias M. Falco,  Lukas M. Weber,  Erdogan Pekcan Erkan, Kaiyang Zhang,  Jennifer Anne Doherty,  Anna Vähärautio, Casey S. Greene,  Stephanie C. Hicks
+>
+> bioRxiv, 2021
+>
+> doi: [10.1101/2021.03.03.433798](https://www.biorxiv.org/content/10.1101/2021.03.03.433798v1)
+>
+> GitHub: https://github.com/greenelab/miQC
+
+
+```{r options, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+remotes::install_github("greenelab/miQC")
+```
+
+Prerequisites to install:
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [flexmix](https://cran.r-project.org/web/packages/flexmix/index.html) which is wrapped by the  [miQC](https://github.com/greenelab/miQC) package.
+    * _At this point, the miQC algorithm has been adapted for use in Seurat through installation of flexmix only_.
+
+```{r packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(flexmix)
+```
+
+## Introduction
+
+This vignette provides a basic example of how to run miQC, which allows users to
+perform cell-wise filtering of single-cell RNA-seq data for quality control.
+Single-cell RNA-seq data is very sensitive to tissue quality and choice of
+experimental workflow; it’s critical to ensure compromised cells and failed cell
+libraries are removed. A high proportion of reads mapping to mitochondrial DNA
+is one sign of a damaged cell, so most analyses will remove cells with mtRNA
+over a certain threshold, but those thresholds can be arbitrary and/or
+detrimentally stringent, especially for archived tumor tissues.
+miQC jointly models both the proportion of reads mapping to mtDNA genes and the
+number of detected genes with mixture models in a probabilistic framework to
+identify the low-quality cells in a given dataset.
+
+## Example data
+
+To demonstrate how to run miQC on a single-cell RNA-seq dataset, we'll use the
+`pbmc3k`dataset from the SeuratData package.
+
+```{r load pbmc3k}
+InstallData("pbmc3k")
+data("pbmc3k")
+pbmc3k
+```
+
+## Seurat preprocessing
+
+_miQC_ requires two QC metrics for each single cell dataset: (1) the number of
+unique genes detected per cell and (2) the percent mitochondrial reads. The
+number of unique genes detected per cell are typically calculated and stored
+automatically as metadata (*nFeature_RNA*) upon creation of a Seurat object with
+`CreateSeuratObject`.
+
+In order to calculate the percent mitochondrial reads in a cell we can use 
+`PercentageFeatureSet`. Human mitochondrial genes start with _MT-_
+(and _mt-_ for murine genes). For other IDs, we recommend using a
+_biomaRt_ query to map to chromosomal location and identify all mitochondrial
+genes. We add this as metadata here to the Seurat object as `"percent.mt"`.
+
+```{r}
+pbmc3k[["percent.mt"]] <- PercentageFeatureSet(object = pbmc3k, pattern = "^MT-")
+```
+
+
+## miQC
+
+We can visually inspect the `"percent.mt"` and `"nFeature_RNA"` values in the
+`pbmc3k` dataset.
+
+``` {r}
+FeatureScatter(pbmc3k, feature1 = "nFeature_RNA", feature2 =  "percent.mt")
+```
+
+We can see that most cells have a fairly low proportion of mitochondrial reads,
+given that the graph is much denser at the bottom. We likely have many cells
+that are intact and biologically meaningful. There are also a few cells that
+have almost half of their reads mapping to mitochondrial genes, which are likely
+broken or otherwise compromised and we will want to exclude from our downstream
+analysis. However, it's not clear what boundaries to draw to separate the two
+groups of cells. With that in mind, we'll generate a linear mixture model using
+the `RunMiQC` function. The linear mixture model will be stored in the `misc` 
+slot of the Seurat object as `"flexmix_model"`.
+
+```{r}
+pbmc3k <- RunMiQC(pbmc3k,
+                  percent.mt = "percent.mt",
+                  nFeature_RNA = "nFeature_RNA",
+                  posterior.cutoff = 0.75,
+                  model.slot = "flexmix_model")
+```
+
+This function is a wrapper for _flexmix_, which fits a mixture model on our data
+and returns the parameters of the two lines that best fit the data, as well as
+the posterior probability of each cell being derived from each distribution.
+
+We can look at the parameters and posterior values directly with the functions
+``` {r}
+flexmix::parameters(Misc(pbmc3k, "flexmix_model"))
+head(flexmix::posterior(Misc(pbmc3k, "flexmix_model")))
+```
+
+Or we can visualize the model results using the _PlotMiQC_ function, where 
+`"miQC.probability"` represents the posterior probability of the cell belonging
+to the compromised condition:
+```{r}
+PlotMiQC(pbmc3k, color.by = "miQC.probability")+
+  ggplot2::scale_color_gradient(low = "grey", high = "purple")
+```
+
+As expected, the cells at the very top of the graph are almost certainly
+compromised, most likely to have been derived from the distribution with fewer
+unique genes and higher baseline mitochondrial expression.
+
+We can use these posterior probabilities to choose which cells to keep, and
+visualize the consequences of this filtering with the _PlotMiQC_ function. Recall
+when running `"RunMiQC"` we set the `"posterior.cutoff"` to be 0.75.
+
+```{r}
+PlotMiQC(pbmc3k, color.by = "miQC.keep")
+```
+
+To actually perform the filtering and remove the indicated cells from our
+Seurat object, we can subset the Seurat object parameter as such:
+
+```{r}
+pbmc3k_filtered <- subset(pbmc3k, miQC.keep == "keep")
+pbmc3k_filtered
+```
+
+## Extras
+
+In most cases, a linear mixture model will be satisfactory as well as simplest,
+but _RunMiQC_ also supports some non-linear mixture models: currently polynomials
+and b-splines. A user should only need to change the _model.type_ parameter when
+making the model, and all visualization and filtering functions will work the
+same as with a linear model.
+
+```{r}
+pbmc3k <- RunMiQC(pbmc3k,
+                  percent.mt = "percent.mt",
+                  nFeature_RNA = "nFeature_RNA",
+                  posterior.cutoff = 0.75,
+                  model.slot = "flexmix_model",
+                  model.type = "spline")
+PlotMiQC(pbmc3k, color.by = "miQC.keep")
+```
+
+Also, _RunMiQC_ defaults to removing any cell with 75% or greater posterior
+probability of being compromised, but if we want to be more or less stringent,
+we can alter the _posterior.cutoff_ parameter, like so:
+
+```{r}
+pbmc3k <- RunMiQC(pbmc3k,
+                  percent.mt = "percent.mt",
+                  nFeature_RNA = "nFeature_RNA",
+                  posterior.cutoff = 0.9,
+                  model.slot = "flexmix_model")
+PlotMiQC(pbmc3k, color.by = "miQC.keep")
+```
+
+
+Note that when performing miQC multiple times on different samples for the same
+experiment, it's recommended to select the same _posterior_cutoff_ for all, to
+give consistency in addition to the flexibility of sample-specific models.
+
+## When not to use miQC
+
+The miQC model is based on the assumption that there are a non-trivial number of
+compromised cells in the dataset, which is not true in all datasets. We
+recommend using _FeatureScatter_ on a dataset before running miQC to see if the
+two-distribution model is appropriate. Look for the distinctive triangular shape
+where cells have a wide variety of mitochondrial percentages at lower gene
+counts and taper off to lower mitochondrial percentage at higher gene counts.
+
+For example of a dataset where there's not a significant number of compromised
+cells, so the two-distribution assumption is not met, we simulate an extreme 
+case using the `"pbmc3k"` dataset here.
+
+```{r}
+set.seed(2021)
+pbmc3k_extreme <- pbmc3k
+simulated_percent_mt <- rnorm(mean = 2.5, sd = 0.2, n = ncol(pbmc3k_extreme))
+pbmc3k_extreme$percent.mt <- ifelse(pbmc3k_extreme$nFeature_RNA > 400,
+                                    simulated_percent_mt,
+                                    pbmc3k_extreme$percent.mt)
+simulated_percent_mt_2 <- runif(min = 0, max = 60, n = ncol(pbmc3k_extreme))
+pbmc3k_extreme$percent.mt  <- ifelse(pbmc3k_extreme$nFeature_RNA < 400,
+                                     simulated_percent_mt_2,
+                                     pbmc3k_extreme$percent.mt)
+FeatureScatter(pbmc3k_extreme,
+               feature1 = "nFeature_RNA",
+               feature2 =  "percent.mt")
+```
+
+The _RunMiQC_ function will throw a warning if only one distribution is
+found. In these cases, we recommend
+using other filtering methods, such as a cutoff on mitochondrial percentage or
+percentile using the `"backup.option"` parameter to one of `"c("percentile",
+"percent", "pass", "halt")`.
+```{r, warning=TRUE,message=TRUE}
+pbmc3k_extreme <- RunMiQC(pbmc3k_extreme,
+                          percent.mt = "percent.mt",
+                          nFeature_RNA = "nFeature_RNA",
+                          posterior.cutoff = 0.9,
+                          model.slot = "flexmix_model",
+                          backup.option = "percentile",
+                          backup.percentile = 0.95)
+FeatureScatter(pbmc3k_extreme,
+               feature1 = "nFeature_RNA",
+               feature2 = "percent.mt",
+               group.by = "miQC.keep")
+```
+
+# Session Information
+
+```{r, echo=FALSE}
+## Session info
+options(width = 120)
+sessionInfo()
+```
+

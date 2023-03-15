@@ -38,27 +38,11 @@
 )
 }
 \arguments{
-\item{x}{An object to convert to class \code{Seurat}}
-
 \item{method}{Name of matching method graph was built using}
 
 \item{reduction}{Name of graph embedding, if calculated}
 
 \item{idents}{Name of clutering method to set as identity class}
-
-\item{verbose}{Display progress updates}
-
-\item{...}{Arguments passed to other methods}
-
-\item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
-set to \code{NULL} if only normalized data are present}
-
-\item{data}{name of the SingleCellExperiment assay to slot as \code{data}.
-Set to NULL if only counts are present}
-
-\item{assay}{Name to store expression matrices as}
-
-\item{project}{Project name for new Seurat object}
 
 \item{loadings}{Name of dimensional reduction to save loadings to, if present;
 defaults to first dimensional reduction present (eg.
@@ -71,13 +55,6 @@ suppress transfer of loadings}
 defaults to name of first matrix in list}
 
 \item{slot}{Name of slot to store matrix in; choose from 'counts' or 'data'}
-
-\item{min.cells}{Include features detected in at least this many cells. Will
-subset the counts matrix as well. To reintroduce excluded features, create a
-new object with a lower cutoff.}
-
-\item{min.features}{Include cells where at least this many features are
-detected.}
 }
 \description{
 Extra conversions to Seurat objects
@@ -111,7 +88,7 @@ utilizes the \code{\link[Seurat::as.Seurat]{SingleCellExperiment}} method of
 embeddings, and cell-level metadata. The following additional information
 will also be transfered over:
 \itemize{
- \item Feature loadings from \code{cds@preprocess_aux$gene_loadings} will be
+ \item Feature loadings from \code{cds@reduce_dim_aux$gene_loadings} will be
  added to the dimensional reduction specified by \code{loadings} or the name
  of the first dimensional reduction that contains "pca" (case-insensitive) if
  \code{loadings} is not set

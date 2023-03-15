@@ -1,7 +1,7 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.3.4
-Date: 2021-03-03
+Version: 0.3.1
+Date: 2022-10-21
 Authors@R: c(
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
@@ -13,7 +13,7 @@ Description: SeuratWrappers is a collection of community-provided methods and
     comprise functionality not presently found in Seurat, and are able to be
     updated much more frequently.
 License: GPL-3 | file LICENSE
-Remotes: MacoskoLab/liger,
+Remotes: welch-lab/liger,
     hms-dbmi/conos,
     immunogenomics/harmony,
     immunogenomics/presto,
@@ -23,7 +23,9 @@ Remotes: MacoskoLab/liger,
     cole-trapnell-lab/monocle3,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
-    stephenslab/fastTopics
+    stephenslab/fastTopics,
+    atakanekiz/CIPR-Package,
+    prabhakarlab/Banksy
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -36,7 +38,7 @@ Imports:
     methods,
     remotes,
     rsvd,
-    Seurat (>= 3.0.1),
+    Seurat (>= 4.2.0),
     stats,
     utils,
     rlang
@@ -44,21 +46,26 @@ Collate:
     'internal.R'
     'alevin.R'
     'alra.R'
+    'banksy.R' 
+    'cellbrowser.R'
     'cogaps.R'
     'conos.R'
     'fast_mnn.R'
     'fasttopics.R'
     'glmpca.R'
     'liger.R'
+    'miqc.R'
     'monocle3.R'
     'presto.R'
+    'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
 Suggests:
+    cipr,
     conos,
-    liger (>= 0.4.2),
+    rliger (>= 0.5.0),
     harmony,
     batchelor,
     SeuratData,
@@ -72,4 +79,7 @@ Suggests:
     fastTopics,
     glmpca,
     Nebulosa,
-    presto
+    presto,
+    flexmix,
+    tricycle,
+    Banksy

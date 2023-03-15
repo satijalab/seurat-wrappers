@@ -6,10 +6,7 @@
 \alias{SeuratWrappers-package}
 \title{SeuratWrappers: Community-Provided Methods and Extensions for the Seurat Object}
 \description{
-SeuratWrappers is a collection of community-provided methods and
-    extensions for Seurat, curated by the Satija Lab at NYGC. These methods
-    comprise functionality not presently found in Seurat, and are able to be
-    updated much more frequently.
+SeuratWrappers is a collection of community-provided methods and extensions for Seurat, curated by the Satija Lab at NYGC. These methods comprise functionality not presently found in Seurat, and are able to be updated much more frequently.
 }
 \author{
 \strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
