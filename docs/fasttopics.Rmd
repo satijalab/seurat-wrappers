@@ -4,10 +4,10 @@ date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
   github_document:
     html_preview: true
+    toc: true
+    toc_depth: 3
   html_document:
     df_print: kable
-    highlight: textmate
-    theme: readable
 ---
 
 Here we illustrate the use of the [fastTopics][fasttopics] Seurat
@@ -20,14 +20,21 @@ a topic model, please see the
 If you find the **fastTopics** package useful for your work, please
 cite:
 
-Kushal K. Dey, Chiaowen Joyce Hsiao and Matthew Stephens (2017).
-[Visualizing the structure of RNA-seq expression data using grade of
-membership models.][countclust-paper] *PLoS Genetics* **13**, e1006599.
+K. K. Dey, C. Joyce Hsiao and M. Stephens (2017). [Visualizing the
+structure of RNA-seq expression data using grade of membership 
+models.][countclust-paper] PLoS Genetics 13, e1006599.
 
-Peter Carbonetto, Kevin Luo, Kushal Dey, Joyce Hsiao and Matthew
-Stephens (2021). fastTopics: fast algorithms for fitting topic models
-and non-negative matrix factorizations to count data. R package
-version 0.4-23. [https://github.com/stephenslab/fastTopics][fasttopics]
+P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens (2021).
+[Non-negative matrix factorization algorithms greatly improve topic
+model fits.][fasttopics-paper] arXiv 2105.13440
+
+If you used the `de_analysis` function in fastTopics, please cite:
+
+P. Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and
+M. Stephens (2023). [Interpreting structure in sequence count data
+with differential expression analysis allowing for grades of
+membership.][single-cell-topics-paper]
+bioRxiv doi:10.1101/2023.03.03.531029
 
 ```{r knitr-opts, include=FALSE}
 knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
@@ -119,3 +126,5 @@ sessionInfo()
 [fasttopics]:  https://github.com/stephenslab/fastTopics
 [fasttopics-vignettes]:  https://stephenslab.github.io/fastTopics/articles
 [countclust-paper]: https://doi.org/10.1371/journal.pgen.1006599
+[fasttopics-paper]: https://arxiv.org/abs/2105.13440
+[single-cell-topics-paper]: https://doi.org/10.1101/2023.03.03.531029 
