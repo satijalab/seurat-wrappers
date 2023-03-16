@@ -125,15 +125,37 @@ fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 
 Once the topic model has been extracted from the Seurat object, many
 fastTopics functions can be used for downstream analysis and
-visualization. For example, we can create a *Structure plot* to
+visualization. For example, we can create a "Structure plot" to
 visualize all $K$ dimensions of the topic model simultaneously:
 
 ```{r structure-plot, fig.width=7.5, fig.height=1.75, results="hide", message=FALSE}
 structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
 
-In this plot, each position along the x-axis is a cell, and bar
-heights correspond to topic proportions (which sum to 1 for each cell).
+In the Structure plot, each position along the x-axis is a cell, and
+bar heights correspond to topic proportions (which sum to 1 for each
+cell).
+
+From this plot, we see that topic 3 (green) closely corresponds to B
+cells. Topics 1 (red) and 4 (purple) also correspond well to the two
+types of monocytes, but there is some overlap; the purple topic is
+shared by both types of monocytes.
+
+Topic 5 (orange) corresponds well to natural killer (NK) cells, and
+topic 2 (blue) appears to capture biological processes common to T
+cells. The CD8+ T cells have characteristics of both NK cells and T
+cells---these are T cells that sometimes become ``NK-like''---and this
+is captured in the topic model by assigning membership to both topics
+2 and 5.
+
+The other cell types (platelets, dendritic cells), perhaps because
+they are less abundant and/or difficult to distinguish from the other
+cell types, are represented as combinations of the topics for the
+other cell types.
+
+Topic 6 is present in almost all cells to varying degrees, and
+therefore its biological interpretation is not at all clear from the
+cell labeling.
 
 TO DO: Illustrate the use of the de_analysis.
 
