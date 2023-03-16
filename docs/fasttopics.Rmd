@@ -29,7 +29,7 @@ cite:
 > *Visualizing the structure of RNA-seq expression data using grade of
 > membership models.*
 >
-> K. K. Dey, C. Joyce Hsiao and M. Stephens.
+> K. K. Dey, C. J. Hsiao and M. Stephens.
 >
 > PLoS Genetics, 2017.
 >
