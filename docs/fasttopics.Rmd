@@ -33,32 +33,32 @@ cite:
 >
 > PLoS Genetics, 2017.
 >
-> doi: [10.1371/journal.pgen.1006599][countclust-paper]
+> doi: [10.1371/journal.pgen.1006599](https://doi.org/10.1371/journal.pgen.1006599)
 
 and
 
-> Non-negative matrix factorization algorithms greatly improve topic
-> model fits.
+> *Non-negative matrix factorization algorithms greatly improve topic
+> model fits.*
 >
 > P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens.
 >
 > arXiv, 2021
 >
-> [arXiv 2105.13440][https://arxiv.org/abs/2105.13440]
+> [arXiv 2105.13440](https://arxiv.org/abs/2105.13440)
 
 If you use the **de_analysis** function in fastTopics, please cite:
 
-> Interpreting structure in sequence count data with differential
-> expression analysis allowing for grades of membership.
+> *Interpreting structure in sequence count data with differential
+> expression analysis allowing for grades of membership.*
 > 
 > P. Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and
 > M. Stephens
 >
 > bioRxiv, 2023.
 >
-> doi: [10.1101/2023.03.03.531029][https://doi.org/10.1101/2023.03.03.531029]
+> doi: [10.1101/2023.03.03.531029](https://doi.org/10.1101/2023.03.03.531029)
 
-To begin, loading the packages used to perform the analysis.
+To begin, load the packages we will need to perform the analysis.
 
 ```{r load-pkgs, message=FALSE, warning=FALSE}
 library(Seurat)
@@ -68,13 +68,13 @@ library(fastTopics)
 library(cowplot)
 ```
 
-And set the seed so that the results can be reproduced.
+Set the seed so that the results can be reproduced.
 
 ```{r set-seed}
 set.seed(1)
 ```
 
-Load and, if necessary, install the PBMC 3k data set containing
+Load (and install if necessary) the PBMC 3k data set containing
 transcription profiles for 2,700 cells.
 
 ```{r load-data, warning=FALSE}
@@ -91,10 +91,10 @@ minutes to fit the model.
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
 ```
 
-To fit a topic model, we must specify $K$, the number of topics.
-Here, we have chosen $K = 6$ topics. In most settings, a good choice
-of $K$ will not be known in advance, so you will you want to explore
-the results from topic models at different settings of $K$.
+To fit a topic model, we had to choose $K$, the number of topics.
+Here, we chose $K = 6$ topics. In most settings, a good choice of $K$
+will not be known in advance, so you will likely want to explore the
+different settings of $K$.
 
 This first plot shows the cells projected onto the top two PCs of the
 topic proportions.
@@ -105,7 +105,7 @@ DimPlot(pbmc3k,reduction = "pca_topics",pt.size = 1) +
   theme_cowplot(font_size = 10)
 ```
 
-Compare this against the top two PCs of the transformed counts:
+Compare this with the top two PCs of the normalized and scaled counts:
 
 ```{r pca-2, fig.width=4.5, fig.height=3, message=FALSE}
 pbmc3k <- FindVariableFeatures(pbmc3k)
@@ -123,15 +123,17 @@ in the "misc" slot:
 fit <- Misc(Reductions(pbmc3k,"multinom_topic_model"))
 ```
 
-Once the fitted topic model is extracted, many fastTopics functions
-can be used for analysis and visualization. For example, the Structure
-plot provides an evocative visual summary of the estimated topic
-proportions for each cell. Here, we have grouped the cells by
-previously inferred labels.
+Once the topic model has been extracted from the Seurat object, many
+fastTopics functions can be used for downstream analysis and
+visualization. For example, we can create a *Structure plot* to
+visualize all $K$ dimensions of the topic model simultaneously:
 
 ```{r structure-plot, fig.width=7.5, fig.height=1.75, results="hide", message=FALSE}
 structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
+
+In this plot, each position along the x-axis is a cell, and bar
+heights correspond to topic proportions (which sum to 1 for each cell).
 
 TO DO: Illustrate the use of the de_analysis.
 
