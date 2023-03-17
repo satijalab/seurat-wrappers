@@ -95,6 +95,9 @@ Optimize the
   likelihood under a Poisson model of the count data, \code{X}, in
   which the Poisson rates are given by \code{tcrossprod(L,F)}.
 }
+\details{
+See \code{\link[fastTopics]{fit_poisson_nmf}} for details.
+}
 \examples{
 library(Seurat)
 library(fastTopics)

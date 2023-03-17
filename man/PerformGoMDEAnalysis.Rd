@@ -20,6 +20,14 @@ Describe the return value here.
 \description{
 Add description here.
 }
+\details{
+See \code{\link[fastTopics]{de_analysis}} for details.
+}
+\examples{
+# See help(FitTopicModel) for an example, and the fastTopics
+# SeuratWrappers vignette for a more detailed example.
+
+}
 \seealso{
 \code{\link{FitPoissonNMF}},
 \code{\link{FitTopicModel}}

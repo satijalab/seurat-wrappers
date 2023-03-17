@@ -4,6 +4,8 @@
 #'   likelihood under a Poisson model of the count data, \code{X}, in
 #'   which the Poisson rates are given by \code{tcrossprod(L,F)}.
 #'
+#' @details See \code{\link[fastTopics]{fit_poisson_nmf}} for details.
+#'
 #' @param object A Seurat object. If this Seurat object contains a
 #'   Poisson NMF dimensionality reduction object (\dQuote{DimReduc}),
 #'   the model fitting will be initialized to this previously fitted
@@ -354,7 +356,9 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 #' @title Perform a Differential Expression Analysis using a Topic Model
 #'
 #' @description Add description here.
-#' 
+#'
+#' @details See \code{\link[fastTopics]{de_analysis}} for details.
+#'
 #' @param object A Seurat object containing a previously fitted
 #'   multinomial topic model or Poisson NMF dimensionality reduction
 #'   object.
@@ -368,10 +372,50 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 #' \code{\link{FitPoissonNMF}},
 #' \code{\link{FitTopicModel}}
 #'
+#' @examples
+#' # See help(FitTopicModel) for an example, and the fastTopics
+#' # SeuratWrappers vignette for a more detailed example.
+#'
+#' @importFrom fastTopics de_analysis
+#'
 #' @export
 #' 
 PerformGoMDEAnalysis <- function (object, ...) {
 
+  # Check the input arguments, and that fastTopics is installed.
+  CheckPackage(package = "stephenslab/fastTopics")
+  if (!inherits(object,"Seurat"))
+    stop("\"object\" must be a Seurat object",call. = FALSE)
+  
+  # Get the previously fit topic model or Poisson NMF.
+  
+  # Fit the Poisson non-negative matrix factorization using
+  # fastTopics. If Seurat object has an existing "poisson_nmf"
+  # reduction, use this to initialize the fit.
+  if (is.element("multinom_topic_model",Reductions(object)))
+    reduct <- Reductions(object,"multinom_topic_model")
+  else if (is.element("poisson_nmf",Reductions(object)))
+    reduct <- Reductions(object,"poisson_nmf")
+  else
+    stop("Seurat object must contain a Poisson NMF or multinomial topic ",
+         "model fitted by calling FitPoissonNMF or FitTopicModel")
+  assay <- reduct@assay.used
+  fit <- Misc(reduct)
+
+  # Get the n x m counts matrix, where n is the number of samples
+  # (cells) and m is the number of selected features.
+  features <- rownames(fit$F)
+  assay <- assay %||% DefaultAssay(object)
+  DefaultAssay(object) <- assay
+  X <- prepare_counts_fasttopics(object,features)
+
+  # Perform the differential expression analysis.
+  de <- de_analysis(fit,X,...)
+
+  # TO DO: Update the DimReduc object.
+
+  # Output the updated Seurat object.
+  return(LogSeuratCommand(object))
 }
 
 # Get the n x m counts matrix, where n is the number of samples
