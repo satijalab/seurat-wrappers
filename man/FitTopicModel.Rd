@@ -119,10 +119,14 @@ DimPlot(pbmc_small,reduction = "pca")
 
 # Once fitted topic model is extracted, many functions from the
 # fastTopics package can be used for analysis and visualization. For
-# example, the Structure plot provides an evocative visual summary of
-# the estimated mixture proportions for each cell.
-fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))
+# example, the Structure plot can be used to visualize the topic model.
+fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))$fit
 structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
+
+# Perform a differential expression analysis using the fitted topic
+# model.
+pbmc_small <- PerformGoMDEAnalysis(pbmc_small,pseudocount = 0.1,
+                                   control = list(ns = 1e4,nc = 2))
 
 }
 \references{

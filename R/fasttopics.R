@@ -112,7 +112,12 @@
 #' # Extract the non-negative matrix factorization.
 #' fit <- Misc(Reductions(pbmc_small,"poisson_nmf"))
 #' summary(fit)
-#' 
+#'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat Reductions
+#' @importFrom Seurat Misc
+#' @importFrom Seurat LogSeuratCommand
+#' @importFrom Seurat CreateDimReducObject
 #' @importFrom fastTopics fit_poisson_nmf
 #' 
 #' @export
@@ -147,7 +152,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   # fastTopics. If Seurat object has an existing "poisson_nmf"
   # reduction, use this to initialize the fit.
   if (is.element("poisson_nmf",Reductions(object))) {
-    fit0 <- Misc(Reductions(object,"poisson_nmf"))
+    fit0 <- Misc(Reductions(object,"poisson_nmf"))$fit
     fit <- fit_poisson_nmf(X,fit0 = fit0,numiter = numiter,method = method,
                            init.method = init.method,control = control,
                            verbose = verbose,...)
@@ -170,7 +175,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   object[[reduction.name]] <-
     CreateDimReducObject(embeddings,loadings,assay = assay,
                          key = reduction.key,global = TRUE,
-                         misc = fit)
+                         misc = list(fit = fit))
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
@@ -296,11 +301,19 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #'
 #' # Once fitted topic model is extracted, many functions from the
 #' # fastTopics package can be used for analysis and visualization. For
-#' # example, the Structure plot provides an evocative visual summary of
-#' # the estimated mixture proportions for each cell.
-#' fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))
+#' # example, the Structure plot can be used to visualize the topic model.
+#' fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))$fit
 #' structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
 #'
+#' # Perform a differential expression analysis using the fitted topic
+#' # model.
+#' pbmc_small <- PerformGoMDEAnalysis(pbmc_small,pseudocount = 0.1,
+#'                                    control = list(ns = 1e4,nc = 2))
+#'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat CreateDimReducObject
+#' @importFrom Seurat LogSeuratCommand
+#' @importFrom Seurat Misc
 #' @importFrom fastTopics fit_topic_model
 #' 
 #' @export
@@ -342,7 +355,7 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   object[[reduction.name]] <-
     CreateDimReducObject(embeddings,loadings,assay = assay,
                          key = reduction.key,global = TRUE,
-                         misc = fit)
+                         misc = list(fit = fit))
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
@@ -376,6 +389,11 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 #' # See help(FitTopicModel) for an example, and the fastTopics
 #' # SeuratWrappers vignette for a more detailed example.
 #'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat Misc
+#' @importFrom Seurat Misc<-
+#' @importFrom Seurat Reductions
+#' @importFrom Seurat LogSeuratCommand
 #' @importFrom fastTopics de_analysis
 #'
 #' @export
@@ -388,34 +406,33 @@ PerformGoMDEAnalysis <- function (object, ...) {
     stop("\"object\" must be a Seurat object",call. = FALSE)
   
   # Get the previously fit topic model or Poisson NMF.
-  
-  # Fit the Poisson non-negative matrix factorization using
-  # fastTopics. If Seurat object has an existing "poisson_nmf"
-  # reduction, use this to initialize the fit.
   if (is.element("multinom_topic_model",Reductions(object)))
-    reduct <- Reductions(object,"multinom_topic_model")
+    reduction.name <- "multinom_topic_model"
   else if (is.element("poisson_nmf",Reductions(object)))
-    reduct <- Reductions(object,"poisson_nmf")
+    reduction.name <- "poisson_nmf"
   else
     stop("Seurat object must contain a Poisson NMF or multinomial topic ",
          "model fitted by calling FitPoissonNMF or FitTopicModel")
-  assay <- reduct@assay.used
-  fit <- Misc(reduct)
-
+  reduct <- Reductions(object,reduction.name)
+  fit <- Misc(reduct)$fit
+  
   # Get the n x m counts matrix, where n is the number of samples
   # (cells) and m is the number of selected features.
-  features <- rownames(fit$F)
+  assay <- reduct@assay.used
   assay <- assay %||% DefaultAssay(object)
   DefaultAssay(object) <- assay
+  features <- rownames(fit$F)
   X <- prepare_counts_fasttopics(object,features)
 
-  # Perform the differential expression analysis.
-  de <- de_analysis(fit,X,...)
-
-  # TO DO: Update the DimReduc object.
-
+  # Perform the differential expression analysis and store the result
+  # in the Seurat object.
+  out          <- Misc(reduct)
+  out$de       <- de_analysis(fit,X,...)
+  reduct@misc <- out
+  object[[reduction.name]] <- reduct
+  
   # Output the updated Seurat object.
-  return(LogSeuratCommand(object))
+  return(object)
 }
 
 # Get the n x m counts matrix, where n is the number of samples
