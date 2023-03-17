@@ -20,10 +20,10 @@ knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
 ```
 
 This vignette illustrates the use of the [fastTopics][fasttopics]
-Seurat wrapper to analyze a Seurat data set. This vignette is only
-intended to introduce the basic fastTopics interface for Seurat
-objects---for more guidance on analyzing single-cell RNA-seq data
-using a topic model, please see the
+Seurat wrapper to analyze a Seurat data set. This vignette is intended
+only to introduce the basic fastTopics interface for Seurat
+objects. For more detailed guidance on analyzing single-cell RNA-seq
+data using a topic model, please see the
 [fastTopics vignettes][fasttopics-vignettes].
 
 If you find the **fastTopics** package useful for your work, please
@@ -136,20 +136,22 @@ structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
 
 In the Structure plot, each position along the x-axis is a cell, and
-bar heights correspond to topic proportions (which sum to 1 for each
-cell).
+the bar heights at each positioin correspond to topic proportions for
+that cell.
 
-From this plot, we see that topic 3 (green) closely corresponds to B
-cells. Topics 1 (red) and 4 (purple) also correspond well to the two
-types of monocytes, but there is some overlap; the purple topic is
-shared by both types of monocytes.
+From this plot, we observe that topic 3 (green) closely corresponds to
+B cells. Topics 1 (red) and 4 (purple) also correspond fairly well to
+the two types of monocytes, but there is also some overlap in the
+topics; in particular, the purple topic is shared by both types of
+monocytes. This suggests that expression in these two types of cells
+is less distinguishable than B cells vs. other cell types.
 
-Topic 5 (orange) corresponds well to natural killer (NK) cells, and
-topic 2 (blue) appears to capture biological processes common to T
-cells. The CD8+ T cells have characteristics of both NK cells and T
-cells---these are T cells that sometimes become ``NK-like''---and this
-is captured in the topic model by assigning membership to both topics
-2 and 5.
+Topic 5 (orange) corresponds closely to natural killer (NK) cells.
+Topic 2 (blue) appears to capture biological processes common to T
+cells. Interestingly, CD8+ T cells have characteristics of both NK
+cells and T cells---these are T cells that sometimes become
+``NK-like''---and this is reflected in the topic model by assigning
+membership to both topics 2 and 5 (blue and orange).
 
 The other cell types (platelets, dendritic cells), perhaps because
 they are less abundant and/or difficult to distinguish from the other
