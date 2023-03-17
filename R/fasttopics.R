@@ -1,4 +1,4 @@
-#' @title Fit a Non-negative Matrix Factorization Using fastTopics
+#' @title Fit a Non-negative Matrix Factorization using fastTopics
 #'
 #' @description Approximate the raw count data \code{X} by the
 #'   non-negative matrix factorization \code{tcrossprod(L,F)}, in which
@@ -52,7 +52,8 @@
 #'   is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
 #'   for more information.
 #' 
-#' @param \dots Additional arguments passed to \code{fit_poisson_nmf}.
+#' @param \dots Additional arguments passed to
+#'   \code{\link[fastTopics]{fit_poisson_nmf}}.
 #'
 #' @return A Seurat object, in which the Poisson NMF fit is stored as
 #' a Seurat \code{\link[Seurat]{DimReduc}} object. The cell embeddings
@@ -81,6 +82,7 @@
 #'   Processing Systems} \bold{13}, 556–562.
 #'
 #' @seealso \code{\link{FitTopicModel}},
+#'   \code{\link{PerformGoMDEAnalysis}},
 #'   \code{\link[fastTopics]{fit_poisson_nmf}}
 #'
 #' @examples
@@ -140,7 +142,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 
   # Fit the Poisson non-negative matrix factorization using
   # fastTopics. If Seurat object has an existing "poisson_nmf"
-  # reduction, use this to initialize the model fitting.
+  # reduction, use this to initialize the fit.
   if (is.element("poisson_nmf",Reductions(object))) {
     fit0 <- Misc(Reductions(object,"poisson_nmf"))
     fit <- fit_poisson_nmf(X,fit0 = fit0,numiter = numiter,method = method,
@@ -173,7 +175,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   return(LogSeuratCommand(object))
 }
 
-#' @title Fit a Multinomial Topic Model Using fastTopics
+#' @title Fit a Multinomial Topic Model using fastTopics
 #'
 #' @description Fits a multinomial topic model to the raw count data,
 #'   hiding most of the complexities of model fitting. The default
@@ -217,11 +219,11 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' @param reduction.pca.name Name of the outputted PCA reduction.
 #'
 #' @param reduction.pca.key Key for the outputted PCA reduction.
-#' 
+#'
 #' @param verbose When \code{verbose = "progressbar"} or \code{verbose
 #'   = "detailed"}, information about the progress of the model fitting
-#'   is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
-#'   for more information.
+#'   is printed to the console. See
+#'   \code{\link[fastTopics]{fit_poisson_nmf}} for more information.
 #' 
 #' @param \dots Additional arguments passed to \code{fit_topic_model};
 #'   see \code{\link[fastTopics]{fit_topic_model}} for details.
@@ -264,6 +266,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' models. \emph{PLoS Genetics} \bold{13}, e1006599.
 #'
 #' @seealso \code{\link{FitPoissonNMF}},
+#'   \code{\link{PerformGoMDEAnalysis}},
 #'   \code{\link[fastTopics]{fit_topic_model}}
 #'
 #' @examples
@@ -319,9 +322,12 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   features <- colnames(X)
   
   # Fit the multinomial topic model using fastTopics.
+  if (verbose != "none")
+    cat(sprintf(paste("Fitting topic model with k = %d topics to %d x %d",
+                      "counts matrix.\n"),k,nrow(X),ncol(X)))
   fit <- fit_topic_model(X,k,verbose = verbose,...)
   class(fit) <- c("list","multinom_topic_model_fit")
-  
+
   # Retrieve the factors matrix (n x k) and loadings matrix (m x k).
   embeddings <- fit$L
   loadings <- fit$F
@@ -341,6 +347,25 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 
   # Output the updated Seurat object.
   return(LogSeuratCommand(object))
+}
+
+#' @title Perform a Differential Expression Analysis using a Topic Model
+#'
+#' @description Add description here.
+#' 
+#' @param object A Seurat object containing a previously fitted
+#'   multinomial topic model or Poisson NMF dimensionality reduction
+#'   object.
+#'
+#' @param \dots Additional arguments passed to
+#'   \code{\link[fastTopics]{de_analysis}}.
+#'
+#' @return Describe the return value here.
+#' 
+#' @export
+#' 
+PerformGoMDEAnalysis <- function (object, ...) {
+
 }
 
 # Get the n x m counts matrix, where n is the number of samples
