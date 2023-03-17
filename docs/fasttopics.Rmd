@@ -7,10 +7,11 @@ output:
     self_contained: no
 ---
 
-# Run this to generate the HTML and Markdown outputs:
-# library(rmarkdown)
-# render("fasttopics.Rmd")
-# render("fasttopics.Rmd",output_format = md_document())
+<-- Run this to generate the HTML and Markdown outputs:
+library(rmarkdown)
+render("fasttopics.Rmd")
+render("fasttopics.Rmd",output_format = md_document())
+-->
 
 ```{r knitr-opts, include=FALSE}
 knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
