@@ -173,9 +173,6 @@ pre code {
 </div>
 
 
-<p>&lt;– Run this to generate the HTML and Markdown outputs:
-library(rmarkdown) render(“fasttopics.Rmd”)
-render(“fasttopics.Rmd”,output_format = md_document()) –&gt;</p>
 <p>This vignette illustrates the use of the <a
 href="https://github.com/stephenslab/fastTopics">fastTopics</a> Seurat
 wrapper to analyze a Seurat data set. This vignette is intended only to
@@ -282,7 +279,27 @@ cell types.</p>
 <p>Topic 6 is present in almost all cells to varying degrees, and
 therefore its biological interpretation is not at all clear from the
 cell labeling.</p>
-<p>TO DO: Illustrate the use of the de_analysis.</p>
+<p>Motivate the DE analysis using the topic model:</p>
+<pre class="r"><code>pbmc3k &lt;- PerformGoMDEAnalysis(pbmc3k, pseudocount = 0.1, control = list(ns = 10000, nc = 4))
+# Using 4 RcppParallel threads.
+# Fitting 13714 Poisson models with k=6 using method=&quot;scd&quot;.
+# Computing log-fold change statistics from 13714 Poisson models with k=6.
+# Stabilizing posterior log-fold change estimates using adaptive shrinkage.</code></pre>
+<p>Now we can create volcano plots to visualize the results of the DE
+analysis.</p>
+<p>B cells:</p>
+<pre class="r"><code>de &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))$de
+volcano_plot(de, k = 3)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-b-cells-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>CD14+ monocytes:</p>
+<pre class="r"><code>volcano_plot(de, k = 1)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-cd14-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>NK cells:</p>
+<pre class="r"><code>volcano_plot(de, k = 5, ymax = 50)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-nk-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>Ribosomal protein genes:</p>
+<pre class="r"><code>volcano_plot(de, k = 6, ymax = 50)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-rp-genes-1.png" width="540" style="display: block; margin: auto;" /></p>
 <p>This is the version of R and the packages that were used to generate
 these results:</p>
 <pre class="r"><code>sessionInfo()
