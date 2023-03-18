@@ -158,7 +158,7 @@ cell labeling.
 
 Motivate the DE analysis using the topic model:
 
-```{r de-analysis, cache=TRUE}
+```{r de-analysis, message=FALSE, cache=TRUE}
 pbmc3k <- PerformGoMDEAnalysis(pbmc3k,pseudocount = 0.1,
                                control = list(ns = 1e4,nc = 4))
 ```
@@ -170,13 +170,13 @@ B cells:
 
 ```{r volcano-plot-b-cells, fig.height=4, fig.width=4.5}
 de <- Misc(Reductions(pbmc3k,"multinom_topic_model"))$de
-volcano_plot(de,k = 3)
+volcano_plot(de,k = 3,ymax = 100)
 ```
 
 CD14+ monocytes:
 
 ```{r volcano-plot-cd14, fig.height=4, fig.width=4.5}
-volcano_plot(de,k = 1)
+volcano_plot(de,k = 1,ymax = 100)
 ```
 
 NK cells:
