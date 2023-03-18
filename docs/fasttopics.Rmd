@@ -7,12 +7,6 @@ output:
     self_contained: no
 ---
 
-<-- Run this to generate the HTML and Markdown outputs:
-library(rmarkdown)
-render("fasttopics.Rmd")
-render("fasttopics.Rmd",output_format = md_document())
--->
-
 ```{r knitr-opts, include=FALSE}
 knitr::opts_chunk$set(comment = "#",collapse = TRUE,results = "hold",
                       fig.align = "center",dpi = 120,tidy = TRUE,
@@ -90,7 +84,7 @@ Fit the multinomial topic model to the raw UMI counts. *No data
 preprocessing or gene filtering is needed.* It may take several
 minutes to fit the model.
 
-```{r fit-model, results="hide", message=FALSE}
+```{r fit-model, results="hide", message=FALSE, cache=TRUE}
 pbmc3k <- FitTopicModel(pbmc3k,k = 6)
 ```
 
@@ -162,7 +156,40 @@ Topic 6 is present in almost all cells to varying degrees, and
 therefore its biological interpretation is not at all clear from the
 cell labeling.
 
-TO DO: Illustrate the use of the de_analysis.
+Motivate the DE analysis using the topic model:
+
+```{r de-analysis, cache=TRUE}
+pbmc3k <- PerformGoMDEAnalysis(pbmc3k,pseudocount = 0.1,
+                               control = list(ns = 1e4,nc = 4))
+```
+
+Now we can create volcano plots to visualize the results of the DE
+analysis.
+
+B cells:
+
+```{r volcano-plot-b-cells, fig.height=4, fig.width=4.5}
+de <- Misc(Reductions(pbmc3k,"multinom_topic_model"))$de
+volcano_plot(de,k = 3)
+```
+
+CD14+ monocytes:
+
+```{r volcano-plot-cd14, fig.height=4, fig.width=4.5}
+volcano_plot(de,k = 1)
+```
+
+NK cells:
+
+```{r volcano-plot-nk, fig.height=4, fig.width=4.5}
+volcano_plot(de,k = 5,ymax = 50)
+```
+
+Ribosomal protein genes:
+
+```{r volcano-plot-rp-genes, fig.height=4, fig.width=4.5}
+volcano_plot(de,k = 6,ymax = 50)
+```
 
 This is the version of R and the packages that were used to generate
 these results:

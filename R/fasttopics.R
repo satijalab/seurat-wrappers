@@ -469,3 +469,11 @@ pca_from_loadings_fasttopics <- function (fit, assay, reduction.key,
   return(CreateDimReducObject(out$x[,cols],out$rotation[,cols],assay = assay,
                               key = reduction.key,global = TRUE))
 }
+
+# Run this to generate the HTML and Markdown for the fasttopics
+# vignette:
+#
+#   library(rmarkdown)
+#   render("fasttopics.Rmd")
+#   render("fasttopics.Rmd",output_format = md_document())
+#
