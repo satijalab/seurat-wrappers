@@ -9,7 +9,7 @@ NULL
 #'
 #' @return A Seurat object with embeddings and loadings
 
-scVI_integration <- function(
+scVIIntegration <- function(
     object,
     groups = NULL,
     features = NULL,
@@ -43,3 +43,5 @@ scVI_integration <- function(
   names(output.list) <- new.reduction
   return(output.list)
 }
+
+attr(x = scVIIntegration, which = 'Seurat.method') <- 'integration'

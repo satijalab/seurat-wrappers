@@ -28,6 +28,7 @@ NULL
 #'
 #' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures VariableFeatures VariableFeatures<-
 #' as.SingleCellExperiment CreateDimReducObject Tool<- LogSeuratCommand
+#' @importFrom rlang check_installed
 #'
 #' @export
 #'
