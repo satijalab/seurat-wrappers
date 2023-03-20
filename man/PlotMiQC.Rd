@@ -15,9 +15,6 @@ PlotMiQC(
 \arguments{
 \item{object}{Seurat object}
 }
-\value{
-
-}
 \description{
 Run miQC on a Seurat object
 }

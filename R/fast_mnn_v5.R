@@ -5,8 +5,8 @@ NULL
 #' Run fastMNN in Seurat 5
 #'
 #' @param object A merged seurat object
-#' @param groups
-#' @param layers 
+#' @param groups A one-column data frame with grouping information
+#' @param layers Layers to use 
 #' @param assay Assay to use, defaults to the default assay of the first object
 #' @param features Either a list of features to use when calculating batch
 #' correction, or a number (2000 by default) of variable features to select.
