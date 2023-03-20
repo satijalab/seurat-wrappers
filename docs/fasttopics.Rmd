@@ -179,7 +179,7 @@ de <- Misc(Reductions(pbmc3k,"multinom_topic_model"))$de
 volcano_plot(de,k = 3,ymax = 100)
 ```
 
-*Add text here.*
+*Add text here here describing the volcano plot.*
 
 CD14+ monocytes:
 
