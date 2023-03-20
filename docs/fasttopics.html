@@ -168,7 +168,7 @@ pre code {
 
 
 <h1 class="title toc-ignore">Analyzing Seurat data using fastTopics</h1>
-<h4 class="date">Compiled: March 17, 2023</h4>
+<h4 class="date">Compiled: March 20, 2023</h4>
 
 </div>
 
@@ -176,40 +176,28 @@ pre code {
 <p>This vignette illustrates the use of the <a
 href="https://github.com/stephenslab/fastTopics">fastTopics</a> Seurat
 wrapper to analyze a Seurat data set. This vignette is intended only to
-introduce the basic fastTopics interface for Seurat objects. For more
-detailed guidance on analyzing single-cell RNA-seq data using a topic
-model, please see the <a
+introduce the basic Seurat interface, and for more detailed guidance
+please visit the <a
 href="https://stephenslab.github.io/fastTopics/articles">fastTopics
 vignettes</a>.</p>
 <p>If you find the <strong>fastTopics</strong> package useful for your
 work, please cite:</p>
-<blockquote>
 <p><em>Visualizing the structure of RNA-seq expression data using grade
-of membership models.</em></p>
-<p>K. K. Dey, C. J. Hsiao and M. Stephens.</p>
-<p>PLoS Genetics, 2017.</p>
-<p>doi: <a
+of membership models.</em><br> K. K. Dey, C. J. Hsiao and M.
+Stephens.<br> PLoS Genetics, 2017.<br> doi: <a
 href="https://doi.org/10.1371/journal.pgen.1006599">10.1371/journal.pgen.1006599</a></p>
-</blockquote>
 <p>and</p>
-<blockquote>
 <p><em>Non-negative matrix factorization algorithms greatly improve
-topic model fits.</em></p>
-<p>P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens.</p>
-<p>arXiv, 2021</p>
-<p><a href="https://arxiv.org/abs/2105.13440">arXiv 2105.13440</a></p>
-</blockquote>
-<p>If you use the <strong>de_analysis</strong> function in fastTopics,
-please cite:</p>
-<blockquote>
+topic model fits.</em><br> P. Carbonetto, A. Sarkar, Z. Wang and M.
+Stephens.<br> arXiv, 2021.<br> <a
+href="https://arxiv.org/abs/2105.13440">arXiv 2105.13440</a></p>
+<p>If you use the <strong>de_analysis</strong> function in
+<strong>fastTopics</strong>, please cite:</p>
 <p><em>Interpreting structure in sequence count data with differential
-expression analysis allowing for grades of membership.</em></p>
-<p>P. Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and M.
-Stephens</p>
-<p>bioRxiv, 2023.</p>
-<p>doi: <a
+expression analysis allowing for grades of membership.</em><br> P.
+Carbonetto, K. Luo, A. Sarkar, A. Hung, K. Tayeb, S. Pott and M.
+Stephens.<br> bioRxiv, 2023.<br> doi: <a
 href="https://doi.org/10.1101/2023.03.03.531029">10.1101/2023.03.03.531029</a></p>
-</blockquote>
 <p>To begin, load the packages we will need to perform the analysis.</p>
 <pre class="r"><code>library(Seurat)
 library(SeuratData)
@@ -225,7 +213,7 @@ data(pbmc3k)
 dim(GetAssayData(pbmc3k))
 # [1] 13714  2700</code></pre>
 <p>Fit the multinomial topic model to the raw UMI counts. <em>No data
-preprocessing or gene filtering is needed.</em> It may take several
+preprocessing or gene filtering is needed.</em> Note it may take several
 minutes to fit the model.</p>
 <pre class="r"><code>pbmc3k &lt;- FitTopicModel(pbmc3k, k = 6)</code></pre>
 <p>To fit a topic model, we had to choose <span
@@ -250,28 +238,29 @@ DimPlot(pbmc3k, reduction = &quot;pca&quot;, pt.size = 1) + theme_cowplot(font_s
 <p>The fitted topic model—a “multinom_topic_model” object—is stored in
 the “misc” slot:</p>
 <pre class="r"><code>fit &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))$fit</code></pre>
-<p>Once the topic model has been extracted from the Seurat object, many
-fastTopics functions can be used for downstream analysis and
+<p>Once the topic model has been extracted from the Seurat object, a
+variety of fastTopics functions can be used for downstream analysis and
 visualization. For example, we can create a “Structure plot” to
 visualize all <span class="math inline">\(K\)</span> dimensions of the
 topic model simultaneously:</p>
 <pre class="r"><code>structure_plot(fit, grouping = Idents(pbmc3k), gap = 25)</code></pre>
 <p><img src="fasttopics_files/figure-html/structure-plot-1.png" width="900" style="display: block; margin: auto;" /></p>
-<p>In the Structure plot, each position along the x-axis is a cell, and
-the bar heights at each positioin correspond to topic proportions for
+<p>In the Structure plot, each position along the x-axis is a cell and
+the bar heights at each position correspond to topic proportions for
 that cell.</p>
-<p>From this plot, we observe that topic 3 (green) closely corresponds
-to B cells. Topics 1 (red) and 4 (purple) also correspond fairly well to
-the two types of monocytes, but there is also some overlap in the
-topics; in particular, the purple topic is shared by both types of
-monocytes. This suggests that expression in these two types of cells is
-less distinguishable than B cells vs. other cell types.</p>
+<p>Looking closely at the Structure plot, we observe that topic 3
+(green) closely corresponds to B cells. Topics 1 (red) and 4 (purple)
+also correspond fairly well to the two types of monocytes, but there is
+also some overlap in the topics; in particular, the purple topic is
+shared by both types of monocytes. This suggests that expression in
+these two types of cells is less distinguishable than B cells vs. other
+cell types.</p>
 <p>Topic 5 (orange) corresponds closely to natural killer (NK) cells.
 Topic 2 (blue) appears to capture biological processes common to T
 cells. Interestingly, CD8+ T cells have characteristics of both NK cells
 and T cells—these are T cells that sometimes become ``NK-like’’—and this
 is reflected in the topic model by assigning membership to both topics 2
-and 5 (blue and orange).</p>
+and 5.</p>
 <p>The other cell types (platelets, dendritic cells), perhaps because
 they are less abundant and/or difficult to distinguish from the other
 cell types, are represented as combinations of the topics for the other
@@ -279,27 +268,44 @@ cell types.</p>
 <p>Topic 6 is present in almost all cells to varying degrees, and
 therefore its biological interpretation is not at all clear from the
 cell labeling.</p>
-<p>Motivate the DE analysis using the topic model:</p>
+<p>Having compared the topic model with the existing cell-type labels,
+our next aim is to annotate the topics by identifying genes that are
+distinctive to each topic. To do this, we perform a “grade of
+membership” differential expression analysis (GoM DE):</p>
 <pre class="r"><code>pbmc3k &lt;- PerformGoMDEAnalysis(pbmc3k, pseudocount = 0.1, control = list(ns = 10000, nc = 4))
-# Using 4 RcppParallel threads.
 # Fitting 13714 Poisson models with k=6 using method=&quot;scd&quot;.
 # Computing log-fold change statistics from 13714 Poisson models with k=6.
 # Stabilizing posterior log-fold change estimates using adaptive shrinkage.</code></pre>
-<p>Now we can create volcano plots to visualize the results of the DE
-analysis.</p>
-<p>B cells:</p>
+<p>Note this step may take some time to run on your computer—10 minutes,
+or perhaps more. This is an expensive step because posterior estimation
+is performed through Monte Carlo simulation.</p>
+<p>Once the differential expression analysis is complete, we can use a
+“volcano plot” to visualize the results. For example, this is the
+volcano plot for topic 3:</p>
 <pre class="r"><code>de &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))$de
-volcano_plot(de, k = 3)</code></pre>
-<p><img src="fasttopics_files/figure-html/volcano-plot-b-cells-1.png" width="540" style="display: block; margin: auto;" /></p>
-<p>CD14+ monocytes:</p>
-<pre class="r"><code>volcano_plot(de, k = 1)</code></pre>
-<p><img src="fasttopics_files/figure-html/volcano-plot-cd14-1.png" width="540" style="display: block; margin: auto;" /></p>
-<p>NK cells:</p>
+volcano_plot(de, k = 3, ymax = 100)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-b-cells-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>The volcano plot shows the log-fold change (LFC) on the x-axis and
+some measure of statistical support on the y-axis. For the measure of
+support, we use the posterior <em>z</em>-score (posterior mean divided
+by posterior standard deviation). To report which LFCs are significant,
+instead of a <em>p</em>-value we give the local false sign rate (lfsr),
+which is typically slightly more conservative than a <em>p</em>-value.
+Note the LFC is defined with the base-2 log by convention.</p>
+<p>Typically, the most interesting genes are found on the right-hand
+side of the volcano plot—the genes with the largest LFCs. Indeed,
+<em>CD79A</em> is on the far right-hand side of the plot, which aligns
+with our previous finding that topic 3 corresponds closely to B
+cells.</p>
+<p>Similarly, NK genes such as <em>NKG7</em> and <em>GNLY</em> emerge on
+the right-hand side of the volcano plot for topic 1:</p>
 <pre class="r"><code>volcano_plot(de, k = 5, ymax = 50)</code></pre>
-<p><img src="fasttopics_files/figure-html/volcano-plot-nk-1.png" width="540" style="display: block; margin: auto;" /></p>
-<p>Ribosomal protein genes:</p>
+<p><img src="fasttopics_files/figure-html/volcano-plot-nk-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>Topic 6 captures continuous structure and is present in almost all
+cells, and the GoM DE results for topic 6 show a striking enrichment of
+ribosome-associated genes:</p>
 <pre class="r"><code>volcano_plot(de, k = 6, ymax = 50)</code></pre>
-<p><img src="fasttopics_files/figure-html/volcano-plot-rp-genes-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p><img src="fasttopics_files/figure-html/volcano-plot-rp-genes-1.png" width="480" style="display: block; margin: auto;" /></p>
 <p>This is the version of R and the packages that were used to generate
 these results:</p>
 <pre class="r"><code>sessionInfo()
