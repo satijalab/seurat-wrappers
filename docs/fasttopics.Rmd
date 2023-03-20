@@ -136,7 +136,7 @@ structure_plot(fit,grouping = Idents(pbmc3k),gap = 25)
 ```
 
 In the Structure plot, each position along the x-axis is a cell, and
-the bar heights at each positioin correspond to topic proportions for
+the bar heights at each position correspond to topic proportions for
 that cell.
 
 From this plot, we observe that topic 3 (green) closely corresponds to
@@ -161,6 +161,11 @@ other cell types.
 Topic 6 is present in almost all cells to varying degrees, and
 therefore its biological interpretation is not at all clear from the
 cell labeling.
+
+Having fitted and visualized the topic model, our next aim is to
+annotate the topics by identify genes that are distinctive to each
+topic. To do this, we perform a "grade of membership" differential
+expression analysis (GoM DE):
 
 TO DO: Illustrate the use of the de_analysis.
 
