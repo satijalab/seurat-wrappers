@@ -2,7 +2,7 @@
 % Please edit documentation in R/fasttopics.R
 \name{FitPoissonNMF}
 \alias{FitPoissonNMF}
-\title{Fit a Non-negative Matrix Factorization Using fastTopics}
+\title{Fit a Non-negative Matrix Factorization using fastTopics}
 \usage{
 FitPoissonNMF(
   object,
@@ -67,7 +67,8 @@ the optimization algorithm. See
 is printed to the console. See \code{\link[fastTopics]{fit_poisson_nmf}}
 for more information.}
 
-\item{\dots}{Additional arguments passed to \code{fit_poisson_nmf}.}
+\item{\dots}{Additional arguments passed to
+\code{\link[fastTopics]{fit_poisson_nmf}}.}
 }
 \value{
 A Seurat object, in which the Poisson NMF fit is stored as
@@ -84,18 +85,18 @@ are the m x k factors matrix \code{F} outputted by
 Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
 access the \dQuote{"poisson_nmf_fit"} object outputted by
 \code{\link[fastTopics]{fit_poisson_nmf}}; see the example for an
-illustration.
+illustration of how to do this.
 
 An additional PCA dimension reduction computed from the k loadings
 is provided.
 }
 \description{
-Approximate the raw count data \code{X} by the
-  non-negative matrix factorization \code{tcrossprod(L,F)}, in which
-  the quality of the approximation is measured by a
-  \dQuote{divergence} criterion; equivalently, optimize the
+Optimize the
   likelihood under a Poisson model of the count data, \code{X}, in
   which the Poisson rates are given by \code{tcrossprod(L,F)}.
+}
+\details{
+See \code{\link[fastTopics]{fit_poisson_nmf}} for details.
 }
 \examples{
 library(Seurat)
@@ -108,7 +109,7 @@ data(pbmc_small)
 pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
 
 # Improve the fit by running another 20 updates.
-pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+pbmc_small <- FitPoissonNMF(pbmc_small,numiter = 20)
 
 # This plot shows the cells projected onto the 2 principal
 # components (PCs) of the topic mixture proportions.
@@ -124,12 +125,17 @@ summary(fit)
 
 }
 \references{
-Lee, D. D. and Seung, H. S. (2001). Algorithms for non-negative
-  matrix factorization. In \emph{Advances in Neural Information
-  Processing Systems} \bold{13}, 556–562.
+D. D. Lee and H. S. Seung (2001). Algorithms for non-negative
+matrix factorization. In \emph{Advances in Neural Information
+Processing Systems} \bold{13}, 556–562.
+
+P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens (2021).
+Non-negative matrix factorization algorithms greatly improve
+topic model fits. \emph{arXiv} 2105.13440.
 }
 \seealso{
 \code{\link{FitTopicModel}},
+  \code{\link{PerformGoMDEAnalysis}},
   \code{\link[fastTopics]{fit_poisson_nmf}}
 }
 \author{

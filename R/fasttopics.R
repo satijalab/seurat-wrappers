@@ -1,11 +1,10 @@
 #' @title Fit a Non-negative Matrix Factorization using fastTopics
 #'
-#' @description Approximate the raw count data \code{X} by the
-#'   non-negative matrix factorization \code{tcrossprod(L,F)}, in which
-#'   the quality of the approximation is measured by a
-#'   \dQuote{divergence} criterion; equivalently, optimize the
+#' @description Optimize the
 #'   likelihood under a Poisson model of the count data, \code{X}, in
 #'   which the Poisson rates are given by \code{tcrossprod(L,F)}.
+#'
+#' @details See \code{\link[fastTopics]{fit_poisson_nmf}} for details.
 #'
 #' @param object A Seurat object. If this Seurat object contains a
 #'   Poisson NMF dimensionality reduction object (\dQuote{DimReduc}),
@@ -69,7 +68,7 @@
 #' Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
 #' access the \dQuote{"poisson_nmf_fit"} object outputted by
 #' \code{\link[fastTopics]{fit_poisson_nmf}}; see the example for an
-#' illustration.
+#' illustration of how to do this.
 #'
 #' An additional PCA dimension reduction computed from the k loadings
 #' is provided.
@@ -77,9 +76,13 @@
 #' @author Peter Carbonetto
 #'
 #' @references
-#'   Lee, D. D. and Seung, H. S. (2001). Algorithms for non-negative
-#'   matrix factorization. In \emph{Advances in Neural Information
-#'   Processing Systems} \bold{13}, 556–562.
+#' D. D. Lee and H. S. Seung (2001). Algorithms for non-negative
+#' matrix factorization. In \emph{Advances in Neural Information
+#' Processing Systems} \bold{13}, 556–562.
+#'
+#' P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens (2021).
+#' Non-negative matrix factorization algorithms greatly improve
+#' topic model fits. \emph{arXiv} 2105.13440.
 #'
 #' @seealso \code{\link{FitTopicModel}},
 #'   \code{\link{PerformGoMDEAnalysis}},
@@ -96,7 +99,7 @@
 #' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
 #'
 #' # Improve the fit by running another 20 updates.
-#' pbmc_small <- FitPoissonNMF(pbmc_small,k = 3,numiter = 20)
+#' pbmc_small <- FitPoissonNMF(pbmc_small,numiter = 20)
 #'
 #' # This plot shows the cells projected onto the 2 principal
 #' # components (PCs) of the topic mixture proportions.
@@ -109,7 +112,12 @@
 #' # Extract the non-negative matrix factorization.
 #' fit <- Misc(Reductions(pbmc_small,"poisson_nmf"))
 #' summary(fit)
-#' 
+#'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat Reductions
+#' @importFrom Seurat Misc
+#' @importFrom Seurat LogSeuratCommand
+#' @importFrom Seurat CreateDimReducObject
 #' @importFrom fastTopics fit_poisson_nmf
 #' 
 #' @export
@@ -144,10 +152,13 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   # fastTopics. If Seurat object has an existing "poisson_nmf"
   # reduction, use this to initialize the fit.
   if (is.element("poisson_nmf",Reductions(object))) {
-    fit0 <- Misc(Reductions(object,"poisson_nmf"))
+    fit0 <- Misc(Reductions(object,"poisson_nmf"))$fit
     fit <- fit_poisson_nmf(X,fit0 = fit0,numiter = numiter,method = method,
                            init.method = init.method,control = control,
                            verbose = verbose,...)
+    if (!missing(k))
+      warning("Chosen value of k may conflict with existing fit")
+    k <- ncol(fit$F)
   } else
     fit <- fit_poisson_nmf(X,k,numiter = numiter,method = method,
                            init.method = init.method,control = control,
@@ -164,7 +175,7 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
   object[[reduction.name]] <-
     CreateDimReducObject(embeddings,loadings,assay = assay,
                          key = reduction.key,global = TRUE,
-                         misc = fit)
+                         misc = list(fit = fit))
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
@@ -177,26 +188,24 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 
 #' @title Fit a Multinomial Topic Model using fastTopics
 #'
-#' @description Fits a multinomial topic model to the raw count data,
-#'   hiding most of the complexities of model fitting. The default
-#'   optimization settings used here are intended to work well in a wide
-#'   range of data sets, although some fine-tuning may be needed for
-#'   larger or more complex data sets.
+#' @description Fits a multinomial topic model to the raw count data.
+#'   The default optimization settings used here are intended to work
+#'   well in a wide range of data sets, although some fine-tuning may be
+#'   needed for larger or more complex data sets.
 #'
-#' @details The topic model can be understood as a dimensionality
-#' reduction, in which the mixture proportions matrix, \code{L}, an n
-#' x k matrix, defines a projection of the cells onto a
-#' (k–1)-dimension space (n is the number of cells and k is the number
-#' of topics). The topic mixture proportions define the \dQuote{cell
-#' embedding} in the \code{DimReduc} object.
+#' @details The topic model can be viewed as a dimensionality reduction
+#' in which the topic proportions matrix, \code{L} (an n x k matrix,
+#' where n is the number of cells and k is the number of topics),
+#' defines a projection of the cells onto a k-dimensional embedding
+#' (strictly speaking, it is a (k-1)-dimensional embedding).  The topic
+#' proportions define the \dQuote{cell embedding} in the
+#' \code{DimReduc} object.
 #'
-#' \emph{A warning about confusing terminology:} In fastTopics,
-#' the \code{L} matrix is sometimes referred to as the "loadings
-#' matrix" (because this is the convention used in factor
-#' analysis). However, this is \emph{not} the same as the "feature
-#' loadings" matrix used in Seurat, which adopts the convention used n
-#' principal component analysis. To avoid confusion, we refer to
-#' \code{L} as the mixture proportions matrix.
+#' \emph{A warning about terminology:} In fastTopics, the \code{L}
+#' matrix is sometimes called the \dQuote{loadings matrix}. However,
+#' this is not the same as the \dQuote{feature loadings} matrix in
+#' Seurat. To avoid confusion, we instead prefer to refer to \code{L}
+#' as the topic proportions matrix.
 #' 
 #' See \code{\link[fastTopics]{fit_topic_model}} for more details.
 #' 
@@ -231,8 +240,8 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' @return A Seurat object, in which the multinomial topic model fit
 #' is stored as a Seurat \code{\link[Seurat]{DimReduc}} object. The
 #' cell embeddings (stored in the \code{cell.embeddings} slot) are the
-#' mixture proportions; this is the n x k matrix \code{L} outputted by
-#' \code{fit_topic_model} (n is the number of cells and k is the
+#' topic proportions; this is the n x k matrix \code{L} outputted by
+#' \code{fit_topic_model} (n is the number of cells, k is the
 #' number of topics).
 #' 
 #' The feature loadings (stored in the \code{feature.loadings} slot)
@@ -241,29 +250,32 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #' matrix \code{F} outputted by \code{fit_topic_model}.
 #'
 #' Apply \code{\link[Seurat]{Misc}} to the \code{DimReduce} object to
-#' access the \dQuote{"multinom_topic_model_fit"} object outputted by
-#' \code{\link[fastTopics]{fit_topic_model}}, which contains more
-#' information about the multinomial topic model fit; see the example
-#' here for an illustration of how to access the model fit, and see
-#' \code{\link[fastTopics]{fit_topic_model}} more information about
-#' the "multinom_topic_model_fit" object.
+#' access the \dQuote{multinom_topic_model_fit} object outputted by
+#' \code{\link[fastTopics]{fit_topic_model}} which contains more
+#' information about the topic model fit; see the example for an
+#' illustration, and see \code{\link[fastTopics]{fit_topic_model}} more
+#' information about the \dQuote{multinom_topic_model_fit} object.
 #'
-#' An additional PCA dimension reduction on \code{k-1} dimensions,
-#' computed from the mixture proportions, is provided. This could be
-#' useful, for example, to quickly visualize the cells using
-#' \code{\link[Seurat]{DimPlot}}. The principal components are
-#' computed from the topic mixture proportions. However, this
-#' reduction is provided for convenience only, and we recommend to
-#' extract the \dQuote{"multinom_topic_model_fit"} object and use the
-#' dedicated visualization tools that are provided in the fastTopics
-#' package such as \code{\link[fastTopics]{structure_plot}}.
+#' An additional PCA dimension reduction computed from the topic
+#' proportions is provided. This could be useful, for example, to
+#' quickly visualize the cells using \code{\link[Seurat]{DimPlot}}. The
+#' principal components are computed from the topic mixture
+#' proportions. However, this reduction is provided for convenience
+#' only, and we recommend to extract the
+#' \dQuote{multinom_topic_model_fit} object and use the dedicated
+#' visualization tools that are provided in fastTopics such as
+#' \code{\link[fastTopics]{structure_plot}}.
 #' 
 #' @author Peter Carbonetto
 #'
 #' @references
-#' Dey, K. K., Hsiao, C. J. and Stephens, M. (2017). Visualizing the
+#' K. K. Dey, C. J. Hsiao and M. Stephens (2017). Visualizing the
 #' structure of RNA-seq expression data using grade of membership
 #' models. \emph{PLoS Genetics} \bold{13}, e1006599.
+#'
+#' P. Carbonetto, A. Sarkar, Z. Wang and M. Stephens (2021).
+#' Non-negative matrix factorization algorithms greatly improve
+#' topic model fits. \emph{arXiv} 2105.13440.
 #'
 #' @seealso \code{\link{FitPoissonNMF}},
 #'   \code{\link{PerformGoMDEAnalysis}},
@@ -289,11 +301,19 @@ FitPoissonNMF <- function (object, k, assay = NULL, features = NULL,
 #'
 #' # Once fitted topic model is extracted, many functions from the
 #' # fastTopics package can be used for analysis and visualization. For
-#' # example, the Structure plot provides an evocative visual summary of
-#' # the estimated mixture proportions for each cell.
-#' fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))
+#' # example, the Structure plot can be used to visualize the topic model.
+#' fit <- Misc(Reductions(pbmc_small,"multinom_topic_model"))$fit
 #' structure_plot(fit,grouping = Idents(pbmc_small),gap = 5)
 #'
+#' # Perform a differential expression analysis using the fitted topic
+#' # model.
+#' pbmc_small <- PerformGoMDEAnalysis(pbmc_small,pseudocount = 0.1,
+#'                                    control = list(ns = 1e4,nc = 2))
+#'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat CreateDimReducObject
+#' @importFrom Seurat LogSeuratCommand
+#' @importFrom Seurat Misc
 #' @importFrom fastTopics fit_topic_model
 #' 
 #' @export
@@ -322,9 +342,6 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   features <- colnames(X)
   
   # Fit the multinomial topic model using fastTopics.
-  if (verbose != "none")
-    cat(sprintf(paste("Fitting topic model with k = %d topics to %d x %d",
-                      "counts matrix.\n"),k,nrow(X),ncol(X)))
   fit <- fit_topic_model(X,k,verbose = verbose,...)
   class(fit) <- c("list","multinom_topic_model_fit")
 
@@ -338,7 +355,7 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
   object[[reduction.name]] <-
     CreateDimReducObject(embeddings,loadings,assay = assay,
                          key = reduction.key,global = TRUE,
-                         misc = fit)
+                         misc = list(fit = fit))
 
   # Add a PCA dimension reduction calculated from the mixture
   # proportions.
@@ -352,7 +369,9 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 #' @title Perform a Differential Expression Analysis using a Topic Model
 #'
 #' @description Add description here.
-#' 
+#'
+#' @details See \code{\link[fastTopics]{de_analysis}} for details.
+#'
 #' @param object A Seurat object containing a previously fitted
 #'   multinomial topic model or Poisson NMF dimensionality reduction
 #'   object.
@@ -361,11 +380,59 @@ FitTopicModel <- function (object, k = 3, assay = NULL, features = NULL,
 #'   \code{\link[fastTopics]{de_analysis}}.
 #'
 #' @return Describe the return value here.
-#' 
+#'
+#' @seealso
+#' \code{\link{FitPoissonNMF}},
+#' \code{\link{FitTopicModel}}
+#'
+#' @examples
+#' # See help(FitTopicModel) for an example, and the fastTopics
+#' # SeuratWrappers vignette for a more detailed example.
+#'
+#' @importFrom Seurat DefaultAssay
+#' @importFrom Seurat Misc
+#' @importFrom Seurat Misc<-
+#' @importFrom Seurat Reductions
+#' @importFrom Seurat LogSeuratCommand
+#' @importFrom fastTopics de_analysis
+#'
 #' @export
 #' 
 PerformGoMDEAnalysis <- function (object, ...) {
 
+  # Check the input arguments, and that fastTopics is installed.
+  CheckPackage(package = "stephenslab/fastTopics")
+  if (!inherits(object,"Seurat"))
+    stop("\"object\" must be a Seurat object",call. = FALSE)
+  
+  # Get the previously fit topic model or Poisson NMF.
+  if (is.element("multinom_topic_model",Reductions(object)))
+    reduction.name <- "multinom_topic_model"
+  else if (is.element("poisson_nmf",Reductions(object)))
+    reduction.name <- "poisson_nmf"
+  else
+    stop("Seurat object must contain a Poisson NMF or multinomial topic ",
+         "model fitted by calling FitPoissonNMF or FitTopicModel")
+  reduct <- Reductions(object,reduction.name)
+  fit <- Misc(reduct)$fit
+  
+  # Get the n x m counts matrix, where n is the number of samples
+  # (cells) and m is the number of selected features.
+  assay <- reduct@assay.used
+  assay <- assay %||% DefaultAssay(object)
+  DefaultAssay(object) <- assay
+  features <- rownames(fit$F)
+  X <- prepare_counts_fasttopics(object,features)
+
+  # Perform the differential expression analysis and store the result
+  # in the Seurat object.
+  out          <- Misc(reduct)
+  out$de       <- de_analysis(fit,X,...)
+  reduct@misc <- out
+  object[[reduction.name]] <- reduct
+  
+  # Output the updated Seurat object.
+  return(object)
 }
 
 # Get the n x m counts matrix, where n is the number of samples
@@ -402,3 +469,11 @@ pca_from_loadings_fasttopics <- function (fit, assay, reduction.key,
   return(CreateDimReducObject(out$x[,cols],out$rotation[,cols],assay = assay,
                               key = reduction.key,global = TRUE))
 }
+
+# Run this to generate the HTML and Markdown for the fasttopics
+# vignette:
+#
+#   library(rmarkdown)
+#   render("fasttopics.Rmd")
+#   render("fasttopics.Rmd",output_format = md_document())
+#

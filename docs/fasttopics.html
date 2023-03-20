@@ -168,24 +168,17 @@ pre code {
 
 
 <h1 class="title toc-ignore">Analyzing Seurat data using fastTopics</h1>
-<h4 class="date">Compiled: March 16, 2023</h4>
+<h4 class="date">Compiled: March 17, 2023</h4>
 
 </div>
 
 
-<div id="run-rmarkdownrenderfasttopics.rmd-to-generate-the-html-and"
-class="section level1">
-<h1>Run rmarkdown::render(“fasttopics.Rmd”) to generate the HTML
-and</h1>
-</div>
-<div id="markdown-outputs." class="section level1">
-<h1>Markdown outputs.</h1>
 <p>This vignette illustrates the use of the <a
 href="https://github.com/stephenslab/fastTopics">fastTopics</a> Seurat
-wrapper to analyze a Seurat data set. This vignette is only intended to
-introduce the basic fastTopics interface for Seurat objects—for more
-guidance on analyzing single-cell RNA-seq data using a topic model,
-please see the <a
+wrapper to analyze a Seurat data set. This vignette is intended only to
+introduce the basic fastTopics interface for Seurat objects. For more
+detailed guidance on analyzing single-cell RNA-seq data using a topic
+model, please see the <a
 href="https://stephenslab.github.io/fastTopics/articles">fastTopics
 vignettes</a>.</p>
 <p>If you find the <strong>fastTopics</strong> package useful for your
@@ -256,7 +249,7 @@ DimPlot(pbmc3k, reduction = &quot;pca&quot;, pt.size = 1) + theme_cowplot(font_s
 <p><img src="fasttopics_files/figure-html/pca-2-1.png" width="540" style="display: block; margin: auto;" /></p>
 <p>The fitted topic model—a “multinom_topic_model” object—is stored in
 the “misc” slot:</p>
-<pre class="r"><code>fit &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))</code></pre>
+<pre class="r"><code>fit &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))$fit</code></pre>
 <p>Once the topic model has been extracted from the Seurat object, many
 fastTopics functions can be used for downstream analysis and
 visualization. For example, we can create a “Structure plot” to
@@ -265,18 +258,20 @@ topic model simultaneously:</p>
 <pre class="r"><code>structure_plot(fit, grouping = Idents(pbmc3k), gap = 25)</code></pre>
 <p><img src="fasttopics_files/figure-html/structure-plot-1.png" width="900" style="display: block; margin: auto;" /></p>
 <p>In the Structure plot, each position along the x-axis is a cell, and
-bar heights correspond to topic proportions (which sum to 1 for each
-cell).</p>
-<p>From this plot, we see that topic 3 (green) closely corresponds to B
-cells. Topics 1 (red) and 4 (purple) also correspond well to the two
-types of monocytes, but there is some overlap; the purple topic is
-shared by both types of monocytes.</p>
-<p>Topic 5 (orange) corresponds well to natural killer (NK) cells, and
-topic 2 (blue) appears to capture biological processes common to T
-cells. The CD8+ T cells have characteristics of both NK cells and T
-cells—these are T cells that sometimes become ``NK-like’’—and this is
-captured in the topic model by assigning membership to both topics 2 and
-5.</p>
+the bar heights at each positioin correspond to topic proportions for
+that cell.</p>
+<p>From this plot, we observe that topic 3 (green) closely corresponds
+to B cells. Topics 1 (red) and 4 (purple) also correspond fairly well to
+the two types of monocytes, but there is also some overlap in the
+topics; in particular, the purple topic is shared by both types of
+monocytes. This suggests that expression in these two types of cells is
+less distinguishable than B cells vs. other cell types.</p>
+<p>Topic 5 (orange) corresponds closely to natural killer (NK) cells.
+Topic 2 (blue) appears to capture biological processes common to T
+cells. Interestingly, CD8+ T cells have characteristics of both NK cells
+and T cells—these are T cells that sometimes become ``NK-like’’—and this
+is reflected in the topic model by assigning membership to both topics 2
+and 5 (blue and orange).</p>
 <p>The other cell types (platelets, dendritic cells), perhaps because
 they are less abundant and/or difficult to distinguish from the other
 cell types, are represented as combinations of the topics for the other
@@ -284,7 +279,27 @@ cell types.</p>
 <p>Topic 6 is present in almost all cells to varying degrees, and
 therefore its biological interpretation is not at all clear from the
 cell labeling.</p>
-<p>TO DO: Illustrate the use of the de_analysis.</p>
+<p>Motivate the DE analysis using the topic model:</p>
+<pre class="r"><code>pbmc3k &lt;- PerformGoMDEAnalysis(pbmc3k, pseudocount = 0.1, control = list(ns = 10000, nc = 4))
+# Using 4 RcppParallel threads.
+# Fitting 13714 Poisson models with k=6 using method=&quot;scd&quot;.
+# Computing log-fold change statistics from 13714 Poisson models with k=6.
+# Stabilizing posterior log-fold change estimates using adaptive shrinkage.</code></pre>
+<p>Now we can create volcano plots to visualize the results of the DE
+analysis.</p>
+<p>B cells:</p>
+<pre class="r"><code>de &lt;- Misc(Reductions(pbmc3k, &quot;multinom_topic_model&quot;))$de
+volcano_plot(de, k = 3)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-b-cells-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>CD14+ monocytes:</p>
+<pre class="r"><code>volcano_plot(de, k = 1)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-cd14-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>NK cells:</p>
+<pre class="r"><code>volcano_plot(de, k = 5, ymax = 50)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-nk-1.png" width="540" style="display: block; margin: auto;" /></p>
+<p>Ribosomal protein genes:</p>
+<pre class="r"><code>volcano_plot(de, k = 6, ymax = 50)</code></pre>
+<p><img src="fasttopics_files/figure-html/volcano-plot-rp-genes-1.png" width="540" style="display: block; margin: auto;" /></p>
 <p>This is the version of R and the packages that were used to generate
 these results:</p>
 <pre class="r"><code>sessionInfo()
@@ -309,7 +324,7 @@ these results:</p>
 # other attached packages:
 # [1] cowplot_1.1.1           fastTopics_0.6-150      SeuratWrappers_0.3.1   
 # [4] pbmc3k.SeuratData_3.1.4 SeuratData_0.2.2        SeuratObject_4.1.3     
-# [7] Seurat_4.3.0           
+# [7] Seurat_4.3.0            rmarkdown_2.14         
 # 
 # loaded via a namespace (and not attached):
 #   [1] plyr_1.8.7             igraph_1.3.1           lazyeval_0.2.2        
@@ -335,7 +350,7 @@ these results:</p>
 #  [61] farver_2.1.0           pkgconfig_2.0.3        R.methodsS3_1.8.1     
 #  [64] sass_0.4.1             uwot_0.1.14            deldir_1.0-6          
 #  [67] utf8_1.2.2             labeling_0.4.2         tidyselect_1.1.2      
-#  [70] rlang_1.0.2            reshape2_1.4.4         later_1.3.0           
+#  [70] rlang_1.1.0            reshape2_1.4.4         later_1.3.0           
 #  [73] munsell_0.5.0          tools_4.2.0            cli_3.3.0             
 #  [76] generics_0.1.2         ggridges_0.5.3         evaluate_0.15         
 #  [79] stringr_1.4.0          fastmap_1.1.0          yaml_2.3.5            
@@ -355,10 +370,9 @@ these results:</p>
 # [121] parallelly_1.31.1      codetools_0.2-18       MASS_7.3-56           
 # [124] assertthat_0.2.1       sctransform_0.3.5      hms_1.1.1             
 # [127] parallel_4.2.0         quadprog_1.5-8         grid_4.2.0            
-# [130] tidyr_1.2.0            coda_0.19-4            rmarkdown_2.14        
-# [133] ashr_2.2-54            Rtsne_0.16             mixsqp_0.3-48         
-# [136] spatstat.explore_3.0-6 shiny_1.7.1</code></pre>
-</div>
+# [130] tidyr_1.2.0            coda_0.19-4            ashr_2.2-54           
+# [133] Rtsne_0.16             mixsqp_0.3-48          spatstat.explore_3.0-6
+# [136] shiny_1.7.1</code></pre>
 
 
 
