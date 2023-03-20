@@ -23,6 +23,7 @@ Remotes: welch-lab/liger,
     cole-trapnell-lab/monocle3,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
+    stephenslab/fastTopics,
     atakanekiz/CIPR-Package,
     prabhakarlab/Banksy
 Depends:
@@ -45,11 +46,12 @@ Collate:
     'internal.R'
     'alevin.R'
     'alra.R'
-    'banksy.R' 
+    'banksy.R'
     'cellbrowser.R'
     'cogaps.R'
     'conos.R'
     'fast_mnn.R'
+    'fasttopics.R'
     'glmpca.R'
     'liger.R'
     'miqc.R'
@@ -59,7 +61,7 @@ Collate:
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
 Suggests:
     cipr,
     conos,
@@ -74,6 +76,7 @@ Suggests:
     fishpond,
     monocle3,
     CoGAPS,
+    fastTopics,
     glmpca,
     Nebulosa,
     presto,

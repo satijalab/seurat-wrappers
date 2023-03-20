@@ -1,0 +1,25 @@
+Comments from Alan Selewa:
+
+I was able to run the wrapper on my heart single cell RNA-seq
+data. Theres about ~70k cells and 26k genes. Fitting the model took
+about 4 hours using 16 Rcpp parallel threads. Heres some thoughts on
+the process:
+
+FitTopicModel would benefit from more hyper-parameters in its
+interface, like number of EM iterations to perform, number of parallel
+threads to use, etc. Basically anything you’d pass to fastTopics
+should be available in the interface, in my opinion.
+
+I would add a function that works on the Seurat object to plot
+log-likelihood vs iteration (similar to Seurat::ElbowPlot).
+
+It seems that downstream analyses (structure_plot, differential
+expression) will work directly on the fit produced. In conformity with
+everything else Seurat-related, I think these functions should work
+directly on the Seurat object, rather than extracting the fit object,
+and running functions found in fastTopics.
+
+The topic proportion of each cell should be visualized with
+Seurat::FeaturePlots e.g. topic 1 proportion overlayed on a UMAP as I
+shown in the vignette below add a wrapper function for visualizing
+gene proportion in each topic.
