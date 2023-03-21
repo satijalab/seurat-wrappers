@@ -19,6 +19,16 @@ scVIIntegration(
 \arguments{
 \item{object}{A merged Seurat object}
 
+\item{groups}{A one-column data frame with grouping information}
+
+\item{features}{features to use}
+
+\item{layers}{Layers to use}
+
+\item{conda_env}{conda environment to run scVI}
+
+\item{new.reduction}{Name to store resulting DimReduc object as}
+
 \item{...}{Arguments passed to other methods}
 }
 \value{
