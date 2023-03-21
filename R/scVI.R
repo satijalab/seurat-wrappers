@@ -4,9 +4,15 @@ NULL
 
 #' Run scVI in seurat5
 #' @param object A merged Seurat object
-#' @param groups
+#' @param groups A one-column data frame with grouping information
+#' @param features features to use 
+#' @param layers Layers to use 
+#' @param conda_env conda environment to run scVI
+#' @param new.reduction Name to store resulting DimReduc object as
 #' @param ... Arguments passed to other methods
 #'
+#' @export
+#' 
 #' @return A Seurat object with embeddings and loadings
 
 scVIIntegration <- function(
