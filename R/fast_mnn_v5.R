@@ -32,7 +32,6 @@ NULL
 #'
 #' @export
 #'
-#' 
 #' @examples 
 #' \dontrun{
 #' obj <- LoadData("pbmcsca")

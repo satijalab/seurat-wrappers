@@ -37,3 +37,17 @@ A Seurat object with embeddings and loadings
 \description{
 Run scVI in seurat5
 }
+\examples{
+\dontrun{
+obj <- LoadData("pbmcsca")
+obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+
+# After preprocessing, we integrate layers, specifying a conda environment
+obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',
+                       conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
+}
+
+}
+\seealso{
+\href{https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scvi_in_R.html}{scVI}
+}
