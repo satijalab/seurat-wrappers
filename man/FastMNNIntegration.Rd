@@ -57,6 +57,7 @@ Run fastMNN in Seurat 5
 }
 \examples{
 \dontrun{
+# Preprocessing
 obj <- LoadData("pbmcsca")
 obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 obj <- NormalizeData(obj)
@@ -64,9 +65,14 @@ obj <- FindVariableFeatures(obj)
 obj <- ScaleData(obj)
 obj <- RunPCA(obj)
 
-# After preprocessing, we integrate layers with added parameters specific to FastMNN such as `k`: 
+# After preprocessing, we integrate layers: 
 obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
-  new.reduction = 'integrated.mnn', verbose = FALSE, k = 6)
+  new.reduction = 'integrated.mnn', verbose = FALSE)
+  
+# We can also add parameters specific to FastMNN. 
+# Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs: 
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+  new.reduction = 'integrated.mnn', k = 15, verbose = FALSE)
 }
 
 }

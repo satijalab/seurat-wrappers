@@ -52,6 +52,12 @@ obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = '
                        conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 }
 
+# Alternatively, we can integrate SCTransformed data 
+obj <- SCTransform(object = obj)
+obj <- IntegrateLayers(object = obj, method = scVIIntegration, 
+          orig.reduction = "pca", new.reduction = 'integrated.scvi', 
+           assay = "SCT", conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
+
 }
 \seealso{
 \href{https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scvi_in_R.html}{scVI}
