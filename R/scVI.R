@@ -15,8 +15,13 @@ NULL
 #' 
 #' @examples 
 #' \dontrun{
+#' # Preprocessing
 #' obj <- LoadData("pbmcsca")
 #' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+#' obj <- NormalizeData(obj)
+#' obj <- FindVariableFeatures(obj)
+#' obj <- ScaleData(obj)
+#' obj <- RunPCA(obj)
 #' 
 #' # After preprocessing, we integrate layers, specifying a conda environment
 #' obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',

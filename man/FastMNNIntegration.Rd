@@ -59,11 +59,16 @@ Run fastMNN in Seurat 5
 \dontrun{
 obj <- LoadData("pbmcsca")
 obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+obj <- NormalizeData(obj)
+obj <- FindVariableFeatures(obj)
+obj <- ScaleData(obj)
+obj <- RunPCA(obj)
 
 # After preprocessing, we integrate layers with added parameters specific to FastMNN such as `k`: 
 obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
   new.reduction = 'integrated.mnn', verbose = FALSE, k = 6)
 }
+
 }
 \seealso{
 \code{\link[batchelor]{fastMNN}} \code{\link[Seurat]{Tool}}
