@@ -55,6 +55,11 @@ accessible with \code{\link[Seurat]{Tool}}
 \description{
 Run fastMNN in Seurat 5
 }
+\note{
+This function requires the
+\href{https://rdrr.io/github/LTLA/batchelor/}{\pkg{batchelor}} package
+to be installed
+}
 \examples{
 \dontrun{
 # Preprocessing

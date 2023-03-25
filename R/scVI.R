@@ -13,6 +13,10 @@ NULL
 #'
 #' @export
 #' 
+#' @note This function requires the
+#' \href{https://docs.scvi-tools.org/en/stable/installation.html}{\pkg{scvi-tools}} package
+#' to be installed
+#' 
 #' @examples 
 #' \dontrun{
 #' # Preprocessing

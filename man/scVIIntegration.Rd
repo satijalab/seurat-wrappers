@@ -37,6 +37,11 @@ A Seurat object with embeddings and loadings
 \description{
 Run scVI in seurat5
 }
+\note{
+This function requires the
+\href{https://docs.scvi-tools.org/en/stable/installation.html}{\pkg{scvi-tools}} package
+to be installed
+}
 \examples{
 \dontrun{
 # Preprocessing

@@ -31,6 +31,10 @@ NULL
 #' @importFrom rlang check_installed
 #'
 #' @export
+#'[batchelor]{fastMNN}
+#'@note This function requires the
+#' \href{https://rdrr.io/github/LTLA/batchelor/}{\pkg{batchelor}} package
+#' to be installed
 #'
 #' @examples 
 #' \dontrun{
