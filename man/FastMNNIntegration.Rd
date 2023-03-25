@@ -58,7 +58,7 @@ Run fastMNN in Seurat 5
 \examples{
 \dontrun{
 # Preprocessing
-obj <- LoadData("pbmcsca")
+obj <- SeuratData::LoadData("pbmcsca")
 obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 obj <- NormalizeData(obj)
 obj <- FindVariableFeatures(obj)
