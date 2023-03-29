@@ -31,6 +31,8 @@ FastMNNIntegration(
 \item{features}{Either a list of features to use when calculating batch
 correction, or a number (2000 by default) of variable features to select.}
 
+\item{new.reduction}{}
+
 \item{reduction.key}{Key for resulting DimReduc}
 
 \item{reconstructed.assay}{Name for the assay containing the low-rank
@@ -39,8 +41,6 @@ reconstruction of the expression matrix.}
 \item{verbose}{Print messages}
 
 \item{...}{Extra parameters passed to \code{\link[batchelor]{fastMNN}}}
-
-\item{reduction.name}{Name to store resulting DimReduc object as}
 }
 \value{
 A Seurat object merged from the objects in \code{object.list} and a
@@ -70,13 +70,13 @@ obj <- FindVariableFeatures(obj)
 obj <- ScaleData(obj)
 obj <- RunPCA(obj)
 
-# After preprocessing, we integrate layers: 
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+# After preprocessing, we integrate layers:
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
   new.reduction = 'integrated.mnn', verbose = FALSE)
-  
-# We can also add parameters specific to FastMNN. 
-# Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs: 
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+
+# We can also add parameters specific to FastMNN.
+# Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs:
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
   new.reduction = 'integrated.mnn', k = 15, verbose = FALSE)
 }
 

@@ -6,16 +6,18 @@ NULL
 #'
 #' @param object A merged seurat object
 #' @param groups A one-column data frame with grouping information
-#' @param layers Layers to use 
+#' @param layers Layers to use
 #' @param assay Assay to use, defaults to the default assay of the first object
 #' @param features Either a list of features to use when calculating batch
 #' correction, or a number (2000 by default) of variable features to select.
-#' @param reduction.name Name to store resulting DimReduc object as
 #' @param reduction.key Key for resulting DimReduc
 #' @param reconstructed.assay Name for the assay containing the low-rank
 #' reconstruction of the expression matrix.
 #' @param verbose Print messages
 #' @param ... Extra parameters passed to \code{\link[batchelor]{fastMNN}}
+#' @param orig
+#' @param scale.layer
+#' @param new.reduction
 #'
 #' @return A Seurat object merged from the objects in \code{object.list} and a
 #' new DimReduc of name \code{reduction.name} (key set to \code{reduction.key})
@@ -29,14 +31,15 @@ NULL
 #' @importFrom Seurat DefaultAssay DefaultAssay<- SelectIntegrationFeatures VariableFeatures VariableFeatures<-
 #' as.SingleCellExperiment CreateDimReducObject Tool<- LogSeuratCommand
 #' @importFrom rlang check_installed
+#' @importFrom batchelor fastMNN
 #'
 #' @export
-#'[batchelor]{fastMNN}
+#'
 #'@note This function requires the
 #' \href{https://rdrr.io/github/LTLA/batchelor/}{\pkg{batchelor}} package
 #' to be installed
 #'
-#' @examples 
+#' @examples
 #' \dontrun{
 #' # Preprocessing
 #' obj <- SeuratData::LoadData("pbmcsca")
@@ -45,24 +48,24 @@ NULL
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
-#' # After preprocessing, we integrate layers: 
-#' obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+#'
+#' # After preprocessing, we integrate layers:
+#' obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
 #'   new.reduction = 'integrated.mnn', verbose = FALSE)
-#'   
-#' # We can also add parameters specific to FastMNN. 
-#' # Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs: 
-#' obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+#'
+#' # We can also add parameters specific to FastMNN.
+#' # Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs:
+#' obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
 #'   new.reduction = 'integrated.mnn', k = 15, verbose = FALSE)
 #' }
-#' 
+#'
 #' @seealso \code{\link[batchelor]{fastMNN}} \code{\link[Seurat]{Tool}}
-#' 
+#'
 FastMNNIntegration <- function(
     object,
     assay = NULL,
     orig = NULL,
-    groups = NULL, 
+    groups = NULL,
     layers = NULL,
     scale.layer = NULL,
     features = 2000,
