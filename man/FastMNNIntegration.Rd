@@ -70,13 +70,13 @@ obj <- FindVariableFeatures(obj)
 obj <- ScaleData(obj)
 obj <- RunPCA(obj)
 
-# After preprocessing, we integrate layers: 
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+# After preprocessing, we integrate layers:
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
   new.reduction = 'integrated.mnn', verbose = FALSE)
-  
-# We can also add parameters specific to FastMNN. 
-# Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs: 
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, 
+
+# We can also add parameters specific to FastMNN.
+# Here we set `k` to specify the number of nearest neighbors to use when identifying MNNs:
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration,
   new.reduction = 'integrated.mnn', k = 15, verbose = FALSE)
 }
 

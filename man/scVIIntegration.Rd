@@ -11,8 +11,10 @@ scVIIntegration(
   layers = "counts",
   conda_env = NULL,
   new.reduction = "integrated.dr",
-  ndims = 10,
-  max_epochs = 200,
+  ndims = 30,
+  nlayers = 2,
+  gene_likelihood = "nb",
+  max_epochs = NULL,
   ...
 )
 }
@@ -57,10 +59,10 @@ obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = '
                        conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 }
 
-# Alternatively, we can integrate SCTransformed data 
+# Alternatively, we can integrate SCTransformed data
 obj <- SCTransform(object = obj)
-obj <- IntegrateLayers(object = obj, method = scVIIntegration, 
-          orig.reduction = "pca", new.reduction = 'integrated.scvi', 
+obj <- IntegrateLayers(object = obj, method = scVIIntegration,
+          orig.reduction = "pca", new.reduction = 'integrated.scvi',
            assay = "SCT", conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 
 }
