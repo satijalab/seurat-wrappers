@@ -1,0 +1,164 @@
+---
+title: "Single-cell signature scoring with UCell"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+  html_document:
+    df_print: kable
+---
+
+```{r r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+
+
+This vignette demonstrates how to run UCell on single-cell datasets stored as Seurat objects. 
+If you use UCell in your research, please cite:
+
+> *UCell: Robust and scalable single-cell gene signature scoring*
+>
+> Massimo Andreatta and Santiago J. Carmona
+>
+> Computational and Structural Biotechnology Journal (2021)
+>
+> DOI: https://doi.org/10.1016/j.csbj.2021.06.043
+>
+> Website: [GitHub](https://github.com/carmonalab/UCell) and [Bioconductor](https://bioconductor.org/packages/release/bioc/html/UCell.html)
+
+# Overview
+
+In single-cell RNA-seq analysis, gene signature (or “module”) scoring constitutes a simple yet powerful approach to evaluate the strength of biological signals, typically associated to a specific cell type or biological process, in a transcriptome.
+
+UCell is an R package for evaluating gene signatures in single-cell datasets. UCell signature scores, based on the Mann-Whitney U statistic, are robust to dataset size and heterogeneity, and their calculation demands less computing time and memory than other available methods, enabling the processing of large datasets in a few minutes even on machines with limited computing power. UCell can be applied to any single-cell data matrix, and includes functions to directly interact with Seurat objects. 
+
+
+# Installation and setup
+ 
+UCell is available from [Bioconductor](https://bioconductor.org/packages/release/bioc/html/UCell.html) 
+```{r results=FALSE, message=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("UCell")
+```
+
+Load required packages
+```{r}
+library(Seurat)
+library(SeuratData)
+library(UCell)
+```
+
+# Get some testing data
+
+For this demo, we will use a small dataset of human PBMCs distributed with [SeuratData](https://github.com/satijalab/seurat-data)
+```{r message=F, warning=F, results=F}
+InstallData("pbmc3k")
+data("pbmc3k")
+pbmc3k
+```
+
+# Define gene signatures
+
+Here we define some simple gene sets based on the "Human Cell Landscape" signatures [Han et al. (2020) Nature](https://www.nature.com/articles/s41586-020-2157-4). You may edit existing signatures, or add new one as elements in a list.
+
+Note that UCell supports gene sets with both positive and negative genes:
+```{r}
+signatures <- list(Tcell = c("CD3D","CD3E","CD3G","CD2","TRAC"),
+                   Myeloid = c("CD14","LYZ","CSF1R","FCER1G","SPI1","LCK-"),
+                   NK = c("KLRD1","NCAM1","NKG7","CD3D-","CD3E-"),
+                   Bcell = c("MS4A1","BANK1","PAX5","CD19")
+)
+```
+
+# Run UCell on Seurat object
+
+```{r message=F, warning=F}
+pbmc3k <- AddModuleScore_UCell(pbmc3k, features=signatures, name=NULL)
+head(pbmc3k[[]])
+```
+
+Generate PCA and UMAP embeddings
+```{r message=F, warning=F}
+pbmc3k <- pbmc3k |> NormalizeData() |>
+  FindVariableFeatures(nfeatures = 500) |>
+  ScaleData() |> RunPCA(npcs = 20) |>
+  RunUMAP(dims = 1:20)
+```
+
+Visualize UCell scores on low-dimensional representation (UMAP)
+```{r fig.width=12, fig.height=8, dpi=60}
+library(ggplot2)
+library(patchwork)
+
+FeaturePlot(pbmc3k, reduction = "umap", features = names(signatures)) &
+  theme(aspect.ratio = 1)
+```
+
+# Signature smoothing
+
+Single-cell data are sparse. It can be useful to 'impute' scores by neighboring cells and partially correct this sparsity. The function `SmoothKNN` performs smoothing of single-cell scores by weighted average of the k-nearest neighbors in a given dimensionality reduction. It can be applied directly on Seurat objects to smooth UCell scores:
+
+```{r}
+pbmc3k <- SmoothKNN(pbmc3k,
+                    signature.names = names(signatures),
+                    reduction="pca")
+```
+
+```{r fig.width=12, dpi=60}
+FeaturePlot(pbmc3k, reduction = "umap", features = c("Bcell","Bcell_kNN")) &
+  theme(aspect.ratio = 1)
+```
+
+Smoothing (or imputation) has been designed for UCell scores, but it can be applied to any other data or metadata. For instance, we can perform knn-smoothing directly on gene expression measurements:
+
+```{r warning=FALSE, fig.width=12, fig.height=8, dpi=60}
+genes <- c("CD2","CD19")
+pbmc3k <- SmoothKNN(pbmc3k, signature.names=genes,
+                 assay="RNA", reduction="pca", k=20, suffix = "_smooth")
+
+DefaultAssay(pbmc3k) <- "RNA"
+a <- FeaturePlot(pbmc3k, reduction = "umap", features = genes) &
+  theme(aspect.ratio = 1)
+DefaultAssay(pbmc3k) <- "RNA_smooth"
+b <- FeaturePlot(pbmc3k, reduction = "umap", features = genes) &
+  theme(aspect.ratio = 1)
+a / b
+```
+
+# Multi-core processing
+
+If your machine has multi-core capabilities and enough RAM, running UCell in parallel can speed up considerably your analysis. The example below runs on 4 cores in parallel:
+
+```{r}
+BPPARAM <- BiocParallel::MulticoreParam(workers=4)
+pbmc3k <- AddModuleScore_UCell(pbmc3k, features=signatures,  BPPARAM=BPPARAM)
+```
+
+# Resources
+
+Please report any issues at the [UCell GitHub repository](https://github.com/carmonalab/UCell).
+
+More demos available on [Bioconductor](https://bioconductor.org/packages/release/bioc/html/UCell.html) and at the [UCell demo repository](https://github.com/carmonalab/UCell_demo).
+
+If you find UCell useful, you may also check out the [scGate package](https://github.com/carmonalab/scGate), which relies on UCell scores to automatically purify populations of interest based on gene signatures.
+
+See also [SignatuR](https://github.com/carmonalab/SignatuR) for easy storing and retrieval of gene signatures.
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+

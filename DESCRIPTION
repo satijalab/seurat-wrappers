@@ -75,6 +75,7 @@ Suggests:
     monocle3,
     CoGAPS,
     glmpca,
+    UCell,
     Nebulosa,
     presto,
     flexmix,
