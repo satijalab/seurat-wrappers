@@ -1,6 +1,6 @@
 ---
-title: "Running ScGSEA from gficf on Seurat Objects"
-date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+title: "Running scGSEA from gficf on Seurat Objects"
+date: 'Compiled: `r format(Sys.Date(), "%m %d %y")`'
 output: 
   html_document:
     df_print: kable
@@ -14,12 +14,12 @@ This vignette demonstrates how to run single-cell gene set enrichment analysis w
 
 > *Single-cell gene set enrichment analysis and transfer learning for functional annotation of scRNA-seq data*
 >
-> Pellecchia Simona , Viscido Gaetano, Franchini Melania, Gambardella Gennaro
+> Franchini Melania, Pellecchia Simona , Viscido Gaetano, Gambardella Gennaro
 > 
-> bioRxiv, 2022
+> NAR Genomics and Bioinformatics, Volume 5, Issue 1, March 2023, lqad024
 > 
 > doi:
-> <https://doi.org/10.1101/2022.10.24.513476>
+> <https://doi.org/10.1093/nargab/lqad024>
 > 
 > GitHub:
 > <https://github.com/gambalab/gficf>
@@ -47,13 +47,22 @@ Prerequisites to install:
 
 ```{r looad libraries}
 
-library(Seurat)
-library(SeuratData)
-library(SeuratWrappers)
-library(gficf)
+require(Seurat)
+require(SeuratData)
+require(SeuratWrappers)
+require(gficf)
 
 ```
 
+# Installation
+Please install the Seurat wrapper which enables to run single-cell gene set enrichment analysis with gficf on Seurat objects as reported here:
+
+```{r install wrapper from gficf}
+
+if(!require(devtools)){install.packages("devtools")}
+devtools::install_github("gambalab/seurat-wrappers")
+
+```
 
 
 # Introduction
