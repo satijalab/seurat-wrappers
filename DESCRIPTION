@@ -24,7 +24,8 @@ Remotes: welch-lab/liger,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
     atakanekiz/CIPR-Package,
-    prabhakarlab/Banksy
+    prabhakarlab/Banksy,
+    gambalab/gficf
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -45,7 +46,7 @@ Collate:
     'internal.R'
     'alevin.R'
     'alra.R'
-    'banksy.R' 
+    'banksy.R'
     'cellbrowser.R'
     'cogaps.R'
     'conos.R'
@@ -55,11 +56,12 @@ Collate:
     'miqc.R'
     'monocle3.R'
     'presto.R'
+    'scGSEA.R'
     'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
 Suggests:
     cipr,
     conos,
