@@ -139,9 +139,9 @@ Call `?RunBanksy` for more details on function parameters.
 
 ```{r ss_banksy}
 # Run BANKSY
-ss.hippo <- RunBanksy(ss.hippo, lambda = 0.3, verbose=TRUE, 
+ss.hippo <- RunBanksy(ss.hippo, lambda = 0.2, verbose=TRUE, 
                       assay = 'Spatial', slot = 'data', features = 'variable',
-                      k_geom = 10)
+                      k_geom = 15)
 ss.hippo
 ```
 
@@ -153,7 +153,7 @@ scale the data and run dimensionality reduction with PCA and UMAP:
 
 ```{r ss_pca}
 # Run PCA and UMAP
-ss.hippo <- RunPCA(ss.hippo, assay = 'BANKSY', features = rownames(ss.hippo), npcs = 50)
+ss.hippo <- RunPCA(ss.hippo, assay = 'BANKSY', features = rownames(ss.hippo), npcs = 30)
 ss.hippo <- RunUMAP(ss.hippo, dims = 1:30)
 ```
 
@@ -170,7 +170,7 @@ Visualize the UMAP and Spatial plot:
 ```{r ss_viz, fig.align='center', fig.height=5, fig.width=10}
 # Viz
 grid.arrange(
-    DimPlot(ss.hippo, pt.size = 0.25),
+    DimPlot(ss.hippo, pt.size = 0.25, label = TRUE, label.size = 3, repel = TRUE),
     SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
                    repel = TRUE, alpha = 0.5, pt.size.factor = 2),
     ncol = 2
@@ -183,7 +183,7 @@ differentially expressed genes between the CA1 and CA3 regions.
 ```{r ss_markers, fig.align='center', fig.height=5, fig.width=10}
 # Find markers
 DefaultAssay(ss.hippo) <- 'Spatial'
-markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 8, only.pos = F, 
+markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 9, only.pos = F, 
                        logfc.threshold = 1, min.pct = 0.5)
 markers <- markers[markers$p_val_adj < 0.01,]
 markers
@@ -230,7 +230,7 @@ coordinates as stored in the metadata to `dimx` and `dimy` respectively:
 
 ```{r hippo_banksy}
 # Run BANKSY
-vf.hippo <- RunBanksy(vf.hippo, lambda = 0.3, dimx = 'sdimx', dimy = 'sdimy', 
+vf.hippo <- RunBanksy(vf.hippo, lambda = 0.2, dimx = 'sdimx', dimy = 'sdimy', 
                       assay = 'RNA', slot = 'data', features = 'all', k_geom = 10)
 ```
 
@@ -238,22 +238,23 @@ Scale the BANKSY matrix and run PCA:
 
 ```{r hippo_pca}
 # PCA
-vf.hippo <- RunPCA(vf.hippo, assay = 'BANKSY', features = rownames(vf.hippo), npcs = 50)
+vf.hippo <- RunPCA(vf.hippo, assay = 'BANKSY', features = rownames(vf.hippo), npcs = 20)
 ```
 
 Find BANKSY clusters:
 
 ```{r hippo_cluster}
 # Cluster
-vf.hippo <- FindNeighbors(vf.hippo, dims = 1:30)
+vf.hippo <- FindNeighbors(vf.hippo, dims = 1:20)
 vf.hippo <- FindClusters(vf.hippo, resolution = 0.5)
 ```
 
 Visualise BANKSY clusters in spatial dimensions:
 
-```{r hippo_viz, fig.align='center', fig.height=5, fig.width=6}
+```{r hippo_viz, fig.align='center', fig.height=6, fig.width=7}
 # Viz
 FeatureScatter(vf.hippo, 'sdimx', 'sdimy', cols = mypal, pt.size = 0.75)
+FeatureScatter(vf.hippo, 'sdimx', 'sdimy', cols = mypal, pt.size = 0.1) + facet_wrap(~ colors)
 ```
 
 Find markers and visualise them. Here, we do so for a cluster defined by a thin 
