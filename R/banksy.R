@@ -36,7 +36,7 @@ NULL
 #' @export
 RunBanksy <- function(object, lambda, assay='RNA', slot='data',
                       dimx=NULL, dimy=NULL, features='variable',
-                      M=0, k_geom=10, n=2, sigma=1.5,
+                      M=0, k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
                       assay_name='BANKSY', verbose=TRUE) {
     # Check packages
