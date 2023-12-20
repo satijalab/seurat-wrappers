@@ -61,11 +61,11 @@ scVIIntegration <- function(
   scipy <-  reticulate::import('scipy', convert = FALSE)
   object <- JoinLayers(object = object, layers = 'counts')
   adata <- sc$AnnData(
-    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layers = 'counts')[features ,]) ), #scVI requires raw counts
-    obs = groups,
-    var = object[][features,]
+    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layer = 'counts')[features ,]) ), #scVI requires raw counts
+    obs = object[[]],
+    var = Seurat::GetAssay(object)[[]][features,]
   )
-  scvi$model$SCVI$setup_anndata(adata,  batch_key = 'group')
+  scvi$model$SCVI$setup_anndata(adata,  batch_key = groups)
   model = scvi$model$SCVI(adata = adata,
                           n_latent = as.integer(x = ndims),
                           n_layers = as.integer(x = nlayers),
