@@ -60,6 +60,7 @@ Collate:
     'monocle3.R'
     'presto.R'
     'scVI.R'
+    'scanorama.R'
     'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
