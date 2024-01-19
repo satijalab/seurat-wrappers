@@ -18,4 +18,12 @@ Authors:
   \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID})
 }
 
+Other contributors:
+\itemize{
+  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID}) [contributor]
+  \item Austin Hartman \email{ahartman@nygenome.org} (\href{https://orcid.org/0000-0001-7278-1852}{ORCID}) [contributor]
+  \item Gesmira Molla \email{gmolla@nygenome.org} (\href{https://orcid.org/0000-0002-8628-5056}{ORCID}) [contributor]
+  \item Saket Choudhary \email{schoudhary@nygenome.org} (\href{https://orcid.org/0000-0001-5202-7633}{ORCID}) [contributor]
+}
+
 }
