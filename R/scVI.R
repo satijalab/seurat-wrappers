@@ -4,7 +4,7 @@ NULL
 
 #' Run scVI in seurat5
 #' @param object A merged Seurat object
-#' @param groups A one-column data frame with grouping information
+#' @param groups Name of the metadata column to be used as the 'batch_key'
 #' @param features features to use
 #' @param layers Layers to use
 #' @param conda_env conda environment to run scVI
@@ -61,11 +61,11 @@ scVIIntegration <- function(
   scipy <-  reticulate::import('scipy', convert = FALSE)
   object <- JoinLayers(object = object, layers = 'counts')
   adata <- sc$AnnData(
-    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layers = 'counts')[features ,]) ), #scVI requires raw counts
-    obs = groups,
-    var = object[][features,]
+    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layer = 'counts')[features ,]) ), #scVI requires raw counts
+    obs = object[[]],
+    var = object[[DefaultAssay(object)]][[]][features,]
   )
-  scvi$model$SCVI$setup_anndata(adata,  batch_key = 'group')
+  scvi$model$SCVI$setup_anndata(adata,  batch_key = groups)
   model = scvi$model$SCVI(adata = adata,
                           n_latent = as.integer(x = ndims),
                           n_layers = as.integer(x = nlayers),
