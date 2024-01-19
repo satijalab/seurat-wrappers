@@ -21,7 +21,7 @@ scVIIntegration(
 \arguments{
 \item{object}{A merged Seurat object}
 
-\item{groups}{A one-column data frame with grouping information}
+\item{groups}{Name of the metadata column to be used as the 'batch_key'}
 
 \item{features}{features to use}
 

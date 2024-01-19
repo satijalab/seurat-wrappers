@@ -23,8 +23,6 @@ as.cell_data_set(x, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{assay}{Assays to convert}
-
 \item{reductions}{A vector of dimensional reductions add to the
 \code{cell_data_set} object; defaults to all dimensional reductions
 calculated from \code{assay} and all \link[Seurat:IsGlobal]{global}
