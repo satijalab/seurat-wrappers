@@ -3,14 +3,14 @@ Title: Community-Provided Methods and Extensions for the Seurat Object
 Version: 0.3.4
 Date: 2024-01-23
 Authors@R: c(
-  person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
-  person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
-  person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897')), 
+  person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
+  person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
   person(given = "Gesmira", family = "Molla", email = 'gmolla@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-8628-5056')),
-  person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633"))
+  person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
+  person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897'))
   )
 Description: SeuratWrappers is a collection of community-provided methods and
     extensions for Seurat, curated by the Satija Lab at NYGC. These methods
