@@ -5,6 +5,7 @@ Date: 2024-01-23
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
+  person(given = 'David', family = 'Collins', email = 'dcollins@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0001-9243-7821')),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
   person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
