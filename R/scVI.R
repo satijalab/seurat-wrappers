@@ -3,13 +3,14 @@
 NULL
 
 #' Run scVI in seurat5
-#' @param object A merged Seurat object
-#' @param groups Name of the metadata column to be used as the 'batch_key'
-#' @param features features to use
-#' @param layers Layers to use
+#' @param object An Assay containing merged data
+#' names should be cell identifiers and values their respective batch keys
+#' @param features Features to integrate
+#' @param layers Layers to integrate
 #' @param conda_env conda environment to run scVI
-#' @param new.reduction Name to store resulting DimReduc object as
-#' @param ... Arguments passed to other methods
+#' @param new.reduction Name under which to store resulting DimReduc object
+#' @param ... Unused - currently just capturing parameters passed in from 
+#' \code{Seurat::IntegrateLayers} intended for other integration methods
 #'
 #' @export
 #'
@@ -44,7 +45,6 @@ NULL
 
 scVIIntegration <- function(
     object,
-    groups = NULL,
     features = NULL,
     layers = 'counts',
     conda_env = NULL,
@@ -59,13 +59,15 @@ scVIIntegration <- function(
   scvi <-  reticulate::import('scvi', convert = FALSE)
   anndata <-  reticulate::import('anndata', convert = FALSE)
   scipy <-  reticulate::import('scipy', convert = FALSE)
+  
+  batches <- .FindBatches(object, layers = layers)
   object <- JoinLayers(object = object, layers = 'counts')
   adata <- sc$AnnData(
-    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layer = 'counts')[features ,]) ), #scVI requires raw counts
-    obs = object[[]],
-    var = object[[DefaultAssay(object)]][[]][features,]
+    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layer = 'counts')[features ,])),  # scVI requires the raw counts matrix
+    obs = batches,
+    var = object[[]][features,]
   )
-  scvi$model$SCVI$setup_anndata(adata,  batch_key = groups)
+  scvi$model$SCVI$setup_anndata(adata, batch_key = 'batch')
   model = scvi$model$SCVI(adata = adata,
                           n_latent = as.integer(x = ndims),
                           n_layers = as.integer(x = nlayers),
