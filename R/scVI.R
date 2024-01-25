@@ -56,57 +56,90 @@ NULL
 #'
 #' @return A single-element named list \code{DimReduc} elements containing
 #' the integrated data
-
 scVIIntegration <- function(
     object,
     features = NULL,
-    layers = 'counts',
+    layers = "counts",
     conda_env = NULL,
-    new.reduction = 'integrated.dr',
+    new.reduction = "integrated.dr",
     ndims = 30,
     nlayers = 2,
     gene_likelihood = "nb",
     max_epochs = NULL,
-    ...){
-  reticulate::use_condaenv(conda_env, required = TRUE)
-  sc <-  reticulate::import('scanpy', convert = FALSE)
-  scvi <-  reticulate::import('scvi', convert = FALSE)
-  anndata <-  reticulate::import('anndata', convert = FALSE)
-  scipy <-  reticulate::import('scipy', convert = FALSE)
+    ...) {
   
-  batches <- .FindBatches(object, layers = layers)
-  object <- JoinLayers(object = object, layers = 'counts')
-  adata <- sc$AnnData(
-    X   = scipy$sparse$csr_matrix(Matrix::t(LayerData(object, layer = 'counts')[features ,])),  # scVI requires the raw counts matrix
-    obs = batches,
-    var = object[[]][features,]
-  )
-  scvi$model$SCVI$setup_anndata(adata, batch_key = 'batch')
-  model = scvi$model$SCVI(adata = adata,
-                          n_latent = as.integer(x = ndims),
-                          n_layers = as.integer(x = nlayers),
-                          gene_likelihood = gene_likelihood)
+  # import python methods from specified conda env
+  reticulate::use_condaenv(conda_env, required = TRUE)
+  sc <- reticulate::import("scanpy", convert = FALSE)
+  scvi <- reticulate::import("scvi", convert = FALSE)
+  anndata <- reticulate::import("anndata", convert = FALSE)
+  scipy <- reticulate::import("scipy", convert = FALSE)
+
+  # if `max_epochs` is not set
   if (is.null(max_epochs)) {
-    max_epochs <- reticulate::r_to_py(x = max_epochs)
+    # convert `NULL` to python's `None`
+    max_epochs <- reticulate::r_to_py(max_epochs)
   } else {
-    max_epochs <- as.integer(x = max_epochs)
+    # otherwise make sure it's an int
+    max_epochs <- as.integer(max_epochs)
   }
 
+  # build a meta.data-style data.frame indicating the batch for each cell
+  batches <- .FindBatches(object, layers = layers)
+  # scVI expects a single counts matrix so we'll join our layers together
+  # it also expects the raw counts matrix
+  # TODO: avoid hardcoding this - users can rename their layers arbitrarily
+  # so there's no gauruntee that the usual naming conventions will be followed
+  object <- JoinLayers(object = object, layers = "counts")
+  # setup an `AnnData` python instance
+  adata <- sc$AnnData(
+    X = scipy$sparse$csr_matrix(
+      # TODO: avoid hardcoding per comment above
+      Matrix::t(LayerData(object, layer = "counts")[features, ])
+    ),
+    obs = batches,
+    var = object[[]][features, ]
+  )
+  scvi$model$SCVI$setup_anndata(adata, batch_key = "batch")
+
+  # initialize and train the model
+  model <- scvi$model$SCVI(
+    adata = adata,
+    n_latent = as.integer(x = ndims),
+    n_layers = as.integer(x = nlayers),
+    gene_likelihood = gene_likelihood
+  )
   model$train(max_epochs = max_epochs)
-  latent = model$get_latent_representation()
+
+  # extract the latent representation of the merged data
+  latent <- model$get_latent_representation()
   latent <- as.matrix(latent)
+  # pull the cell identifiers back out of the `AnnData` instance
+  # in case anything was sorted under the hood
   rownames(latent) <- reticulate::py_to_r(adata$obs$index$values)
+  # prepend the latent space dimensions with `new.reduction` to
+  # give the features more readable names
   colnames(latent) <- paste0(new.reduction, "_", 1:ncol(latent))
-  suppressWarnings(latent.dr <- CreateDimReducObject(embeddings = latent, key = new.reduction))
+
+  # build a `DimReduc` instance
+  suppressWarnings(
+    latent.dr <- CreateDimReducObject(
+      embeddings = latent, 
+      key = new.reduction
+    )
+  )
+  # to make it easier to add the reduction into a `Seurat` instance
+  # we'll wrap it up in a named list
   output.list <- list(latent.dr)
   names(output.list) <- new.reduction
+
   return(output.list)
 }
 
-attr(x = scVIIntegration, which = 'Seurat.method') <- 'integration'
+attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 
 
-#' Builds a data.frame with batch identifiers to use when integrating 
+#' Builds a data.frame with batch identifiers to use when integrating
 #' \code{object}. For \code{SCTAssay}s, batches are split using their
 #' model identifiers. For \code{StdAssays}, batches are split by layer.
 #'
