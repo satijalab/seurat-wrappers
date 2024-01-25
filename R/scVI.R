@@ -88,3 +88,49 @@ scVIIntegration <- function(
 }
 
 attr(x = scVIIntegration, which = 'Seurat.method') <- 'integration'
+
+
+#' Builds a data.frame with batch identifiers to use when integrating 
+#' \code{object}. For \code{SCTAssay}s, batches are split using their
+#' model identifiers. For \code{StdAssays}, batches are split by layer.
+#'
+#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups} 
+#' except that it does not take in a `scale.layer` param.
+#'
+#' @noRd
+#'
+#' @param object A \code{SCTAssay} or \code{StdAssays} instance.
+#' @param layers Layers in \code{object} to integrate.
+#'
+#' @return A dataframe indexed on the cell identifiers from \code{object} - 
+#' the dataframe contains a single column, "batch", indicating the ...
+.FindBatches <- function(object, layers) {
+  # if an `SCTAssay` is passed in it's expected that the transformation
+  # was run on each batch individually and then merged so we can use
+  # the model identifier to split our batches
+  if (inherits(object, what = "SCTAssay")) {
+    # build an empty data.frame indexed
+    # on the cell identifiers from `object`
+    batch.df <- SeuratObject::EmptyDF(n = ncol(object))
+    row.names(batch.df) <- Cells(object)
+    # for each
+    for (sct.model in levels(object)) {
+      cell.identifiers <- Cells(object, layer = sct.model)
+      batch.df[cell.identifiers, "batch"] <- sct.model
+    }
+    # otherwise batches can be split using `object`'s layers
+  } else {
+    # build a LogMap indicating which layer each cell is from
+    layer.masks <- slot(object, name = "cells")[, layers]
+    # get a named vector mapping each cell to its respective layer
+    layer.map <- labels(
+      layer.masks,
+      values = Cells(object, layer = layers)
+    )
+    # wrap the vector up in a data.frame
+    batch.df <- as.data.frame(layer.map)
+    names(batch.df) <- "batch"
+  }
+
+  return(batch.df)
+}
