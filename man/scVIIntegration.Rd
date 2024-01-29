@@ -2,11 +2,10 @@
 % Please edit documentation in R/scVI.R
 \name{scVIIntegration}
 \alias{scVIIntegration}
-\title{Run scVI in seurat5}
+\title{scVI Integration}
 \usage{
 scVIIntegration(
   object,
-  groups = NULL,
   features = NULL,
   layers = "counts",
   conda_env = NULL,
@@ -19,30 +18,41 @@ scVIIntegration(
 )
 }
 \arguments{
-\item{object}{A merged Seurat object}
+\item{object}{A \code{StdAssay} or \code{STDAssay} instance containing
+merged data}
 
-\item{groups}{Name of the metadata column to be used as the 'batch_key'}
+\item{features}{Features to integrate}
 
-\item{features}{features to use}
-
-\item{layers}{Layers to use}
+\item{layers}{Layers to integrate}
 
 \item{conda_env}{conda environment to run scVI}
 
-\item{new.reduction}{Name to store resulting DimReduc object as}
+\item{new.reduction}{Name under which to store resulting DimReduc object}
 
-\item{...}{Arguments passed to other methods}
+\item{ndims}{Dimensionality of the latent space}
+
+\item{nlayers}{Number of hidden layers used for encoder and decoder NNs}
+
+\item{gene_likelihood}{Distribution to use for modelling expression 
+data: {"zinb", "nb", "poisson"}}
+
+\item{max_epochs}{Number of passes through the dataset taken while
+training the model}
+
+\item{...}{Unused - currently just capturing parameters passed in from
+\code{Seurat::IntegrateLayers} intended for other integration methods}
 }
 \value{
-A Seurat object with embeddings and loadings
+A single-element named list \code{DimReduc} elements containing
+the integrated data
 }
 \description{
-Run scVI in seurat5
+scVI Integration
 }
 \note{
 This function requires the
-\href{https://docs.scvi-tools.org/en/stable/installation.html}{\pkg{scvi-tools}} package
-to be installed
+\href{https://docs.scvi-tools.org/en/stable/installation.html}{\pkg{scvi-tools}}
+package to be installed
 }
 \examples{
 \dontrun{
@@ -55,15 +65,22 @@ obj <- ScaleData(obj)
 obj <- RunPCA(obj)
 
 # After preprocessing, we integrate layers, specifying a conda environment
-obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',
-                       conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
-}
+obj <- IntegrateLayers(
+  object = obj,
+  method = scVIIntegration,
+  new.reduction = "integrated.scvi",
+  conda_env = "../miniconda3/envs/scvi-env",
+  verbose = FALSE
+)
 
 # Alternatively, we can integrate SCTransformed data
 obj <- SCTransform(object = obj)
-obj <- IntegrateLayers(object = obj, method = scVIIntegration,
-          orig.reduction = "pca", new.reduction = 'integrated.scvi',
-           assay = "SCT", conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = scVIIntegration,
+  orig.reduction = "pca", new.reduction = "integrated.scvi",
+  assay = "SCT", conda_env = "../miniconda3/envs/scvi-env", verbose = FALSE
+)
+}
 
 }
 \seealso{
