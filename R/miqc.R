@@ -165,7 +165,6 @@ RunMiQC <- function(
 #'
 #' @param object Seurat object
 #' @details _Function to plot the miQC mixture model stored in a Seurat object. `RunMiQC` must be run prior to plotting._
-#' @return
 #' @references Hippen et al. (2021) miQC: An adaptive probabilistic framework for quality control of single-cell RNA-sequencing data. bioRxiv doi: 10.1101/2021.03.03.433798
 #'
 #' @importFrom rlang %||%
