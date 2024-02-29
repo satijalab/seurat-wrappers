@@ -26,17 +26,15 @@ t0 <- Sys.time()
 In this vignette, we describe how to run BANKSY with Seurat objects. If you use 
 BANKSY in your research, please cite
 
-> *BANKSY: A Spatial Omics Algorithm that Unifies Cell Type Clustering and Tissue Domain Segmentation*
+> *BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis*
 >
-> Vipul Singhal, Nigel Chou, Joseph Lee, Jinyue Liu, Wan Kee Chock, Li Lin, 
-Yun-Ching Chang, Erica Teo, Hwee Kuan Lee, Kok Hao Chen, Shyam Prabhakar
+> Vipul Singhal, Nigel Chou, Joseph Lee, Yifei Yue, Jinyue Liu, Wan Kee Chock, Li Lin, Yun-Ching Chang, Erica Mei Ling Teo, Jonathan Aow, Hwee Kuan Lee, Kok Hao Chen & Shyam Prabhakar
 >
-> bioRxiv, 2022
+> Nature Genetics, 2024
 >
-> doi: [10.1101/2022.04.14.488259](https://www.biorxiv.org/content/10.1101/2022.04.14.488259)
->
+> doi: [10.1038/s41588-024-01664-3](https://doi.org/10.1038/s41588-024-01664-3)
+> 
 > Website: https://prabhakarlab.github.io/Banksy
-
 
 BANKSY is a method that incorporates neighborhood information for clustering 
 spatial omics data. By doing so, BANKSY is able to
@@ -266,10 +264,10 @@ plots marker genes in spatial dimensions.
 DefaultAssay(vf.hippo) <- 'RNA'
 markers <- FindMarkers(vf.hippo, ident.1 = 6, only.pos = TRUE)
 
-genePlot <- function(object, dimx, dimy, gene, 
+genePlot <- function(object, dimx, dimy, gene, assay = 'RNA',
                      slot = 'scale.data', q.low = 0.01, q.high = 0.99,
                      col.low='blue', col.high='red') {
-    val <- GetAssayData(object, slot)[gene,]
+    val <- GetAssayData(object, assay=assay, slot=slot)[gene,]
     val.low <- quantile(val, q.low)
     val.high <- quantile(val, q.high)
     val[val < val.low] <- val.low
