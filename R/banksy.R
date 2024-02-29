@@ -11,6 +11,8 @@ NULL
 #' @param slot (character) Slot in Seurat assay to use
 #' @param dimx (character) Column name of spatial x dimension (must be in metadata)
 #' @param dimy (character) Column name of spatial y dimension (must be in metadata)
+#' @param dimz (character) Column name of spatial z dimension (must be in metadata)
+#' @param ndim (integer) Number of spatial dimensions to extract
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
 #' @param M (numeric) highest azimuthal harmonic
@@ -35,7 +37,8 @@ NULL
 #'
 #' @export
 RunBanksy <- function(object, lambda, assay='RNA', slot='data',
-                      dimx=NULL, dimy=NULL, features='variable',
+                      dimx=NULL, dimy=NULL, dimz=NULL, ndim=2,
+                      features='variable',
                       M=0, k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
                       assay_name='BANKSY', verbose=TRUE) {
@@ -51,7 +54,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     data_own <- get_data(object, assay, slot, features, verbose)
 
     # Get locs
-    locs <- get_locs(object, dimx, dimy, data_own, verbose)
+    locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, verbose)
 
     # Compute neighbor matrix
     if (verbose) message('Computing neighbors')
@@ -70,7 +73,9 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     # Only center higher harmonics
     center[1] <- FALSE
     har <- Map(function(knn_df, M, center) {
-      Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose)
+      x <- Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose)
+      rownames(x) <- paste0(rownames(x), '.m', M)
+      x
     }, knn_list, M, center)
 
     # Scale by lambdas
@@ -135,32 +140,37 @@ get_data <- function(object, assay, slot, features, verbose) {
 }
 
 # Get locations from Seurat object
-get_locs <- function(object, dimx, dimy, data_own, verbose) {
+get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, verbose) {
+
     if (!is.null(dimx) & !is.null(dimy)) {
-        # Convert locations data to data table
-        locations <- data.frame(
+        # Extract locations from metadata
+        locs <- data.frame(
             sdimx = unlist(object[[dimx]]),
             sdimy = unlist(object[[dimy]])
         )
-        rownames(locations) <- colnames(object)
-        locs <- data.table::data.table(locations, keep.rownames = TRUE)
-        data.table::setnames(locs, 'rn', 'cell_ID')
+        rownames(locs) <- colnames(object)
+
+        # Add z-dim if present
+        if (!is.null(dimz)) locs$sdimz = object[[dimz]]
 
         # Check locations
         obj_samples <- colnames(data_own)
-        locs_samples <- locs[['cell_ID']]
+        locs_samples <- rownames(locs)
         if (any(is.na(match(obj_samples, locs_samples)))) {
             na_id <- which(is.na(match(obj_samples, locs_samples)))
-            warning('No centroids found for samples: ', paste(obj_samples[na_id], collapse = ', '), '. Dropping samples.')
+            warning('No centroids found for samples: ',
+                    paste(obj_samples[na_id], collapse = ', '), '. Dropping samples.')
             data_own <- data_own[, -na_id, drop = FALSE]
         }
         locs <- locs[match(obj_samples, locs_samples),,drop=FALSE]
+
     } else {
-        locations <- Seurat::GetTissueCoordinates(object)[,1:2]
-        locs <- data.table::data.table(locations, keep.rownames = TRUE)
+        # Extract locations with Seurat accessor
+        locs <- Seurat::GetTissueCoordinates(object)[,seq_len(ndim)]
     }
 
-    colnames(locs) <- c('cell_ID', 'sdimx', 'sdimy')
+    dim_names <- paste0('sdim', c('x','y','z'))
+    colnames(locs) <- dim_names[seq_len(ncol(locs))]
 
     return(locs)
 }
