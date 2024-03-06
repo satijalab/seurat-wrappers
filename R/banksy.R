@@ -9,21 +9,22 @@ NULL
 #' @param lambda (numeric) Spatial weight parameter
 #' @param assay (character) Assay in Seurat object to use
 #' @param slot (character) Slot in Seurat assay to use
+#' @param use_agf (boolean) Whether to use the AGF
 #' @param dimx (character) Column name of spatial x dimension (must be in metadata)
 #' @param dimy (character) Column name of spatial y dimension (must be in metadata)
 #' @param dimz (character) Column name of spatial z dimension (must be in metadata)
 #' @param ndim (integer) Number of spatial dimensions to extract
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
-#' @param M (numeric) highest azimuthal harmonic
 #' @param k_geom (numeric) kNN parameter - number of neighbors to use
 #' @param n (numeric) kNN_rn parameter - exponent of radius
 #' @param sigma (numeric) rNN parameter - standard deviation of Gaussian kernel
 #' @param alpha (numeric) rNN parameter - determines radius used
 #' @param k_spatial (numeric) rNN parameter - number of neighbors to use
-#' @param spatial_mode (character) spatial mode to use (kNN_r, kNN_rn, kNN_rank,
+#' @param spatial_mode (character) Spatial mode to use (kNN_r, kNN_rn, kNN_rank,
 #'   kNN_unif, rNN_gauss)
 #' @param assay_name (character) Name for Banksy assay in Seurat object
+#' @param M (numeric) Advanced usage. Highest azimuthal harmonic
 #' @param verbose (boolean) Print messages
 #'
 #' @return A Seurat object with new assay holding a Banksy matrix
@@ -36,12 +37,12 @@ NULL
 #' Algorithm that Unifies Cell Type Clustering and Tissue Domain Segmentation
 #'
 #' @export
-RunBanksy <- function(object, lambda, assay='RNA', slot='data',
+RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       dimx=NULL, dimy=NULL, dimz=NULL, ndim=2,
                       features='variable',
-                      M=0, k_geom=15, n=2, sigma=1.5,
+                      k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
-                      assay_name='BANKSY', verbose=TRUE) {
+                      assay_name='BANKSY', M=NULL, verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
     SeuratWrappers:::CheckPackage(package = 'Matrix', repository = 'CRAN')
@@ -67,7 +68,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
 
 
     # Create Banksy matrix
-    M <- seq(0, M)
+    M <- seq(0, max(Banksy:::getM(use_agf, M)))
     # Compute harmonics
     center <- rep(TRUE, length(M))
     # Only center higher harmonics
