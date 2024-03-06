@@ -9,8 +9,11 @@ NULL
 #' @param lambda (numeric) Spatial weight parameter
 #' @param assay (character) Assay in Seurat object to use
 #' @param slot (character) Slot in Seurat assay to use
+#' @param use_agf (boolean) Whether to use the AGF
 #' @param dimx (character) Column name of spatial x dimension (must be in metadata)
 #' @param dimy (character) Column name of spatial y dimension (must be in metadata)
+#' @param dimz (character) Column name of spatial z dimension (must be in metadata)
+#' @param ndim (integer) Number of spatial dimensions to extract
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
 #' @param k_geom (numeric) kNN parameter - number of neighbors to use
@@ -18,9 +21,10 @@ NULL
 #' @param sigma (numeric) rNN parameter - standard deviation of Gaussian kernel
 #' @param alpha (numeric) rNN parameter - determines radius used
 #' @param k_spatial (numeric) rNN parameter - number of neighbors to use
-#' @param spatial_mode (character) spatial mode to use (kNN_r, kNN_rn, kNN_rank,
+#' @param spatial_mode (character) Spatial mode to use (kNN_r, kNN_rn, kNN_rank,
 #'   kNN_unif, rNN_gauss)
 #' @param assay_name (character) Name for Banksy assay in Seurat object
+#' @param M (numeric) Advanced usage. Highest azimuthal harmonic
 #' @param verbose (boolean) Print messages
 #'
 #' @return A Seurat object with new assay holding a Banksy matrix
@@ -33,11 +37,12 @@ NULL
 #' Algorithm that Unifies Cell Type Clustering and Tissue Domain Segmentation
 #'
 #' @export
-RunBanksy <- function(object, lambda, assay='RNA', slot='data',
-                      dimx=NULL, dimy=NULL, features='variable',
-                      k_geom=10, n=2, sigma=1.5,
+RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
+                      dimx=NULL, dimy=NULL, dimz=NULL, ndim=2,
+                      features='variable',
+                      k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
-                      assay_name='BANKSY', verbose=TRUE) {
+                      assay_name='BANKSY', M=NULL, verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
     SeuratWrappers:::CheckPackage(package = 'Matrix', repository = 'CRAN')
@@ -50,20 +55,45 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     data_own <- get_data(object, assay, slot, features, verbose)
 
     # Get locs
-    locs <- get_locs(object, dimx, dimy, data_own, verbose)
+    locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, verbose)
 
     # Compute neighbor matrix
-    if (verbose) message('Computing neighbor matrix')
-    data_nbr <- Banksy:::compute.banksyMatrices(
-        gcm = data_own, locs = locs, sigma = sigma, alpha = alpha,
-        kspatial = k_spatial, k_geom = k_geom, n = n, spatialMode = spatial_mode,
-        verbose = verbose)
+    if (verbose) message('Computing neighbors')
+    knn_list <- lapply(k_geom, function(kg) {
+      Banksy:::computeNeighbors(locs,
+                                spatial_mode = spatial_mode, k_geom = kg, n = n,
+                                sigma=sigma, alpha=alpha, k_spatial=k_spatial,
+                                verbose=verbose)
+    })
+
 
     # Create Banksy matrix
+    M <- seq(0, max(Banksy:::getM(use_agf, M)))
+    # Compute harmonics
+    center <- rep(TRUE, length(M))
+    # Only center higher harmonics
+    center[1] <- FALSE
+    har <- Map(function(knn_df, M, center) {
+      x <- Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose)
+      rownames(x) <- paste0(rownames(x), '.m', M)
+      x
+    }, knn_list, M, center)
+
+    # Scale by lambdas
+    lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
+
+    # Merge with own expression
     if (verbose) message('Creating Banksy matrix')
-    data_banksy <- Matrix::Matrix(
-        rbind(sqrt(1 - lambda) * data_own, sqrt(lambda) * data_nbr),
-        sparse = TRUE)
+    data_banksy <- c(list(data_own), har)
+    data_scaled <- lapply(data_banksy, Seurat:::FastRowScale)
+
+    # Multiple by lambdas
+    data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
+    data_scaled <- Map(function(lam, mat) lam * mat, lambdas, data_scaled)
+
+    # Rbind
+    data_banksy <- do.call(rbind, data_banksy)
+    data_scaled <- do.call(rbind, data_scaled)
 
     # Create an assay object
     if (grepl(pattern = 'counts', x = slot)) {
@@ -76,6 +106,8 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data',
     if (verbose) message('Setting default assay to ', assay_name)
     object[[assay_name]] <- banksy_assay
     DefaultAssay(object) <- assay_name
+    object <- SetAssayData(object, slot = 'scale.data', new.data = data_scaled,
+                           assay = assay_name)
 
     # Log commands
     object <- Seurat::LogSeuratCommand(object = object)
@@ -89,9 +121,9 @@ get_data <- function(object, assay, slot, features, verbose) {
     if (verbose) message('Fetching data from slot ', slot,' from assay ', assay)
     data_own <- Seurat::GetAssayData(object = object, assay = assay, slot = slot)
     # Feature subset
-    if (features != 'all') {
+    if (features[1] != 'all') {
         if (verbose) message('Subsetting by features')
-        if (features == 'variable') {
+        if (features[1] == 'variable') {
             feat <- Seurat::VariableFeatures(object)
             if (length(feat) == 0) {
                 warning('No variable features found. Running Seurat::FindVariableFeatures')
@@ -109,32 +141,37 @@ get_data <- function(object, assay, slot, features, verbose) {
 }
 
 # Get locations from Seurat object
-get_locs <- function(object, dimx, dimy, data_own, verbose) {
+get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, verbose) {
+
     if (!is.null(dimx) & !is.null(dimy)) {
-        # Convert locations data to data table
-        locations <- data.frame(
+        # Extract locations from metadata
+        locs <- data.frame(
             sdimx = unlist(object[[dimx]]),
             sdimy = unlist(object[[dimy]])
         )
-        rownames(locations) <- colnames(object)
-        locs <- data.table::data.table(locations, keep.rownames = TRUE)
-        data.table::setnames(locs, 'rn', 'cell_ID')
+        rownames(locs) <- colnames(object)
+
+        # Add z-dim if present
+        if (!is.null(dimz)) locs$sdimz = object[[dimz]]
 
         # Check locations
         obj_samples <- colnames(data_own)
-        locs_samples <- locs[['cell_ID']]
+        locs_samples <- rownames(locs)
         if (any(is.na(match(obj_samples, locs_samples)))) {
             na_id <- which(is.na(match(obj_samples, locs_samples)))
-            warning('No centroids found for samples: ', paste(obj_samples[na_id], collapse = ', '), '. Dropping samples.')
+            warning('No centroids found for samples: ',
+                    paste(obj_samples[na_id], collapse = ', '), '. Dropping samples.')
             data_own <- data_own[, -na_id, drop = FALSE]
         }
         locs <- locs[match(obj_samples, locs_samples),,drop=FALSE]
+
     } else {
-        locations <- Seurat::GetTissueCoordinates(object)[,1:2]
-        locs <- data.table::data.table(locations, keep.rownames = TRUE)
+        # Extract locations with Seurat accessor
+        locs <- Seurat::GetTissueCoordinates(object)[,seq_len(ndim)]
     }
 
-    colnames(locs) <- c('cell_ID', 'sdimx', 'sdimy')
+    dim_names <- paste0('sdim', c('x','y','z'))
+    colnames(locs) <- dim_names[seq_len(ncol(locs))]
 
     return(locs)
 }
