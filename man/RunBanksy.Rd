@@ -9,17 +9,20 @@ RunBanksy(
   lambda,
   assay = "RNA",
   slot = "data",
+  use_agf = FALSE,
   dimx = NULL,
   dimy = NULL,
+  dimz = NULL,
+  ndim = 2,
   features = "variable",
-  M = 0,
-  k_geom = 10,
+  k_geom = 15,
   n = 2,
   sigma = 1.5,
   alpha = 0.05,
   k_spatial = 10,
   spatial_mode = "kNN_r",
   assay_name = "BANKSY",
+  M = NULL,
   verbose = TRUE
 )
 }
@@ -32,14 +35,18 @@ RunBanksy(
 
 \item{slot}{(character) Slot in Seurat assay to use}
 
+\item{use_agf}{(boolean) Whether to use the AGF}
+
 \item{dimx}{(character) Column name of spatial x dimension (must be in metadata)}
 
 \item{dimy}{(character) Column name of spatial y dimension (must be in metadata)}
 
+\item{dimz}{(character) Column name of spatial z dimension (must be in metadata)}
+
+\item{ndim}{(integer) Number of spatial dimensions to extract}
+
 \item{features}{(character) Features to compute. Can be 'all', 'variable' or
 a vector of feature names}
-
-\item{M}{(numeric) highest azimuthal harmonic}
 
 \item{k_geom}{(numeric) kNN parameter - number of neighbors to use}
 
@@ -51,10 +58,12 @@ a vector of feature names}
 
 \item{k_spatial}{(numeric) rNN parameter - number of neighbors to use}
 
-\item{spatial_mode}{(character) spatial mode to use (kNN_r, kNN_rn, kNN_rank,
+\item{spatial_mode}{(character) Spatial mode to use (kNN_r, kNN_rn, kNN_rank,
 kNN_unif, rNN_gauss)}
 
 \item{assay_name}{(character) Name for Banksy assay in Seurat object}
+
+\item{M}{(numeric) Advanced usage. Highest azimuthal harmonic}
 
 \item{verbose}{(boolean) Print messages}
 }

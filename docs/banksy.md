@@ -1,6 +1,6 @@
 Running BANKSY with Seurat
 ================
-Compiled: February 29, 2024
+Compiled: March 06, 2024
 
 - [Introduction](#introduction)
 - [Overview](#overview)
@@ -172,7 +172,7 @@ ss.hippo <- FindClusters(ss.hippo, resolution = 0.5)
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9034
     ## Number of communities: 13
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 2 seconds
 
 Visualize the UMAP and Spatial plot:
 
@@ -307,7 +307,7 @@ vf.hippo <- FindClusters(vf.hippo, resolution = 0.5)
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9108
     ## Number of communities: 15
-    ## Elapsed time: 2 seconds
+    ## Elapsed time: 3 seconds
 
 Visualise BANKSY clusters in spatial dimensions:
 
@@ -363,7 +363,7 @@ For more information, visit <https://github.com/prabhakarlab/Banksy>.
 Vignette runtime
 </summary>
 
-    ## Time difference of 1.376255 mins
+    ## Time difference of 1.588479 mins
 
 </details>
 <details>
