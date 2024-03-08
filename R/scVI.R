@@ -86,11 +86,14 @@ scVIIntegration <- function(
 
   # build a meta.data-style data.frame indicating the batch for each cell
   batches <- .FindBatches(object, layers = layers)
-  # scVI expects a single counts matrix so we'll join our layers together
-  # it also expects the raw counts matrix
-  # TODO: avoid hardcoding this - users can rename their layers arbitrarily
-  # so there's no gauruntee that the usual naming conventions will be followed
-  object <- JoinLayers(object = object, layers = "counts")
+  
+  if (inherits(x = object, what = 'StdAssay')) {
+    # scVI expects a single counts matrix so we'll join our layers together
+    # it also expects the raw counts matrix
+    # TODO: avoid hardcoding this - users can rename their layers arbitrarily
+    # so there's no gauruntee that the usual naming conventions will be followed
+    object <- JoinLayers(object = object, layers = "counts")
+  }
   # setup an `AnnData` python instance
   adata <- sc$AnnData(
     X = scipy$sparse$csr_matrix(
