@@ -85,6 +85,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     # Merge with own expression
     if (verbose) message('Creating Banksy matrix')
     data_banksy <- c(list(data_own), har)
+    if (verbose) message('Scaling BANKSY matrix. Do not call ScaleData on assay ', assay_name)
     data_scaled <- lapply(data_banksy, Seurat:::FastRowScale)
 
     # Multiple by lambdas

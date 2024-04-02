@@ -122,6 +122,7 @@ Next, normalize the data and find variable genes:
 # Normalize
 ss.hippo <- NormalizeData(ss.hippo)
 ss.hippo <- FindVariableFeatures(ss.hippo)
+ss.hippo <- ScaleData(ss.hippo)
 ```
 
 To run BANKSY, we specify the following:
@@ -144,7 +145,9 @@ ss.hippo
 ```
 
 Note that the `RunBanksy` function sets the default assay to `BANKSY` (
-determined by the `assay_name` argument) and fills the `scale.data` slot. 
+determined by the `assay_name` argument) and fills the `scale.data` slot. Users
+should not call `ScaleData` on the `BANKSY` assay as this negates the effects
+of `lambda`. 
 
 The rest of the pipeline is similar to the 'default' Seurat pipline. We 
 scale the data and run dimensionality reduction with PCA and UMAP:
@@ -232,7 +235,12 @@ vf.hippo <- RunBanksy(vf.hippo, lambda = 0.2, dimx = 'sdimx', dimy = 'sdimy',
                       assay = 'RNA', slot = 'data', features = 'all', k_geom = 10)
 ```
 
-Scale the BANKSY matrix and run PCA:
+Note that the `RunBanksy` function sets the default assay to `BANKSY` (
+determined by the `assay_name` argument) and fills the `scale.data` slot. Users
+should not call `ScaleData` on the `BANKSY` assay as this negates the effects
+of `lambda`. 
+
+Run PCA on the BANKSY matrix:
 
 ```{r hippo_pca}
 # PCA
