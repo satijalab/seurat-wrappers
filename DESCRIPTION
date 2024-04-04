@@ -1,7 +1,7 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.3.4
-Date: 2024-01-23
+Version: 0.3.5
+Date: 2024-04-04
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
