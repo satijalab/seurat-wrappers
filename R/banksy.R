@@ -16,13 +16,22 @@ NULL
 #' @param ndim (integer) Number of spatial dimensions to extract
 #' @param features (character) Features to compute. Can be 'all', 'variable' or
 #'   a vector of feature names
+#' @param group (character) Column name of a grouping variable (must be in metadata)
+#' @param split.scale (boolean) Whether to separate scaling by group
 #' @param k_geom (numeric) kNN parameter - number of neighbors to use
 #' @param n (numeric) kNN_rn parameter - exponent of radius
 #' @param sigma (numeric) rNN parameter - standard deviation of Gaussian kernel
 #' @param alpha (numeric) rNN parameter - determines radius used
 #' @param k_spatial (numeric) rNN parameter - number of neighbors to use
-#' @param spatial_mode (character) Spatial mode to use (kNN_r, kNN_rn, kNN_rank,
-#'   kNN_unif, rNN_gauss)
+#' @param spatial_mode (character) Kernel for neighborhood computation
+#' \itemize{
+#'  \item{kNN_median: k-nearest neighbors with median-scaled Gaussian kernel}
+#'  \item{kNN_r: k-nearest neighbors with $1/r$ kernel}
+#'  \item{kNN_rn: k-nearest neighbors with $1/r^n$ kernel}
+#'  \item{kNN_rank: k-nearest neighbors with rank Gaussian kernel}
+#'  \item{kNN_unif: k-nearest neighbors wth uniform kernel}
+#'  \item{rNN_gauss: radial nearest neighbors with Gaussian kernel}
+#' }
 #' @param assay_name (character) Name for Banksy assay in Seurat object
 #' @param M (numeric) Advanced usage. Highest azimuthal harmonic
 #' @param verbose (boolean) Print messages
@@ -40,8 +49,9 @@ NULL
 RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       dimx=NULL, dimy=NULL, dimz=NULL, ndim=2,
                       features='variable',
+                      group=NULL, split.scale=TRUE,
                       k_geom=15, n=2, sigma=1.5,
-                      alpha=0.05, k_spatial=10, spatial_mode='kNN_r',
+                      alpha=0.05, k_spatial=10, spatial_mode='kNN_median',
                       assay_name='BANKSY', M=NULL, verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
@@ -55,17 +65,20 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     data_own <- get_data(object, assay, slot, features, verbose)
 
     # Get locs
-    locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, verbose)
+    locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, group, verbose)
+    if (!is.null(group)) {
+        object <- AddMetaData(
+            object, metadata = locs,
+            col.name = paste0('staggered_', colnames(locs)))
+    }
 
     # Compute neighbor matrix
-    if (verbose) message('Computing neighbors')
     knn_list <- lapply(k_geom, function(kg) {
       Banksy:::computeNeighbors(locs,
                                 spatial_mode = spatial_mode, k_geom = kg, n = n,
                                 sigma=sigma, alpha=alpha, k_spatial=k_spatial,
                                 verbose=verbose)
     })
-
 
     # Create Banksy matrix
     M <- seq(0, max(Banksy:::getM(use_agf, M)))
@@ -86,7 +99,8 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     if (verbose) message('Creating Banksy matrix')
     data_banksy <- c(list(data_own), har)
     if (verbose) message('Scaling BANKSY matrix. Do not call ScaleData on assay ', assay_name)
-    data_scaled <- lapply(data_banksy, Seurat:::FastRowScale)
+    data_scaled <- lapply(data_banksy, fast_scaler,
+                          object, group, split.scale, verbose)
 
     # Multiple by lambdas
     data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
@@ -142,7 +156,7 @@ get_data <- function(object, assay, slot, features, verbose) {
 }
 
 # Get locations from Seurat object
-get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, verbose) {
+get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, group, verbose) {
 
     if (!is.null(dimx) & !is.null(dimy)) {
         # Extract locations from metadata
@@ -174,6 +188,33 @@ get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, verbose) {
     dim_names <- paste0('sdim', c('x','y','z'))
     colnames(locs) <- dim_names[seq_len(ncol(locs))]
 
+    if (!is.null(group)) {
+        # Stagger locations by group
+        if (verbose) message('Staggering locations by ', group)
+        locs[,1] = locs[,1] + abs(min(locs[,1]))
+        max_x = max(locs[,1]) * 2
+        n_groups = length(unique(unlist(object[[group]])))
+        shift = seq(from = 0, length.out = n_groups, by = max_x)
+        locs[,1] = locs[,1] + rep(shift, table(object[[group]]))
+    }
+
     return(locs)
 }
 
+# Scaling
+fast_scaler = function(data, object, group, split.scale, verbose) {
+    # Split scaling by group
+    if (!is.null(group) & split.scale) {
+        groups = unlist(object[[group]])
+        ugroups = unique(groups)
+        for (curr_group in ugroups) {
+            if (verbose) message('Scaling group: ', curr_group)
+            curr_group_id <- which(curr_group == groups)
+            data[, curr_group_id] <- Seurat:::FastRowScale(
+              data[, curr_group_id])
+        }
+    } else {
+        data <- Seurat::FastRowScale(data)
+    }
+    data
+}

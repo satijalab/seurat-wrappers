@@ -15,12 +15,14 @@ RunBanksy(
   dimz = NULL,
   ndim = 2,
   features = "variable",
+  group = NULL,
+  split.scale = TRUE,
   k_geom = 15,
   n = 2,
   sigma = 1.5,
   alpha = 0.05,
   k_spatial = 10,
-  spatial_mode = "kNN_r",
+  spatial_mode = "kNN_median",
   assay_name = "BANKSY",
   M = NULL,
   verbose = TRUE
@@ -48,6 +50,10 @@ RunBanksy(
 \item{features}{(character) Features to compute. Can be 'all', 'variable' or
 a vector of feature names}
 
+\item{group}{(character) Column name of a grouping variable (must be in metadata)}
+
+\item{split.scale}{(boolean) Whether to separate scaling by group}
+
 \item{k_geom}{(numeric) kNN parameter - number of neighbors to use}
 
 \item{n}{(numeric) kNN_rn parameter - exponent of radius}
@@ -58,8 +64,15 @@ a vector of feature names}
 
 \item{k_spatial}{(numeric) rNN parameter - number of neighbors to use}
 
-\item{spatial_mode}{(character) Spatial mode to use (kNN_r, kNN_rn, kNN_rank,
-kNN_unif, rNN_gauss)}
+\item{spatial_mode}{(character) Kernel for neighborhood computation
+\itemize{
+ \item{kNN_median: k-nearest neighbors with median-scaled Gaussian kernel}
+ \item{kNN_r: k-nearest neighbors with $1/r$ kernel}
+ \item{kNN_rn: k-nearest neighbors with $1/r^n$ kernel}
+ \item{kNN_rank: k-nearest neighbors with rank Gaussian kernel}
+ \item{kNN_unif: k-nearest neighbors wth uniform kernel}
+ \item{rNN_gauss: radial nearest neighbors with Gaussian kernel}
+}}
 
 \item{assay_name}{(character) Name for Banksy assay in Seurat object}
 
