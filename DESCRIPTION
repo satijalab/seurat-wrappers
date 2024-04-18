@@ -62,6 +62,7 @@ Collate:
     'monocle3.R'
     'presto.R'
     'scVI.R'
+    'SEraster.R'
     'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
@@ -86,4 +87,5 @@ Suggests:
     presto,
     flexmix,
     tricycle,
-    Banksy
+    Banksy,
+    SEraster
