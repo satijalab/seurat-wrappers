@@ -2,18 +2,74 @@
 #'
 NULL
 
-#' rasterizeGeneExpression
-#' 
-#' @description Function to rasterize feature x observation matrix in spatially-resolved 
-#' omics data represented as SpatialExperiment class.
-#'  
-#' @description This function assumes that the input is provided as a \code{SpatialExperiment} 
-#' object or a \code{list} of \code{SpatialExperiment} objects.
+createRasterizedObject <- function(input, out) {
+  data_rast <- out$data_rast
+  pos_rast_temp <- as.data.frame(out$pos_rast)
+  image <- Images(input)[[1]]
+  meta_rast <- out$meta_rast[,c("num_cell","type","resolution")]
+  resolution <- meta_rast[["resolution"]][1]
+  
+  output <- CreateSeuratObject(
+    counts = data_rast,
+    assay = "rasterized",
+    meta.data = meta_rast
+  )
 
-#' @importFrom SpatialExperiment spatialCoords SpatialExperiment
-#' @importFrom SummarizedExperiment assay assayNames
-#' @importFrom Matrix colSums
-#' 
+  class <- class(input[[image]])
+  if(class == 'VisiumV1') {
+    scale.use <- ScaleFactors(input[[image]])[['lowres']]
+    pos_rast <- as.data.frame(cbind(tissue = rep(1, nrow(pos_rast_temp)), 
+                      row = pos_rast_temp$x, 
+                      col = pos_rast_temp$y,
+                      imagerow = ceiling(pos_rast_temp$x / scale.use),
+                      imagecol = ceiling(pos_rast_temp$y / scale.use)))
+    rownames(pos_rast) <- rownames(pos_rast_temp)
+    radius <- input[[image]]@spot.radius * sqrt(resolution)
+    input[[image]]@scale.factors$spot <- input[[image]]@scale.factors$spot * resolution / 100
+    input[[image]]@scale.factors$fiducial <- input[[image]]@scale.factors$fiducial / resolution * 100
+
+    visium.fov <- new(
+      Class = "VisiumV1",
+      coordinates = pos_rast,
+      assay = "rasterized", 
+      key = "rasterized_",
+      image = input[[image]]@image,
+      scale.factors = input[[image]]@scale.factors,
+      spot.radius = radius
+    )
+  } else if(class == 'VisiumV2') {
+    scale.use <- ScaleFactors(input[[image]])[['hires']]
+    pos_rast <- as.data.frame(cbind(tissue = rep(1, nrow(pos_rast_temp)), 
+                      row = ceiling(pos_rast_temp$x / scale.use), 
+                      col = ceiling(pos_rast_temp$y / scale.use),
+                      imagerow = pos_rast_temp$x,
+                      imagecol = pos_rast_temp$y))
+    rownames(pos_rast) <- rownames(pos_rast_temp)
+    input[[image]]@scale.factors$spot <- input[[image]]@scale.factors$spot * resolution / 100
+    input[[image]]@scale.factors$fiducial <- input[[image]]@scale.factors$fiducial / resolution * 100
+    fov <- CreateFOV(
+      pos_rast[, c("imagerow", "imagecol")],
+      type = "centroids",
+      radius = input[[image]]@scale.factors[["spot"]],
+      assay = "rasterized",
+      key = Key("rasterized_", quiet = TRUE)
+    )
+    visium.fov <- new(
+      Class = "VisiumV2",
+      boundaries = fov@boundaries,
+      molecules = fov@molecules,
+      assay = fov@assay,
+      key = fov@key,
+      image = input[[image]]@image,
+      scale.factors = input[[image]]@scale.factors
+    )
+  }
+  output@images$rasterized <- visium.fov
+
+  return(output)
+}
+
+#' rasterizeGeneExpression
 #' @export
 #' 
 rasterizeGeneExpression <- function(input, assay_name = NULL, resolution = 100, square = TRUE, fun = "mean", n_threads = 1, BPPARAM = NULL, verbose = FALSE) {
@@ -62,8 +118,10 @@ rasterizeGeneExpression <- function(input, assay_name = NULL, resolution = 100, 
         meta.data = meta_rast
       )
 
-      coords <- CreateFOV(coords = as.data.frame(pos_rast), assay = paste0(assay_name, ".rast"), type = c("centroids"), molecules = NULL)
-      output[['rasterized']] <- coords
+      # scale.factors <- ScaleFactors(input[[Images(input)]])
+      # fov <- CreateFOV(coords = as.data.frame(pos_rast), radius = scale.factors[["spot"]], assay = paste0(assay_name, ".rast"), type = c("centroids"), molecules = NULL)
+      # output[['rasterized']] <- fov
+
       return(output)
     })
     
@@ -86,27 +144,14 @@ rasterizeGeneExpression <- function(input, assay_name = NULL, resolution = 100, 
     ## rasterize
     if (is.null(assay_name)) {
       assay_name <- DefaultAssay(input)
-      out <- SEraster::rasterizeMatrix(input[[assay_name]], pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+      out <- SEraster::rasterizeMatrix(input[[assay_name]]@counts, pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
     } else {
       stopifnot(is.character(assay_name))
-      stopifnot("assay_name does not exist in the input Seurat object"= assay_name %in% Assays(object))
-      out <- SEraster::rasterizeMatrix(input[[assay_name]], pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+      stopifnot("assay_name does not exist in the input Seurat object"= assay_name %in% Assays(input))
+      out <- SEraster::rasterizeMatrix(input[[assay_name]]@counts, pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
     }
-    data_rast <- out$data_rast
-    pos_rast <- out$pos_rast
-    meta_rast <- out$meta_rast[,c("num_cell","type","resolution")]
     
-    ## construct a new Seurat object as output
-    output <- CreateSeuratObject(
-      counts = data_rast,
-      assay = paste0(assay_name,".rast"),
-      meta.data = meta_rast
-    )
-
-    coords <- CreateFOV(coords = as.data.frame(pos_rast), assay = paste0(assay_name, ".rast"), type = c("centroids"), molecules = NULL)
-    output[['rasterized']] <- coords
-    
-    ## return a Seurat object
+    output <- createRasterizedObject(input, out)
     return(output)
   }
 }
@@ -210,22 +255,7 @@ rasterizeCellType <- function(input, col_name, resolution = 100, square = TRUE, 
     
     ## rasterize
     out <- SEraster::rasterizeMatrix(mat_ct, pos, bbox, resolution = resolution, square = square, fun = fun, n_threads = 1, BPPARAM = BPPARAM, verbose = verbose)
-    data_rast <- out$data_rast
-    pos_rast <- out$pos_rast
-    meta_rast <- out$meta_rast[,c("num_cell","type","resolution")]
-    
-    ## construct a new Seurat object as output
-    assay_name <- DefaultAssay(input)
-    output <- CreateSeuratObject(
-      counts = data_rast,
-      assay = paste0(assay_name,".rast"),
-      meta.data = meta_rast
-    )
-
-    coords <- CreateFOV(coords = as.data.frame(pos_rast), assay = paste0(assay_name, ".rast"), type = c("centroids"), molecules = NULL)
-    output[['rasterized']] <- coords
-    
-    ## return a new Seurat object
+    output <- createRasterizedObject(input, out)
     return(output)
   }
 }
@@ -332,20 +362,3 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   }
 }
 
-
-## test script
-library(Seurat)
-library(SeuratData)
-brain <- LoadData("stxBrain", type = "anterior1")
-brain2 <- LoadData("stxBrain", type = "posterior1")
-
-fake_col1 <- rep(c("A", "B", "C"), length.out = ncol(brain))
-fake_col2 <- rep(c("D", "E", "F"), length.out = ncol(brain2))
-
-brain$fake_celltypes <- fake_col1
-brain2$fake_celltypes <- fake_col2
-
-brains <- list(brain, brain2)
-
-brains_rast <- rasterizeGeneExpression(brains, assay_name = NULL, resolution = 100, square = TRUE, fun = "mean", n_threads = 1, BPPARAM = NULL, verbose = FALSE) 
-brains_cells_rast <- rasterizeCellType(brains, col_name = "fake_celltypes", resolution = 100, square = TRUE, fun = "sum", n_threads = 1, BPPARAM = NULL, verbose = FALSE)
