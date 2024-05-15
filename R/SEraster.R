@@ -1,7 +1,9 @@
 #' @include internal.R
 #'
 NULL
-
+#' createRasterizedObject
+#' @keyword internal
+#' 
 createRasterizedObject <- function(input, out, name) {
   data_rast <- out$data_rast
   pos_rast_temp <- as.data.frame(out$pos_rast)
@@ -73,7 +75,8 @@ createRasterizedObject <- function(input, out, name) {
       type = c("segmentation", "centroids"),
       radius = radius,
       molecules = input[[image]]$molecules,
-      assay = name
+      assay = name,
+      key = Key("rasterized_", quiet = TRUE)
     )
   }
   output@images[[paste0(name,".rasterized")]]<- new.fov
@@ -119,7 +122,7 @@ rasterizeGeneExpression <- function(input, assay_name = NULL, image = NULL, slot
         out <- SEraster::rasterizeMatrix(counts, coords, bbox = bbox_common, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
       } else {
         stopifnot(is.character(assay_name))
-        stopifnot("assay_name does not exist in the input SpatialExperiment object"= assay_name %in% Assays(spe))
+        stopifnot("assay_name does not exist in the input Seurat object"= assay_name %in% Assays(spe))
         counts <- LayerData(spe[[assay_name]], layer = slot)
         out <- SEraster::rasterizeMatrix(counts, coords, bbox = bbox_common, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
       }
@@ -168,13 +171,11 @@ rasterizeGeneExpression <- function(input, assay_name = NULL, image = NULL, slot
 #' rasterizeCellType
 #' 
 #' @description Function to rasterize cell type labels in spatially-resolved 
-#' omics data represented as SpatialExperiment class.
+#' omics data represented as Seurat object class.
 #'
-#' @description This function assumes that the input is provided as a \code{SpatialExperiment} 
-#' object or a \code{list} of \code{SpatialExperiment} objects.
+#' @description This function assumes that the input is provided as a \code{Seurat object} 
+#' object or a \code{list} of \code{Seurat} objects.
 #' 
-#' @importFrom SpatialExperiment spatialCoords SpatialExperiment
-#' @importFrom SummarizedExperiment colData
 #' @importFrom Matrix sparse.model.matrix t colSums
 #' 
 #' @export
@@ -208,9 +209,9 @@ rasterizeCellType <- function(input, col_name, assay_name = NULL, image = NULL, 
         rownames(coords) <- coords$cell
       }
       
-      ## extract cell type labels from SpatialExperiment
+      ## extract cell type labels from Seurat object 
       stopifnot(is.character(col_name))
-      stopifnot("col_name does not exist in the input SpatialExperiment object"= col_name %in% colnames(spe[[]]))
+      stopifnot("col_name does not exist in the input Seurat object"= col_name %in% colnames(spe[[]]))
       cellTypes <- as.factor(spe@meta.data[,col_name])
       
       ## one-hot encode cell type labels as sparse matrix
@@ -264,18 +265,16 @@ rasterizeCellType <- function(input, col_name, assay_name = NULL, image = NULL, 
 
 #' permutateByRotation
 #' 
-#' @description Function to permutate a given input SpatialExperiment object(s) 
+#' @description Function to permutate a given input Seurat object(s) 
 #' by rotating the x,y coordinates around the midrange point.
 #' 
-#' @description This function assumes that the input is provided as a \code{SpatialExperiment} 
-#' object or a \code{list} of \code{SpatialExperiment} objects.
+#' @description This function assumes that the input is provided as a \code{Seurat} 
+#' object or a \code{list} of \code{Seurat} objects.
 #'
-#' @description When the input is a \code{list} of \code{SpatialExperiment} objects, 
-#' all \code{SpatialExperiment} objects will be rotated around a common midrange 
+#' @description When the input is a \code{list} of \code{Seurat} objects, 
+#' all \code{Seurat} objects will be rotated around a common midrange 
 #' point computed based on combined x,y coordinates.
 #' 
-#' @importFrom SpatialExperiment spatialCoords
-#' @importFrom SummarizedExperiment assays colData
 #' @importFrom rearrr rotate_2d midrange
 #' 
 #' @export
@@ -452,6 +451,9 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   }
 }
 
+#' rotate
+#' @keyword internal
+#' 
 rotate <- function(arr, angle) {
   angle_rad <- angle * pi / 180
   rows <- dim(arr)[1]
@@ -464,8 +466,6 @@ rotate <- function(arr, angle) {
   center_y <- rows * midrange_pt$y / max_y
   center_x <- 280
 
-  # center_x <- cols / 2 - 1
-  # center_y <- rows / 2 - 1
   size <- max(center_x*2,center_y*2)
 
   rotated_arr <- array(0, dim = c(size,size,3))
