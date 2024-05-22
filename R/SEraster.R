@@ -5,88 +5,122 @@ NULL
 #' @keyword internal
 #' 
 createRasterizedObject <- function(input, out, name) {
+  image <- ifelse(name %in% Assays(input), Images(input, assay = name)[1], Images(input, assay = DefaultAssay(input))[1])
+  input_fov <- input[[image]]
+
   data_rast <- out$data_rast
-  pos_rast_temp <- as.data.frame(out$pos_rast)
-  
-  if(name %in% Assays(input)){
-    image <- Images(input, assay = name)[1]
-  } else{
-    image <- Images(input, assay = DefaultAssay(input))[1]
-  }
-  
   meta_rast <- out$meta_rast[,c("num_cell","type","resolution")]
   resolution <- meta_rast[["resolution"]][1]
   for (i in seq_along(out$meta_rast$cellID_list)) {
     meta_rast$cellID_list[i] <- paste(unlist(out$meta_rast$cellID_list[[i]]), collapse = ", ")
   }
+  output_image_name <- paste0("ras.", resolution,".", image)
+  output_coordinates <- as.data.frame(out$pos_rast)
   
   output <- CreateSeuratObject(
     counts = data_rast,
     assay = name,
     meta.data = meta_rast
   )
-  
-  class <- class(input[[image]])
-  if(class == 'VisiumV1') {
-    scale.use <- ScaleFactors(input[[image]])[['lowres']]
-    pos_rast <- as.data.frame(cbind(tissue = rep(1, nrow(pos_rast_temp)), 
-                                     row = pos_rast_temp$x, 
-                                     col = pos_rast_temp$y,
-                                     imagerow = ceiling(pos_rast_temp$x / scale.use),
-                                     imagecol = ceiling(pos_rast_temp$y / scale.use)))
-    rownames(pos_rast) <- rownames(pos_rast_temp)
-    input[[image]]@scale.factors$spot <- sqrt(nrow(input[[]])/nrow(meta_rast))*Radius(input[[image]])
+
+  # VisiumV1 class should be deprecated in the future; this is the hack to deal with objects created previous to V2
+  # VisiumV1 plotting not working with latest SeuratObject as of May 2024
+  if(class(input[[image]]) == 'VisiumV1') {
+    scale.use <- ScaleFactors(input_fov)[['lowres']]
+    new_coordinates <- as.data.frame(cbind(tissue = rep(1, nrow(output_coordinates)), 
+                                     row = output_coordinates$x, 
+                                     col = output_coordinates$y,
+                                     imagerow = ceiling(output_coordinates$x / scale.use),
+                                     imagecol = ceiling(output_coordinates$y / scale.use)))
+    rownames(new_coordinates) <- rownames(output_coordinates)
+    input_fov@scale.factors$spot <- sqrt(nrow(input[[]])/nrow(meta_rast))*input_fov@scale.factors$spot 
     
     new.fov <- new(
       Class = "VisiumV1",
-      coordinates = pos_rast,
+      coordinates = new_coordinates,
       assay = name, 
-      key = "rasterized_",
-      image = input[[image]]@image,
-      scale.factors = input[[image]]@scale.factors,
-      spot.radius = input[[image]]@scale.factors$spot
+      key = Key(output_image_name, quiet = TRUE),
+      image = input_fov@image,
+      scale.factors = input_fov@scale.factors,
+      spot.radius = input_fov@scale.factors$spot
     )
-  } else if(class == 'VisiumV2') {
-    input[[image]]@scale.factors$spot <- sqrt(nrow(input[[]])/nrow(meta_rast))*slot(input[[image]]$centroids, name='radius')
-    fov <- CreateFOV(
-      pos_rast_temp[, c("x", "y")],
-      type = "centroids",
-      radius = input[[image]]@scale.factors[["spot"]],
-      assay = name,
-      key = Key("rasterized_", quiet = TRUE)
+    output@images[[output_image_name]]<- new.fov
+  } 
+  else {
+    input_centroids <- input_fov[["centroids"]]
+    input_segmentation <- tryCatch(input_fov[["segmentation"]], error = function(e) NULL)
+    input_molecules <- tryCatch(input_fov[["molecules"]], error = function(e) NULL)
+
+    output_radius <- sqrt(
+      nrow(input[[]]) / nrow(meta_rast)
+    ) * input_centroids@radius
+
+    output_centroids <- CreateCentroids(
+      coords = output_coordinates,
+      nsides = input_centroids@nsides,
+      radius = output_radius,
+      theta = input_centroids@theta
     )
-    new.fov <- new(
-      Class = "VisiumV2",
-      boundaries = fov@boundaries,
-      assay = fov@assay,
-      key = fov@key,
-      image = input[[image]]@image,
-      scale.factors = input[[image]]@scale.factors
+
+    # `scale_factors` will be set to `NULL` unless there a matching 
+    # implementation of the `ScaleFactors` generic available for `input_fov` 
+    # (i.e if `input_fov` is `VisiumV2`)
+    tryCatch(
+      scale_factors <- ScaleFactors(input_fov),
+      error = function(e) {
+        return (NULL)
+      }
     )
-  } else if(class == 'FOV') {
-    radius <- sqrt(nrow(input[[]])/nrow(meta_rast))*slot(input[[image]]$centroids, name='radius')
-    pos_rast_temp$cell <- rownames(pos_rast_temp)
-    segmentations.data <- list(
-      "centroids" = CreateCentroids(coords = pos_rast_temp[, c("x", "y")], nsides = 4, radius = radius),
-      "segmentation" = CreateSegmentation(coords = pos_rast_temp)
-    )
-    new.fov <- CreateFOV(
-      coords = segmentations.data,
-      type = c("segmentation", "centroids"),
-      radius = radius,
-      molecules = input[[image]]$molecules,
-      assay = name,
-      key = Key("rasterized_", quiet = TRUE)
-    )
+    
+    if (!is.null(scale_factors)) {
+      output_fov <- CreateFOV(
+        coords = output_centroids,
+        type = 'centroids',
+        molecules = input_molecules,
+        assay = name,
+        key = Key(output_image_name, quiet = TRUE)
+      )
+      output_fov <- new(
+        Class = "VisiumV2",
+        boundaries = output_fov@boundaries,
+        molecules = output_fov@molecules,
+        assay = output_fov@assay,
+        key = output_fov@key,
+        image = input_fov@image,
+        scale.factors = scale_factors
+      )
+    } else {
+      output_boundaries <- list(
+        "centroids" = output_centroids,
+        "segmentation" = input_segmentation
+      )
+      output_fov <- CreateFOV(
+        coords = output_boundaries,
+        molecules = input_molecules,
+        assay = name,
+        key = Key(output_image_name, quiet = TRUE)
+      )
+    }
+    output[[output_image_name]] <- output_fov
   }
-  output@images[[paste0(name,".rasterized")]]<- new.fov
   return(output)
 }
 
 #' rasterizeGeneExpression
 #' @export
 #' 
-rasterizeGeneExpression <- function(input, assay_name = NULL, image = NULL, slot = "counts", resolution = 100, square = TRUE, fun = "mean", n_threads = 1, BPPARAM = NULL, verbose = FALSE) {
+rasterizeGeneExpression <- function(
+  input, 
+  assay_name = NULL, 
+  image = NULL, 
+  slot = "counts", 
+  resolution = 100, 
+  square = TRUE, 
+  fun = "mean", 
+  n_threads = 1, 
+  BPPARAM = NULL, 
+  verbose = FALSE
+) {
   if (is.list(input)) {
     ## create a common bbox
     bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
@@ -180,7 +214,18 @@ rasterizeGeneExpression <- function(input, assay_name = NULL, image = NULL, slot
 #' 
 #' @export
 #' 
-rasterizeCellType <- function(input, col_name, assay_name = NULL, image = NULL, resolution = 100, square = TRUE, fun = "sum", n_threads = 1, BPPARAM = NULL, verbose = FALSE) {
+rasterizeCellType <- function(
+  input, 
+  col_name, 
+  assay_name = NULL, 
+  image = NULL, 
+  resolution = 100, 
+  square = TRUE, 
+  fun = "sum", 
+  n_threads = 1, 
+  BPPARAM = NULL, 
+  verbose = FALSE
+) {
   if (is.list(input)) {
     ## create a common bbox
     bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
@@ -280,7 +325,6 @@ rasterizeCellType <- function(input, col_name, assay_name = NULL, image = NULL, 
 #' @export
 #' 
 permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
-  ## compute rotation degrees based on the required number of permutation
   angles <- seq(0, 360, by = 360/n_perm)[1:n_perm]
   
   if (verbose) {
@@ -289,182 +333,162 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   }
   
   if (is.list(input)) {
-    ## combine all x,y coordinate
     pos_comb <- do.call(rbind, lapply(seq_along(input), function(i) {
       pos <- GetTissueCoordinates(input[[i]])
-      if (!is.null(names(input))) {
-        dataset <- names(input)[[i]]
-      } else {
-        dataset <- i
-      }
-      return(data.frame(dataset = dataset, x = pos[,1], y = pos[,2]))
+      dataset <- ifelse(!is.null(names(input)), names(input)[[i]], i)
+      return(data.frame(dataset = dataset, x = pos[, 1], y = pos[, 2]))
     }))
-    ## find the midrange point across combined x,y coordinates
     midrange_pt <- rearrr::midrange(pos_comb, cols = c("x", "y"))
     
     if (verbose) {
       message(paste0("Rotating all datasets around (x, y) = (", midrange_pt$x, ", ", midrange_pt$y, ")."))
     }
     
-    output <- unlist(lapply(input, function(spe) {      
-      ## get original x,y coordinates
+    output <- unlist(lapply(input, function(spe) {
       assay_name <- DefaultAssay(spe)
       pos_orig <- data.frame(GetTissueCoordinates(spe))
-      colnames(pos_orig) <- c("x","y")
-      stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively. Please change column names accordingly."=colnames(pos_orig)[1:2] == c("x", "y"))
+      colnames(pos_orig) <- c("x", "y")
+      stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
       
-      output2 <- lapply(angles, function(angle) {
-        ## rotate around the midrange point
+      lapply(angles, function(angle) {
         pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = TRUE)
-        
-        pos_rotated <- as.data.frame(pos_rotated[,c("x_rotated", "y_rotated")])
+        pos_rotated <- as.data.frame(pos_rotated[, c("x_rotated", "y_rotated")])
         colnames(pos_rotated) <- c("x", "y")
         rownames(pos_rotated) <- rownames(pos_orig)
         
-        image <- Images(spe, assay = assay_name)[[1]]
-        class <- class(spe[[image]])
-
-        if(class == 'VisiumV1') {
-          scale.use <- ScaleFactors(spe[[image]])[['lowres']]
-          pos_new <- slot(spe[[image]], name="coordinates")
-          pos_new$row <- pos_rotated$x
-          pos_new$col <- pos_rotated$y 
-          pos_new$imagerow <- ceiling(pos_rotated$x / scale.use)
-          pos_new$imagecol <- ceiling(pos_rotated$y / scale.use)
-          rownames(pos_new) <- rownames(pos_rotated)
-          visium.fov <- new(
-            Class = "VisiumV1",
-            coordinates = pos_new,
-            assay = assay_name, 
-            key = paste0("rotate",angle,"_"),
-            image = spe[[image]]@image,
-            scale.factors = spe[[image]]@scale.factors,
-            spot.radius = spe[[image]]@spot.radius
-          )
-        } else if(class == 'VisiumV2') {
-          pos_new <-  pos_rotated[, c("x", "y")]
-          fov <- CreateFOV(
-            pos_new[, c("x", "y")],
-            type = "centroids",
-            radius = spe[[image]]@scale.factors[["spot"]],
-            assay = assay_name,
-            theta = angle,
-            key =paste0("rotate",angle,"_")
-          )
-          visium.fov <- new(
-            Class = "VisiumV2",
-            boundaries = fov@boundaries,
-            molecules = fov@molecules,
-            assay = fov@assay,
-            key = fov@key,
-            image = spe[[image]]@image,
-            scale.factors = spe[[image]]@scale.factors
-          )
+        image_name <- Images(spe, assay = assay_name)[[1]]
+        class <- class(spe[[image_name]])
+        
+        if (class == 'VisiumV1') {
+          input <-updateVisiumV1(spe, pos_rotated, assay_name, angle, image_name)
+        } else if (class == 'VisiumV2') {
+          input <-updateVisiumV2(spe, pos_rotated, assay_name, angle, image_name)
+        } else if (class == 'FOV') {
+          input <-updateFOV(spe, pos_rotated, assay_name, angle, image_name)
         }
-        spe@images[[paste0("rotate",angle)]] <- visium.fov
-        return(spe)
       })
-      return(output2)
     }))
     
-    if (!is.null(names(input))) {
-      names(output) <- paste0(rep(names(input), each = length(angles)), "_rotated_", angles)
-    }
-    
+    #names(output) <- ifelse(!is.null(names(input)), paste0(rep(names(input), each = length(angles)), "_rotated_", angles), NULL)
     return(output)
     
   } else {
-    ## get original x,y coordinates
     assay_name <- DefaultAssay(input)
     pos_orig <- GetTissueCoordinates(input)
-    colnames(pos_orig) <- c("x","y")
-    stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively. Please change column names accordingly."=colnames(pos_orig)[1:2] == c("x", "y"))
+    colnames(pos_orig) <- c("x", "y")
+    stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
     
-    for(angle in angles) {
-      ## rotate around the midrange point
+    for (angle in angles) {
+      image_name <- Images(input, assay = assay_name)[[1]]
+      image <- input[[image_name]]
       midrange_pt <- rearrr::midrange(pos_orig, cols = c("x", "y"))
       pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = TRUE)
-      
-      pos_rotated <- as.data.frame(pos_rotated[,c("x_rotated", "y_rotated")])
       colnames(pos_rotated) <- c("x", "y")
       rownames(pos_rotated) <- rownames(pos_orig)
       
-      image <- Images(input, assay = assay_name)[[1]]
-      class <- class(input[[image]])
-      if(class == 'VisiumV1') {
-        scale.use <- ScaleFactors(input[[image]])[['lowres']]
-        pos_new <- slot(input[[image]], name="coordinates")
-        pos_new$row <- pos_rotated$x
-        pos_new$col <- pos_rotated$y 
-        pos_new$imagerow <- ceiling(pos_rotated$x / scale.use)
-        pos_new$imagecol <- ceiling(pos_rotated$y / scale.use)
-        rownames(pos_new) <- rownames(pos_rotated)
-        
-        new.fov <- new(
-          Class = "VisiumV1",
-          coordinates = pos_new,
-          assay = assay_name, 
-          key = paste0("rotate",angle,"_"),
-          image = input[[image]]@image,
-          scale.factors = input[[image]]@scale.factors,
-          spot.radius = input[[image]]@spot.radius
-        )
-      } else if(class == 'VisiumV2') {
-        pos_new <-  pos_rotated[, c("x", "y")]
-        fov <- CreateFOV(
-          pos_new[, c("x", "y")],
-          type = "centroids",
-          radius = input[[image]]@scale.factors[["spot"]],
-          assay = assay_name,
-          theta = angle,
-          key = paste0("rotate",angle,"_")
-        )
-        new.fov <- new(
-          Class = "VisiumV2",
-          boundaries = fov@boundaries,
-          molecules = fov@molecules,
-          assay = fov@assay,
-          key = fov@key,
-          image = rotate(input[[image]]@image, angle),
-          scale.factors = input[[image]]@scale.factors
-        )
-      } else if(class == 'FOV') {
-        pos_new <-  pos_rotated[, c("x", "y")]
-        pos_new$cell <- rownames(pos_rotated)
-        radius <- slot(input[[image]]$centroids, name='radius')
-        segmentations.data <- list(
-          "centroids" = CreateCentroids(coords = pos_new[, c("x", "y")], radius = radius),
-          "segmentation" = CreateSegmentation(coords = pos_new)
-        )
-        new.fov <- CreateFOV(
-          coords = segmentations.data,
-          type = c("segmentation", "centroids"),
-          radius = radius,
-          molecules = input[[image]]$molecules,
-          assay = assay_name
-        )
+      class <- class(input[[image_name]])
+      
+      if (class == 'VisiumV1') {
+        input <- updateVisiumV1(input, pos_rotated, assay_name, angle, image_name)
+      } else if (class == 'VisiumV2') {
+        input <-updateVisiumV2(input, pos_rotated, assay_name, angle, image_name)
+      } else if (class == 'FOV') {
+        input <-updateFOV(input, pos_rotated, assay_name, angle, image_name)
       }
-      input@images[[paste0("rotate",angle)]] <- new.fov
     }
-    ## return the original Seurat object with new fields of view
     return(input)
   }
+}
+
+#' @keyword internal
+#' 
+updateVisiumV1 <- function(input, pos_rotated, assay_name, angle, image_name) {
+  scale.use <- ScaleFactors(input[[image_name]])[['lowres']]
+  pos_old <- slot(input[[image_name]], name = "coordinates")
+  pos_new <- as.data.frame(cbind(tissue = pos_old$tissue, 
+                                     row = pos_rotated$x, 
+                                     col = pos_rotated$y,
+                                     imagerow = ceiling(pos_rotated$x / scale.use),
+                                     imagecol = ceiling(pos_rotated$y / scale.use)))
+  rownames(pos_new) <- rownames(pos_rotated)
+  input_fov <- input[[image_name]]
+
+  visium.fov <- new(
+    Class = "VisiumV1",
+    coordinates = pos_new,
+    assay = assay_name,
+    key = paste0("rotated", angle, "_"),
+    image = rotate(input_fov@image, angle, pos_new),
+    scale.factors = input_fov@scale.factors,
+    spot.radius = input_fov@spot.radius
+  )
+  input[[image_name]] <- NULL
+  input@images[[paste0("rotated", angle)]] <- visium.fov
+  return(input)
+}
+
+#' @keyword internal
+#' 
+updateVisiumV2 <- function(input, pos_rotated, assay_name, angle, image_name) {
+  pos_new <- pos_rotated[, c("x", "y")]
+  input_fov <- input[[image_name]]
+
+  fov <- CreateFOV(
+    pos_new[, c("x", "y")],
+    type = "centroids",
+    radius = input_fov@scale.factors[["spot"]],
+    assay = assay_name,
+    theta = angle,
+    key = paste0("rotated", angle, "_")
+  )
+  visium.fov <- new(
+    Class = "VisiumV2",
+    boundaries = fov@boundaries,
+    molecules = fov@molecules,
+    assay = fov@assay,
+    key = fov@key,
+    image = rotate(input_fov@image, angle, pos_new),
+    scale.factors = input_fov@scale.factors
+  )
+  input[[image_name]] <- NULL
+  input@images[[paste0("rotated", angle)]] <- visium.fov
+  return(input)
+}
+
+#' @keyword internal
+#' 
+updateFOV <- function(input, pos_rotated, assay_name, angle, image_name) {
+  pos_new <- pos_rotated[, c("x", "y")]
+  pos_new$cell <- rownames(pos_rotated)
+  input_fov <- input[[image_name]]
+  radius <- slot(input_fov$centroids, name = 'radius')
+
+  output_boundaries <- list(
+    "centroids" = CreateCentroids(coords = pos_new[, c("x", "y")], nsides = input_fov[["centroids"]]@nsides, radius = radius, theta = angle),
+    "segmentation" = input_fov[["segmentation"]]
+  )
+
+  new.fov <- CreateFOV(
+    coords = output_boundaries,
+    molecules = input_fov$molecules,
+    assay = assay_name,
+    key = Key(paste0("rotated", angle), quiet = TRUE)
+  )
+  input[[image_name]] <- NULL
+  input@images[[paste0("rotated", angle)]] <- new.fov
+  return(input)
 }
 
 #' rotate
 #' @keyword internal
 #' 
-rotate <- function(arr, angle) {
+rotate <- function(arr, angle, pos) {
   angle_rad <- angle * pi / 180
   rows <- dim(arr)[1]
   cols <- dim(arr)[2]
 
-  midrange_pt <- rearrr::midrange(pos, cols = c("x", "y"))
-  max_x <- max(pos['x'])
-  max_y <- max(pos['y'])
-  center_x <- cols * midrange_pt$x / max_x
-  center_y <- rows * midrange_pt$y / max_y
-  center_x <- 280
+  center_x <- cols / 2 
+  center_y <- rows / 2
 
   size <- max(center_x*2,center_y*2)
 
@@ -475,17 +499,15 @@ rotate <- function(arr, angle) {
       x <- j - center_x 
       y <- i - center_y
 
-      rotated_x <- x * cos(angle_rad) - y * sin(angle_rad)
-      rotated_y <- x * sin(angle_rad) + y * cos(angle_rad)
+      rotated_x <- x * cos(-angle_rad) - y * sin(-angle_rad)
+      rotated_y <- x * sin(-angle_rad) + y * cos(-angle_rad)
       
       rotated_x <- rotated_x + center_x
       rotated_y <- rotated_y + center_y 
 
       if (rotated_x >= 1 && rotated_x <= dim(rotated_arr)[2] && rotated_y >= 1 && rotated_y <= dim(rotated_arr)[1]) {
         rotated_arr[ceiling(rotated_y), ceiling(rotated_x), ] <- arr[i, j, ]
-      } else {
-        print(rotated_x)
-      }
+      } 
     }
   }
   return(rotated_arr)
