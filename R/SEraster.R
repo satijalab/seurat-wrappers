@@ -14,6 +14,7 @@ createRasterizedObject <- function(input, out, name) {
   for (i in seq_along(out$meta_rast$cellID_list)) {
     meta_rast$cellID_list[i] <- paste(unlist(out$meta_rast$cellID_list[[i]]), collapse = ", ")
   }
+
   output_image_name <- paste0("ras.", resolution,".", image)
   output_coordinates <- as.data.frame(out$pos_rast)
   
@@ -23,86 +24,46 @@ createRasterizedObject <- function(input, out, name) {
     meta.data = meta_rast
   )
 
-  # VisiumV1 class should be deprecated in the future; this is the hack to deal with objects created previous to V2
-  # VisiumV1 plotting not working with latest SeuratObject as of May 2024
-  if(class(input[[image]]) == 'VisiumV1') {
-    scale.use <- ScaleFactors(input_fov)[['lowres']]
-    new_coordinates <- as.data.frame(cbind(tissue = rep(1, nrow(output_coordinates)), 
-                                     row = output_coordinates$x, 
-                                     col = output_coordinates$y,
-                                     imagerow = ceiling(output_coordinates$x / scale.use),
-                                     imagecol = ceiling(output_coordinates$y / scale.use)))
-    rownames(new_coordinates) <- rownames(output_coordinates)
-    input_fov@scale.factors$spot <- sqrt(nrow(input[[]])/nrow(meta_rast))*input_fov@scale.factors$spot 
-    
-    new.fov <- new(
-      Class = "VisiumV1",
-      coordinates = new_coordinates,
-      assay = name, 
-      key = Key(output_image_name, quiet = TRUE),
-      image = input_fov@image,
-      scale.factors = input_fov@scale.factors,
-      spot.radius = input_fov@scale.factors$spot
-    )
-    output@images[[output_image_name]]<- new.fov
-  } 
-  else {
-    input_centroids <- input_fov[["centroids"]]
-    input_segmentation <- tryCatch(input_fov[["segmentation"]], error = function(e) NULL)
-    input_molecules <- tryCatch(input_fov[["molecules"]], error = function(e) NULL)
+  input_molecules <- tryCatch(input_fov[["molecules"]], error = function(e) NULL)
 
-    output_radius <- sqrt(
-      nrow(input[[]]) / nrow(meta_rast)
-    ) * input_centroids@radius
-
-    output_centroids <- CreateCentroids(
-      coords = output_coordinates,
-      nsides = input_centroids@nsides,
-      radius = output_radius,
-      theta = input_centroids@theta
-    )
-
-    # `scale_factors` will be set to `NULL` unless there a matching 
-    # implementation of the `ScaleFactors` generic available for `input_fov` 
-    # (i.e if `input_fov` is `VisiumV2`)
-    tryCatch(
-      scale_factors <- ScaleFactors(input_fov),
-      error = function(e) {
-        return (NULL)
-      }
-    )
-    
-    if (!is.null(scale_factors)) {
-      output_fov <- CreateFOV(
-        coords = output_centroids,
-        type = 'centroids',
-        molecules = input_molecules,
-        assay = name,
-        key = Key(output_image_name, quiet = TRUE)
-      )
-      output_fov <- new(
-        Class = "VisiumV2",
-        boundaries = output_fov@boundaries,
-        molecules = output_fov@molecules,
-        assay = output_fov@assay,
-        key = output_fov@key,
-        image = input_fov@image,
-        scale.factors = scale_factors
-      )
-    } else {
-      output_boundaries <- list(
-        "centroids" = output_centroids,
-        "segmentation" = input_segmentation
-      )
-      output_fov <- CreateFOV(
-        coords = output_boundaries,
-        molecules = input_molecules,
-        assay = name,
-        key = Key(output_image_name, quiet = TRUE)
-      )
+  # `scale_factors` will be set to `NULL` unless there a matching 
+  # implementation of the `ScaleFactors` generic available for `input_fov` 
+  scale_factors <- tryCatch(
+    ScaleFactors(input_fov),
+    error = function(e) {
+      return (NULL)
     }
-    output[[output_image_name]] <- output_fov
-  }
+  )
+
+  output_radius <- sqrt(nrow(input[[]]) / nrow(meta_rast)) * ifelse(!is.null(scale_factors), Radius(input_fov, scale = NULL), input_fov[['centroids']]@radius)
+  
+  output_centroids <- CreateCentroids(
+    coords = output_coordinates,
+    radius = output_radius
+  )
+
+  output_fov <- CreateFOV(
+    coords = output_centroids,
+    type = 'centroids',
+    molecules = input_molecules,
+    assay = name,
+    key = Key(output_image_name, quiet = TRUE)
+  )
+  
+  if (!is.null(scale_factors)) {
+    scale_factors$spot <- output_radius
+    output_fov <- new(
+      Class = "VisiumV2",
+      boundaries = output_fov@boundaries,
+      molecules = output_fov@molecules,
+      assay = output_fov@assay,
+      key = output_fov@key,
+      image = input_fov@image,
+      scale.factors = scale_factors
+    )
+  } 
+
+  output[[output_image_name]] <- output_fov
   return(output)
 }
 
@@ -124,7 +85,7 @@ rasterizeGeneExpression <- function(
   if (is.list(input)) {
     ## create a common bbox
     bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
-      pos <- GetTissueCoordinates(input[[i]])
+      pos <- GetTissueCoordinates(input[[i]],scale = NULL)
       if (!is.null(names(input))) {
         dataset <- names(input)[[i]]
       } else {
@@ -145,7 +106,7 @@ rasterizeGeneExpression <- function(
       ## get Seurat object of the given index
       spe <- input[[i]]
       image <- ifelse(is.null(image), Images(spe, assay=assay_name)[1], image)
-      coords <- GetTissueCoordinates(spe, image = image)
+      coords <- GetTissueCoordinates(spe, image = image, scale = NULL)
       if("cell" %in% colnames(coords)){
         rownames(coords) <- coords$cell
       }
@@ -173,7 +134,7 @@ rasterizeGeneExpression <- function(
   } else {
     ## create bbox
     image <- ifelse(is.null(image), Images(input, assay=assay_name)[1], image)
-    pos <- GetTissueCoordinates(input, image = image)
+    pos <- GetTissueCoordinates(input, image = image, scale = NULL)
     if("cell" %in% colnames(pos)){
       rownames(pos) <- pos$cell
     }
@@ -229,7 +190,7 @@ rasterizeCellType <- function(
   if (is.list(input)) {
     ## create a common bbox
     bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
-      pos <- GetTissueCoordinates(input[[i]])
+      pos <- GetTissueCoordinates(input[[i]], scale = NULL)
       if (!is.null(names(input))) {
         dataset <- names(input)[[i]]
       } else {
@@ -249,7 +210,7 @@ rasterizeCellType <- function(
       ## get Seurat object of the given index
       spe <- input[[i]]
       image <- ifelse(is.null(image), Images(spe, assay=assay_name)[1], image)
-      coords <- GetTissueCoordinates(spe, image = image)
+      coords <- GetTissueCoordinates(spe, image = image, scale = NULL)
       if("cell" %in% colnames(coords)){
         rownames(coords) <- coords$cell
       }
@@ -280,7 +241,7 @@ rasterizeCellType <- function(
   } else {
     ## create bbox
     image <- ifelse(is.null(image), Images(input, assay=assay_name)[1], image)
-    pos <- GetTissueCoordinates(input, image = image)
+    pos <- GetTissueCoordinates(input, image = image, scale = NULL)
     if("cell" %in% colnames(pos)){
         rownames(coords) <- pos$cell
     }
@@ -334,7 +295,7 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   
   if (is.list(input)) {
     pos_comb <- do.call(rbind, lapply(seq_along(input), function(i) {
-      pos <- GetTissueCoordinates(input[[i]])
+      pos <- GetTissueCoordinates(input[[i]], scale = NULL)
       dataset <- ifelse(!is.null(names(input)), names(input)[[i]], i)
       return(data.frame(dataset = dataset, x = pos[, 1], y = pos[, 2]))
     }))
@@ -346,7 +307,7 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
     
     output <- unlist(lapply(input, function(spe) {
       assay_name <- DefaultAssay(spe)
-      pos_orig <- data.frame(GetTissueCoordinates(spe))
+      pos_orig <- data.frame(GetTissueCoordinates(spe, scale = NULL))
       colnames(pos_orig) <- c("x", "y")
       stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
       
@@ -374,7 +335,7 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
     
   } else {
     assay_name <- DefaultAssay(input)
-    pos_orig <- GetTissueCoordinates(input)
+    pos_orig <- GetTissueCoordinates(input, scale = NULL)
     colnames(pos_orig) <- c("x", "y")
     stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
     
