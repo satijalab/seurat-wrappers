@@ -9,7 +9,7 @@ Authors@R: c(
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
   person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
-  person(given = 'Skylar', family = 'Li', email = 'sli@nygenome.org', role = 'ctb', comment = c(ORCID = '0009-0002-3486-5785'))
+  person(given = 'Skylar', family = 'Li', email = 'sli@nygenome.org', role = 'ctb', comment = c(ORCID = '0009-0002-3486-5785')),
   person(given = "Gesmira", family = "Molla", email = 'gmolla@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-8628-5056')),
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897'))
