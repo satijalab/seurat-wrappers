@@ -35,7 +35,7 @@ createRasterizedObject <- function(input, out, name) {
     }
   )
 
-  output_radius <- sqrt(nrow(input[[]]) / nrow(meta_rast)) * ifelse(!is.null(scale_factors), Radius(input_fov, scale = NULL), input_fov[['centroids']]@radius)
+  output_radius <- sqrt(nrow(input[[]]) / nrow(meta_rast)) * ifelse(!is.null(Radius(input_fov, scale = NULL)), Radius(input_fov, scale = NULL), Radius(input_fov[['centroids']], scale = NULL))
   
   output_centroids <- CreateCentroids(
     coords = output_coordinates,
@@ -108,7 +108,7 @@ rasterizeGeneExpression <- function(
       image <- ifelse(is.null(image), Images(spe, assay=assay_name)[1], image)
       coords <- GetTissueCoordinates(spe, image = image, scale = NULL)
       if("cell" %in% colnames(coords)){
-        rownames(coords) <- coords$cell
+        rownames(coords) <- colnames(spe)
       }
       
       if (is.null(assay_name)) {
@@ -243,7 +243,7 @@ rasterizeCellType <- function(
     image <- ifelse(is.null(image), Images(input, assay=assay_name)[1], image)
     pos <- GetTissueCoordinates(input, image = image, scale = NULL)
     if("cell" %in% colnames(pos)){
-        rownames(coords) <- pos$cell
+        rownames(pos) <- pos$cell
     }
     bbox <- sf::st_bbox(c(
       xmin = floor(min(pos[,1])-resolution/2), 
@@ -321,16 +321,15 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
         class <- class(spe[[image_name]])
         
         if (class == 'VisiumV1') {
-          input <-updateVisiumV1(spe, pos_rotated, assay_name, angle, image_name)
+          input <- updateVisiumV1(spe, pos_rotated, assay_name, angle, image_name)
         } else if (class == 'VisiumV2') {
-          input <-updateVisiumV2(spe, pos_rotated, assay_name, angle, image_name)
+          input <- updateVisiumV2(spe, pos_rotated, assay_name, angle, image_name)
         } else if (class == 'FOV') {
-          input <-updateFOV(spe, pos_rotated, assay_name, angle, image_name)
+          input <- updateFOV(spe, pos_rotated, assay_name, angle, image_name)
         }
       })
     }))
     
-    #names(output) <- ifelse(!is.null(names(input)), paste0(rep(names(input), each = length(angles)), "_rotated_", angles), NULL)
     return(output)
     
   } else {
@@ -339,6 +338,7 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
     colnames(pos_orig) <- c("x", "y")
     stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
     
+    output_list <- list()
     for (angle in angles) {
       image_name <- Images(input, assay = assay_name)[[1]]
       image <- input[[image_name]]
@@ -350,14 +350,15 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
       class <- class(input[[image_name]])
       
       if (class == 'VisiumV1') {
-        input <- updateVisiumV1(input, pos_rotated, assay_name, angle, image_name)
+        output <- updateVisiumV1(input, pos_rotated, assay_name, angle, image_name)
       } else if (class == 'VisiumV2') {
-        input <-updateVisiumV2(input, pos_rotated, assay_name, angle, image_name)
+        output <- updateVisiumV2(input, pos_rotated, assay_name, angle, image_name)
       } else if (class == 'FOV') {
-        input <-updateFOV(input, pos_rotated, assay_name, angle, image_name)
+        output <- updateFOV(input, pos_rotated, assay_name, angle, image_name)
       }
+      output_list <- append(output_list, output)
     }
-    return(input)
+    return(output_list)
   }
 }
 
