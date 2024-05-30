@@ -7,7 +7,10 @@ output:
     toc: true
   html_document:
     df_print: kable
-    theme: simplex
+    theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -19,18 +22,13 @@ knitr::opts_chunk$set(
 
 # Getting Started with SEraster
 
-This tutorial walks you through the basic functionalities of `SEraster` and two examples of downstream analysis that can be performed with the rasterized spatial omics data.
+In this vignette, we show how to run basic functionalities of `SEraster` using SeuratWrappers on Seurat objects. `SEraster` is a rasterization preprocessing framework that aggregates cellular information into spatial pixels to reduce resource requirements for spatial omics data analysis, developed by the JEFworks Lab. Functionalities provided by `SEraster` reduces the number of spots in spatial datasets for downstream analysis through a process of rasterization, where single cells' gene expression or cell-type labels are aggregated into equally sized pixels based on a user-defined resolution. 
 
-In the examples below, we assume the input data is provided as a `SpatialExperiment` Bioconductor object. Please refer to the following documentations to see how you would format your data into a `SpatialExperiment` object:
-
--   [SpatialExperiment](https://bioconductor.org/packages/SpatialExperiment) package
--   [Formatting a SpatialExperiment Object for SEraster](https://jef.works/SEraster/articles/formatting-SpatialExperiment-for-SEraster.html)
--   [`merfish_mousePOA` dataset](https://jef.works/SEraster/reference/merfish_mousePOA.html)
-
+While the original framework was created to accomodate SpatialExperiment objects, running `SEraster` with SeuratWrapper allows users to perform rasterization on Seurat spatial objects, supporting datatypes such as Vizgen MERSCOPE, Nanostring CosMx, Akoya CODEX, the 10x Genomics Visium system, and SLIDE-seq. 
 
 ## Load libraries
 
-```{r}
+```{r, include = F, eval = T}
 library(Seurat)
 #library(SeuratWrappers)
 devtools::load_all()
@@ -38,10 +36,17 @@ library(SeuratData)
 library(SEraster)
 library(ggplot2)
 ```
+```{r, include = T}
+library(Seurat)
+library(SeuratWrappers)
+library(SeuratData)
+library(SEraster)
+library(ggplot2)
+```
 
 ## Load example dataset
 
-This vignette uses the Tiny subset dataset provided in the Fresh Frozen Mouse Brain for Xenium Explorer Demo as well as the VisiumHD mouse brain dataset, both from from 10x Genomics. When using Seurat, we use different plotting functions for image-based and sequencing-based spatial datasets, and will therefore demonstrate SEraster behavior using both examples. 
+This vignette uses the Tiny subset dataset provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard) and the [Visium HD mouse brain dataset](https://support.10xgenomics.com/spatial-gene-expression/datasets), both from from 10x Genomics. When using Seurat, we use different plotting functions for image-based and sequencing-based spatial datasets, and will therefore demonstrate SEraster behavior using both examples. 
 
 ```{r}
 path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
@@ -52,7 +57,7 @@ xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 ```
 ```{r}
 # visualize
-ImageDimPlot(xenium.obj, fov = "fov")
+ImageFeaturePlot(xenium.obj, features = "nCount_Xenium")
 ```
 ```{r}
 localdir <- "/brahms/lis/visium_hd/mouse/new_mousebrain/"
@@ -61,14 +66,8 @@ visiumhd.obj <- Load10X_Spatial(data.dir = localdir, bin.size = 16)
 ```
 ```{r}
 # visualize
-SpatialDimPlot(visiumhd.obj, image = 'slice1.016um')
+SpatialDimPlot(visiumhd.obj, alpha = 0.5) + NoLegend()
 ```
-
-## SEraster basic functionalities
-
-`SEraster` reduces the number of spatial points in spatial omics datasets for downstream analysis through a process of rasterization where single cells’ gene expression or cell-type labels are aggregated into equally sized square or hexagonal pixels (can be changed using the `square` argument) based on a user-defined resolution.
-
-Here, we demonstrate the basic functionalities of `SEraster`.
 
 ### Rasterize gene expression
 
@@ -83,16 +82,16 @@ rastGexp <- SeuratWrappers::rasterizeGeneExpression(xenium.obj, assay_name = "Xe
 dim(rastGexp[['Xenium']])
 ```
 
-As you can see, `SEraster` aggregated 6,509 single cells into 1,301 pixels. 
+Here, 36602 spots were rasterized into 248 spots. 
 
 ```{r}
 # plot total rasterized gene expression
-ImageDimPlot(rastGexp, size = 5)
+ImageDimPlot(rastGexp, size = 2)
 ```
 
 ```{r}
 # plot specific genes on rasterized object
-ImageFeaturePlot(rastGexp, size = 2.5, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), cols = c("white", "red"))
+ImageFeaturePlot(rastGexp, size = 1.5, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), cols = c("white", "red"))
 # compare to original object
 ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
 ```
@@ -104,7 +103,8 @@ For categorical variables such as cell-type or cluster labels, `SEraster` aggreg
 Let's try rasterizing the cluster labels of the Xenium Tiny dataset.
 
 ```{r}
-xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- NormalizeData(xenium.obj, assay = "Xenium")
+xenium.obj <- ScaleData(xenium.obj, assay = "Xenium")
 xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
 xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
 xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
@@ -124,9 +124,9 @@ dim(rastCt[['seurat_clusters']])
 
 ```{r}
 # plot total cell counts per rasterized spot
-ImageFeaturePlot(rastCt, size = 7.5, features = 'num_cell')
+ImageFeaturePlot(rastCt, size = 5, features = 'num_cell')
 # plot number of seurat clusters for each rasterized spot
-ImageFeaturePlot(rastCt, size = 7.5, features = 'nFeature_seurat_clusters')
+ImageFeaturePlot(rastCt, size = 5, features = 'nFeature_seurat_clusters')
 ```
 
 ### Setting rasterization resolution
@@ -139,12 +139,13 @@ Let's see how the rasterized VisiumHD mouse brain dataset looks with various res
 # rasterize at defined resolution
 rast2000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
 rast2000 <- NormalizeData(rast2000)
-p1 <- SpatialFeaturePlot(rast2000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 2000)")
 
 rast1000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
 rast1000 <- NormalizeData(rast1000)
-p2 <- SpatialFeaturePlot(rast1000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 1000)")
-p1 | p2
+
+# visualize
+SpatialFeaturePlot(rast2000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 2000)")
+SpatialFeaturePlot(rast1000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 1000)")
 ```
 
 ### Creating and rasterizing permutations
@@ -167,7 +168,7 @@ for (i in seq_along(out_list)) {
   # extract rotated angle
   angle <- Images(out_list[[i]])
   # plot a specific gene
-  plt <- ImageFeaturePlot(out_list[[i]], features = "Rorb", max.cutoff = 35, size = 7.5, cols = c("white", "red")) + ggtitle(angle)
+  plt <- ImageFeaturePlot(out_list[[i]], features = "Rorb", max.cutoff = 35, size = 5, cols = c("white", "red")) + ggtitle(angle)
   show(plt)
 }
 ```
