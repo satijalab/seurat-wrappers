@@ -312,10 +312,8 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
       stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
       
       lapply(angles, function(angle) {
-        pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = TRUE)
+        pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = F)
         pos_rotated <- as.data.frame(pos_rotated[, c("x_rotated", "y_rotated")])
-        colnames(pos_rotated) <- c("x", "y")
-        rownames(pos_rotated) <- rownames(pos_orig)
         
         image_name <- Images(spe, assay = assay_name)[[1]]
         class <- class(spe[[image_name]])
@@ -343,9 +341,8 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
       image_name <- Images(input, assay = assay_name)[[1]]
       image <- input[[image_name]]
       midrange_pt <- rearrr::midrange(pos_orig, cols = c("x", "y"))
-      pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = TRUE)
-      colnames(pos_rotated) <- c("x", "y")
-      rownames(pos_rotated) <- rownames(pos_orig)
+      pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = F)
+      pos_rotated <- as.data.frame(pos_rotated[, c("x_rotated", "y_rotated")])
       
       class <- class(input[[image_name]])
       
@@ -392,11 +389,11 @@ updateVisiumV1 <- function(input, pos_rotated, assay_name, angle, image_name) {
 #' @keyword internal
 #' 
 updateVisiumV2 <- function(input, pos_rotated, assay_name, angle, image_name) {
-  pos_new <- pos_rotated[, c("x", "y")]
+  pos_new <- pos_rotated[, c("x_rotated", "y_rotated")]
   input_fov <- input[[image_name]]
 
   fov <- CreateFOV(
-    pos_new[, c("x", "y")],
+    pos_new[, c("x_rotated", "y_rotated")],
     type = "centroids",
     radius = input_fov@scale.factors[["spot"]],
     assay = assay_name,
@@ -420,14 +417,13 @@ updateVisiumV2 <- function(input, pos_rotated, assay_name, angle, image_name) {
 #' @keyword internal
 #' 
 updateFOV <- function(input, pos_rotated, assay_name, angle, image_name) {
-  pos_new <- pos_rotated[, c("x", "y")]
-  pos_new$cell <- rownames(pos_rotated)
+  pos_new <- pos_rotated[, c("x_rotated", "y_rotated")]
   input_fov <- input[[image_name]]
+  pos_new$cell <- Cells(input_fov)
   radius <- slot(input_fov$centroids, name = 'radius')
 
   output_boundaries <- list(
-    "centroids" = CreateCentroids(coords = pos_new[, c("x", "y")], nsides = input_fov[["centroids"]]@nsides, radius = radius, theta = angle),
-    "segmentation" = input_fov[["segmentation"]]
+    "centroids" = CreateCentroids(coords = pos_new[, c("x_rotated", "y_rotated")], nsides = input_fov[["centroids"]]@nsides, radius = radius, theta = angle)
   )
 
   new.fov <- CreateFOV(
