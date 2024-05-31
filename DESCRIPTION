@@ -35,12 +35,14 @@ Depends:
 biocViews:
 Imports:
     BiocManager,
+    reticulate,
     cowplot,
     ggplot2,
     igraph,
     Matrix,
     methods,
     remotes,
+    R.utils,
     rsvd,
     Seurat (>= 5.0.0),
     stats,
