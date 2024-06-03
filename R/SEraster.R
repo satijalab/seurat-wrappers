@@ -68,8 +68,64 @@ createRasterizedObject <- function(input, out, name) {
 }
 
 #' rasterizeGeneExpression
-#' @export
 #' 
+#' @description Function to rasterize feature x observation matrix in spatially-resolved 
+#' omics data represented as Seurat objects.
+#'  
+#' @description This function assumes that the input is provided as a \code{Seurat} 
+#' object or a \code{list} of \code{Seurat} objects.
+#' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param assay_name (character) Assay in Seurat object to use. If not specified, selects the default assay
+#' 
+#' @param image (character) Image in Seurat object to use. If not specified, defaults to the first image available associated with the assay
+#' 
+#' @param slot (character) Slot in Seurat assay to use. If not specified, defaults to counts 
+#' 
+#' @param resolution \code{integer} or \code{double}: Resolution refers to the side 
+#' length of each pixel for square pixels and the distance between opposite edges 
+#' of each pixel for hexagonal pixels. The unit of this parameter is assumed to 
+#' be the same as the unit of spatial coordinates of the input data.
+#' 
+#' @param square \code{logical}: If TRUE (default), rasterize into square pixels. If FALSE, rasterize into hexagonal pixels, although not supported by Seurat plotting functions. 
+#' 
+#' @param fun \code{character}: If "mean", pixel value for each pixel 
+#' would be the proportion of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel. If "sum", pixel value for each pixel would 
+#' be the number of cells of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel.
+#' 
+#' @param n_threads \code{integer}: Number of threads for parallelization. Default = 1. 
+#' Inputting this argument when the \code{BPPARAM} argument is missing would set parallel 
+#' exeuction back-end to be \code{BiocParallel::MulticoreParam(workers = n_threads)}. 
+#' We recommend setting this argument to be the number of cores available 
+#' (\code{parallel::detectCores(logical = FALSE)}). If \code{BPPARAM} argument is 
+#' not missing, the \code{BPPARAM} argument would override \code{n_threads} argument.
+#' 
+#' @param BPPARAM \code{BiocParallelParam}: Optional additional argument for parallelization. 
+#' This argument is provided for advanced users of \code{BiocParallel} for further 
+#' flexibility for setting up parallel-execution back-end. Default is NULL. If 
+#' provided, this is assumed to be an instance of \code{BiocParallelParam}.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a new \code{Seurat} object with \code{assay} slot containing the 
+#' feature (cell types) x observations (pixels) matrix (dgCmatrix), \code{field of view} 
+#' slot containing spatial x,y coordinates of pixel centroids, and meta data for pixels 
+#' (number of cells that were aggregated in each pixel, 
+#' cell IDs of cells that were aggregated in each pixel, pixel type based on the 
+#' \code{square} argument, pixel resolution based on the \code{resolution} argument. 
+#' If the input was provided as \code{list} of \code{Seurat} objects, the output is 
+#' returned as a new \code{list} of \code{Seurat} objects containing information described 
+#' above for corresponding \code{Seurat} object. 
+#' 
+#' @importFrom SEraster rasterizeMatrix
+#' @importFrom Matrix colSums
+#' 
+#' @export
 rasterizeGeneExpression <- function(
   input, 
   assay_name = NULL, 
@@ -171,6 +227,54 @@ rasterizeGeneExpression <- function(
 #' @description This function assumes that the input is provided as a \code{Seurat object} 
 #' object or a \code{list} of \code{Seurat} objects.
 #' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param col_name (character) Name of metadata column to rasterize on
+#' 
+#' @param assay_name (character) Assay in Seurat object to use. If not specified, selects the default assay
+#' 
+#' @param image (character) Image in Seurat object to use. If not specified, defaults to the first image available associated with the assay
+#' 
+#' @param resolution \code{integer} or \code{double}: Resolution refers to the side 
+#' length of each pixel for square pixels and the distance between opposite edges 
+#' of each pixel for hexagonal pixels. The unit of this parameter is assumed to 
+#' be the same as the unit of spatial coordinates of the input data.
+#' 
+#' @param square \code{logical}: If TRUE (default), rasterize into square pixels. If FALSE, rasterize into hexagonal pixels, although not supported by Seurat plotting functions. 
+#' 
+#' @param fun \code{character}: If "mean", pixel value for each pixel 
+#' would be the proportion of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel. If "sum", pixel value for each pixel would 
+#' be the number of cells of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel.
+#' 
+#' @param n_threads \code{integer}: Number of threads for parallelization. Default = 1. 
+#' Inputting this argument when the \code{BPPARAM} argument is missing would set parallel 
+#' exeuction back-end to be \code{BiocParallel::MulticoreParam(workers = n_threads)}. 
+#' We recommend setting this argument to be the number of cores available 
+#' (\code{parallel::detectCores(logical = FALSE)}). If \code{BPPARAM} argument is 
+#' not missing, the \code{BPPARAM} argument would override \code{n_threads} argument.
+#' 
+#' @param BPPARAM \code{BiocParallelParam}: Optional additional argument for parallelization. 
+#' This argument is provided for advanced users of \code{BiocParallel} for further 
+#' flexibility for setting up parallel-execution back-end. Default is NULL. If 
+#' provided, this is assumed to be an instance of \code{BiocParallelParam}.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a new \code{Seurat} object with \code{assay} slot containing the 
+#' feature (cell types) x observations (pixels) matrix (dgCmatrix), \code{field of view} 
+#' slot containing spatial x,y coordinates of pixel centroids, and meta data for pixels 
+#' (number of cells that were aggregated in each pixel, 
+#' cell IDs of cells that were aggregated in each pixel, pixel type based on the 
+#' \code{square} argument, pixel resolution based on the \code{resolution} argument. 
+#' If the input was provided as \code{list} of \code{Seurat} objects, the output is 
+#' returned as a new \code{list} of \code{Seurat} objects containing information described 
+#' above for corresponding \code{Seurat} object. 
+#' 
+#' @importFrom SEraster rasterizeMatrix
 #' @importFrom Matrix sparse.model.matrix t colSums
 #' 
 #' @export
@@ -281,6 +385,21 @@ rasterizeCellType <- function(
 #' all \code{Seurat} objects will be rotated around a common midrange 
 #' point computed based on combined x,y coordinates.
 #' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param n_perm \code{integer}: Number of permutations. Default = 1. This number is used to compute the angles at which the input is rotated at.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE. 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a \code{list} of \code{n_perm} \code{Seurat} objects. Each \code{SpatialExperiment} 
+#' object has an updated field of view containing the spatial x,y coordinates 
+#' rotated at a corresponding angle. \code{assay} and metadata are inherited.
+#' If the input was given as \code{list} of \code{Seurat} objects, 
+#' the output is returned as a new \code{list} of \code{length(input)} * \code{n_perm} 
+#' \code{Seurat} objects. 
+#' 
 #' @importFrom rearrr rotate_2d midrange
 #' 
 #' @export
@@ -318,9 +437,8 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
         image_name <- Images(spe, assay = assay_name)[[1]]
         class <- class(spe[[image_name]])
         
-        if (class == 'VisiumV1') {
-          input <- updateVisiumV1(spe, pos_rotated, assay_name, angle, image_name)
-        } else if (class == 'VisiumV2') {
+        if (class == 'VisiumV1' || class == 'VisiumV2') {
+          message("Returning objects as VisiumV2 classes...")
           input <- updateVisiumV2(spe, pos_rotated, assay_name, angle, image_name)
         } else if (class == 'FOV') {
           input <- updateFOV(spe, pos_rotated, assay_name, angle, image_name)
@@ -346,9 +464,8 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
       
       class <- class(input[[image_name]])
       
-      if (class == 'VisiumV1') {
-        output <- updateVisiumV1(input, pos_rotated, assay_name, angle, image_name)
-      } else if (class == 'VisiumV2') {
+      if (class == 'VisiumV1' || class == 'VisiumV2') {
+        message("Returning objects as VisiumV2 classes...")
         output <- updateVisiumV2(input, pos_rotated, assay_name, angle, image_name)
       } else if (class == 'FOV') {
         output <- updateFOV(input, pos_rotated, assay_name, angle, image_name)
@@ -357,33 +474,6 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
     }
     return(output_list)
   }
-}
-
-#' @keyword internal
-#' 
-updateVisiumV1 <- function(input, pos_rotated, assay_name, angle, image_name) {
-  scale.use <- ScaleFactors(input[[image_name]])[['lowres']]
-  pos_old <- slot(input[[image_name]], name = "coordinates")
-  pos_new <- as.data.frame(cbind(tissue = pos_old$tissue, 
-                                     row = pos_rotated$x, 
-                                     col = pos_rotated$y,
-                                     imagerow = ceiling(pos_rotated$x / scale.use),
-                                     imagecol = ceiling(pos_rotated$y / scale.use)))
-  rownames(pos_new) <- rownames(pos_rotated)
-  input_fov <- input[[image_name]]
-
-  visium.fov <- new(
-    Class = "VisiumV1",
-    coordinates = pos_new,
-    assay = assay_name,
-    key = paste0("rotated", angle, "_"),
-    image = rotate(input_fov@image, angle, pos_new),
-    scale.factors = input_fov@scale.factors,
-    spot.radius = input_fov@spot.radius
-  )
-  input[[image_name]] <- NULL
-  input@images[[paste0("rotated", angle)]] <- visium.fov
-  return(input)
 }
 
 #' @keyword internal
