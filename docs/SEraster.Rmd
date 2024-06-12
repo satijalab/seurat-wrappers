@@ -1,0 +1,176 @@
+---
+title: "Getting Started With SEraster"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: true
+    toc: true
+  html_document:
+    df_print: kable
+    theme: united
+    fig_height: 5
+    fig_width: 16
+    out_height: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+# Getting Started with SEraster
+
+In this vignette, we show how to run basic functionalities of `SEraster` using SeuratWrappers on Seurat objects. `SEraster` is a rasterization preprocessing framework that aggregates cellular information into spatial pixels to reduce resource requirements for spatial omics data analysis, developed by the JEFworks Lab. Functionalities provided by `SEraster` reduces the number of spots in spatial datasets for downstream analysis through a process of rasterization, where single cells' gene expression or cell-type labels are aggregated into equally sized pixels based on a user-defined resolution. 
+
+While the original framework was created to accomodate SpatialExperiment objects, running `SEraster` with SeuratWrapper allows users to perform rasterization on Seurat spatial objects, supporting datatypes such as Vizgen MERSCOPE, Nanostring CosMx, Akoya CODEX, the 10x Genomics Visium system, and SLIDE-seq. 
+
+## Load libraries
+
+```{r, include = T}
+library(Seurat)
+library(SeuratWrappers)
+library(SeuratData)
+library(SEraster)
+library(ggplot2)
+```
+
+## Load example dataset
+
+This vignette uses the Tiny subset dataset provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard) and the [Visium HD mouse brain dataset](https://support.10xgenomics.com/spatial-gene-expression/datasets), both from from 10x Genomics. When using Seurat, we use different plotting functions for image-based and sequencing-based spatial datasets, and will therefore demonstrate SEraster behavior using both examples. 
+
+```{r}
+path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
+# Load the Xenium data
+xenium.obj <- LoadXenium(path, fov = "fov")
+# remove cells with 0 counts
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+```{r}
+# visualize
+ImageFeaturePlot(xenium.obj, features = "nCount_Xenium")
+```
+```{r}
+localdir <- "/brahms/lis/visium_hd/mouse/new_mousebrain/"
+# Load the VisiumHD data
+visiumhd.obj <- Load10X_Spatial(data.dir = localdir, bin.size = 16)
+```
+```{r}
+# visualize
+SpatialDimPlot(visiumhd.obj, alpha = 0.5) + NoLegend()
+```
+
+### Rasterize gene expression
+
+For continuous variables such as gene expression or other molecular information, `SEraster` aggregates the observed raw counts or normalized expression values for each molecule within each pixel using means by default (can be changed using the `fun` argument). When rasterizing Seurat objects, users can specify the `assay_name`, `slot`, and `image` for spatial objects with associated images. 
+
+Let's try rasterizing the gene expression of the Xenium mouse brain dataset we loaded. 
+
+```{r}
+rastGexp <- RunRasterizeGeneExpression(xenium.obj, assay_name = "Xenium", resolution = 100)
+
+# check dimensions of spot by gene matrix after rasterization
+dim(rastGexp[['Xenium']])
+```
+
+Here, 36602 spots were rasterized into 248 spots. 
+
+```{r}
+# plot total rasterized gene expression
+ImageDimPlot(rastGexp, size = 2)
+```
+
+```{r}
+# plot specific genes on rasterized object
+ImageFeaturePlot(rastGexp, size = 1.5, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), cols = c("white", "red"))
+# compare to original object
+ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
+```
+
+### Rasterize cell-type
+
+For categorical variables such as cell-type or cluster labels, `SEraster` aggregates the number of cells for each label within each pixel using sums by default (can be changed using the `fun` argument).
+
+Let's try rasterizing the cluster labels of the Xenium Tiny dataset.
+
+```{r}
+xenium.obj <- NormalizeData(xenium.obj, assay = "Xenium")
+xenium.obj <- ScaleData(xenium.obj, assay = "Xenium")
+xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
+xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
+xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
+xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
+```
+```{r}
+DimPlot(xenium.obj, group.by='seurat_clusters')
+ImageDimPlot(xenium.obj, group.by='seurat_clusters')
+```
+
+```{r}
+rastCt <- RunRasterizeCellType(xenium.obj, col_name = "seurat_clusters", resolution = 200)
+
+# check the dimension of the cell-types-by-cells matrix after rasterizing cell-type labels
+dim(rastCt[['seurat_clusters']])
+```
+
+```{r}
+# plot total cell counts per rasterized spot
+ImageFeaturePlot(rastCt, size = 5, features = 'num_cell')
+# plot number of seurat clusters for each rasterized spot
+ImageFeaturePlot(rastCt, size = 5, features = 'nFeature_seurat_clusters')
+```
+
+### Setting rasterization resolution
+
+Rasterization resolution can be controlled by the `resolution` argument of the `rasterizeGeneExpression` and `rasterizeCellType` functions. Here, we refer to a particular resolution of rasterization by the side length for square pixels and the distance between opposite edges for hexagonal pixels such that finer resolution indicates smaller pixel size and vice versa.
+
+Let's see how the rasterized VisiumHD mouse brain dataset looks with various resolutions using square pixels, which is specified by `shape`. 
+
+```{r}
+# rasterize at defined resolution
+rast2000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
+rast2000 <- NormalizeData(rast2000)
+
+rast1000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
+rast1000 <- NormalizeData(rast1000)
+
+# visualize
+SpatialFeaturePlot(rast2000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 2000)")
+SpatialFeaturePlot(rast1000, shape = 22, pt.size.factor = 2, features = "Hpca") + ggtitle("Hpca expression (res = 1000)")
+```
+
+### Creating and rasterizing permutations
+
+Since rasterized values may be sensitive to edge effects such as the specific boundaries of grids upon rasterization, `SEraster` enables permutation by rotating the dataset at various angles before rasterization, which has been enabled in the SeuratWrappers implementation.
+
+For example, we create 3 permutations of the Xenium Tiny mouse brain dataset, which would return the object with x,y coordinates rotated at 0, 120, and 240 degrees around the midrange point as new field of views.
+
+In addition to a single `Seurat` spatial object, `rasterizeGeneExpression` and `rasterizeCellType` functions can both take a `list` of `Seurat` objects. This essentially allows users to streamline the preprocessing of permutations with `SEraster`; followed by a downstream analysis of choice.  When`SEraster` rasterizes a `list` of objects, all objects in the inputted `list` are rasterized with the same pixel coordinate framework (same bounding box, resolution, centroid coordinates). This feature may not be particularly useful for permutations; however, it can potentially be applied to compare two or more datasets, such as structurally aligned tissues as well as healthy vs. disease tissues.
+
+```{r}
+# permutate
+DefaultAssay(xenium.obj) <- "Xenium"
+spe_list <- RunPermutateByRotation(xenium.obj, n_perm = 3)
+
+# rasterize permutated datasets at once
+out_list <- RunRasterizeGeneExpression(spe_list, assay_name = "Xenium", resolution = 200)
+
+for (i in seq_along(out_list)) {
+  # extract rotated angle
+  angle <- Images(out_list[[i]])
+  # plot a specific gene
+  plt <- ImageFeaturePlot(out_list[[i]], features = "Rorb", max.cutoff = 35, size = 5, cols = c("white", "red")) + ggtitle(angle)
+  show(plt)
+}
+```
+
+<details>
+
+<summary>**Session Info**</summary>
+
+```{r}
+sessionInfo()
+```
+
+</details>

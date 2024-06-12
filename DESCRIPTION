@@ -1,7 +1,7 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.3.5
-Date: 2024-04-04
+Version: 0.3.6
+Date: 2024-05-10
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
@@ -9,6 +9,7 @@ Authors@R: c(
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
   person(given = 'Paul', family = 'Hoffman', email = 'nygcSatijalab@nygenome.org', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
+  person(given = 'Skylar', family = 'Li', email = 'sli@nygenome.org', role = 'ctb', comment = c(ORCID = '0009-0002-3486-5785')),
   person(given = "Gesmira", family = "Molla", email = 'gmolla@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-8628-5056')),
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0001-9448-8833')),
   person(given = 'Tim', family = 'Stuart', email = 'tstuart@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0002-3044-0897'))
@@ -29,7 +30,8 @@ Remotes: welch-lab/liger,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
     atakanekiz/CIPR-Package,
-    prabhakarlab/Banksy
+    prabhakarlab/Banksy,
+    JEFworks-Lab/SEraster
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -62,6 +64,7 @@ Collate:
     'monocle3.R'
     'presto.R'
     'scVI.R'
+    'SEraster.R'
     'tricycle.R'
     'velocity.R'
 Encoding: UTF-8
@@ -86,4 +89,5 @@ Suggests:
     presto,
     flexmix,
     tricycle,
-    Banksy
+    Banksy,
+    SEraster

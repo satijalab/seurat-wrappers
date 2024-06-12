@@ -1,0 +1,564 @@
+#' @include internal.R
+#'
+NULL
+#' createRasterizedObject
+#' @keyword internal
+#' 
+createRasterizedObject <- function(input, out, name) {
+  image <- ifelse(name %in% Assays(input), Images(input, assay = name)[1], Images(input, assay = DefaultAssay(input))[1])
+  input_fov <- input[[image]]
+
+  data_rast <- out$data_rast
+  meta_rast <- out$meta_rast[,c("num_cell","type","resolution")]
+  resolution <- meta_rast[["resolution"]][1]
+  for (i in seq_along(out$meta_rast$cellID_list)) {
+    meta_rast$cellID_list[i] <- paste(unlist(out$meta_rast$cellID_list[[i]]), collapse = ", ")
+  }
+
+  output_image_name <- paste0("ras.", resolution,".", image)
+  output_coordinates <- as.data.frame(out$pos_rast)
+  
+  output <- CreateSeuratObject(
+    counts = data_rast,
+    assay = name,
+    meta.data = meta_rast
+  )
+
+  input_molecules <- tryCatch(input_fov[["molecules"]], error = function(e) NULL)
+
+  # `scale_factors` will be set to `NULL` unless there a matching 
+  # implementation of the `ScaleFactors` generic available for `input_fov` 
+  scale_factors <- tryCatch(
+    ScaleFactors(input_fov),
+    error = function(e) {
+      return (NULL)
+    }
+  )
+
+  output_radius <- sqrt(nrow(input[[]]) / nrow(meta_rast)) * ifelse(!is.null(Radius(input_fov, scale = NULL)), Radius(input_fov, scale = NULL), Radius(input_fov[['centroids']], scale = NULL))
+  
+  output_centroids <- CreateCentroids(
+    coords = output_coordinates,
+    radius = output_radius
+  )
+
+  output_fov <- CreateFOV(
+    coords = output_centroids,
+    type = 'centroids',
+    molecules = input_molecules,
+    assay = name,
+    key = Key(output_image_name, quiet = TRUE)
+  )
+  
+  if (!is.null(scale_factors)) {
+    scale_factors$spot <- output_radius
+    output_fov <- new(
+      Class = "VisiumV2",
+      boundaries = output_fov@boundaries,
+      molecules = output_fov@molecules,
+      assay = output_fov@assay,
+      key = output_fov@key,
+      image = input_fov@image,
+      scale.factors = scale_factors
+    )
+  } 
+
+  output[[output_image_name]] <- output_fov
+  return(output)
+}
+
+#' RunRasterizeGeneExpression
+#' 
+#' @description Function to rasterize feature x observation matrix in spatially-resolved 
+#' omics data represented as Seurat objects.
+#'  
+#' @description This function assumes that the input is provided as a \code{Seurat} 
+#' object or a \code{list} of \code{Seurat} objects.
+#' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param assay_name (character) Assay in Seurat object to use. If not specified, selects the default assay
+#' 
+#' @param image (character) Image in Seurat object to use. If not specified, defaults to the first image available associated with the assay
+#' 
+#' @param slot (character) Slot in Seurat assay to use. If not specified, defaults to counts 
+#' 
+#' @param resolution \code{integer} or \code{double}: Resolution refers to the side 
+#' length of each pixel for square pixels and the distance between opposite edges 
+#' of each pixel for hexagonal pixels. The unit of this parameter is assumed to 
+#' be the same as the unit of spatial coordinates of the input data.
+#' 
+#' @param square \code{logical}: If TRUE (default), rasterize into square pixels. If FALSE, rasterize into hexagonal pixels, although not supported by Seurat plotting functions. 
+#' 
+#' @param fun \code{character}: If "mean", pixel value for each pixel 
+#' would be the proportion of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel. If "sum", pixel value for each pixel would 
+#' be the number of cells of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel.
+#' 
+#' @param n_threads \code{integer}: Number of threads for parallelization. Default = 1. 
+#' Inputting this argument when the \code{BPPARAM} argument is missing would set parallel 
+#' exeuction back-end to be \code{BiocParallel::MulticoreParam(workers = n_threads)}. 
+#' We recommend setting this argument to be the number of cores available 
+#' (\code{parallel::detectCores(logical = FALSE)}). If \code{BPPARAM} argument is 
+#' not missing, the \code{BPPARAM} argument would override \code{n_threads} argument.
+#' 
+#' @param BPPARAM \code{BiocParallelParam}: Optional additional argument for parallelization. 
+#' This argument is provided for advanced users of \code{BiocParallel} for further 
+#' flexibility for setting up parallel-execution back-end. Default is NULL. If 
+#' provided, this is assumed to be an instance of \code{BiocParallelParam}.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a new \code{Seurat} object with \code{assay} slot containing the 
+#' feature (cell types) x observations (pixels) matrix (dgCmatrix), \code{field of view} 
+#' slot containing spatial x,y coordinates of pixel centroids, and meta data for pixels 
+#' (number of cells that were aggregated in each pixel, 
+#' cell IDs of cells that were aggregated in each pixel, pixel type based on the 
+#' \code{square} argument, pixel resolution based on the \code{resolution} argument. 
+#' If the input was provided as \code{list} of \code{Seurat} objects, the output is 
+#' returned as a new \code{list} of \code{Seurat} objects containing information described 
+#' above for corresponding \code{Seurat} object. 
+#' 
+#' @importFrom SEraster rasterizeMatrix
+#' @importFrom Matrix colSums
+#' 
+#' @export
+RunRasterizeGeneExpression <- function(
+  input, 
+  assay_name = NULL, 
+  image = NULL, 
+  slot = "counts", 
+  resolution = 100, 
+  square = TRUE, 
+  fun = "mean", 
+  n_threads = 1, 
+  BPPARAM = NULL, 
+  verbose = FALSE
+) {
+  if (is.list(input)) {
+    ## create a common bbox
+    bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
+      pos <- GetTissueCoordinates(input[[i]],scale = NULL)
+      if (!is.null(names(input))) {
+        dataset <- names(input)[[i]]
+      } else {
+        dataset <- i
+      }
+      return(data.frame(dataset = dataset, xmin = min(pos[,1]), xmax = max(pos[,1]), ymin = min(pos[,2]), ymax = max(pos[,2])))
+    }))
+    
+    bbox_common <- sf::st_bbox(c(
+      xmin = floor(min(bbox_mat$xmin)-resolution/2), 
+      xmax = ceiling(max(bbox_mat$xmax)+resolution/2), 
+      ymin = floor(min(bbox_mat$ymin)-resolution/2), 
+      ymax = ceiling(max(bbox_mat$ymax)+resolution/2)
+    ))
+    
+    ## rasterize iteratively
+    output_list <- lapply(seq_along(input), function(i) {
+      ## get Seurat object of the given index
+      spe <- input[[i]]
+      image <- ifelse(is.null(image), Images(spe, assay=assay_name)[1], image)
+      coords <- GetTissueCoordinates(spe, image = image, scale = NULL)
+      if("cell" %in% colnames(coords)){
+        rownames(coords) <- colnames(spe)
+      }
+      
+      if (is.null(assay_name)) {
+        assay_name <- DefaultAssay(spe)
+        counts <- LayerData(spe[[assay_name]], layer = slot)
+        out <- SEraster::rasterizeMatrix(counts, coords, bbox = bbox_common, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+      } else {
+        stopifnot(is.character(assay_name))
+        stopifnot("assay_name does not exist in the input Seurat object"= assay_name %in% Assays(spe))
+        counts <- LayerData(spe[[assay_name]], layer = slot)
+        out <- SEraster::rasterizeMatrix(counts, coords, bbox = bbox_common, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+      }
+      
+      output <- createRasterizedObject(spe, out, assay_name)
+      return(output)
+    })
+    
+    if (!is.null(names(input))) {
+      names(output_list) <- names(input)
+    }
+    ## return a list of Seurat objects
+    return(output_list)
+  } else {
+    ## create bbox
+    image <- ifelse(is.null(image), Images(input, assay=assay_name)[1], image)
+    pos <- GetTissueCoordinates(input, image = image, scale = NULL)
+    if("cell" %in% colnames(pos)){
+      rownames(pos) <- pos$cell
+    }
+
+    bbox <- sf::st_bbox(c(
+      xmin = floor(min(pos[,1])-resolution/2), 
+      xmax = ceiling(max(pos[,1])+resolution/2), 
+      ymin = floor(min(pos[,2])-resolution/2), 
+      ymax = ceiling(max(pos[,2])+resolution/2)
+    ))
+    
+    ## rasterize
+    if (is.null(assay_name)) {
+      assay_name <- DefaultAssay(input)
+      counts <- LayerData(input[[assay_name]], layer = slot)
+      out <- SEraster::rasterizeMatrix(counts, pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+    } else {
+      stopifnot(is.character(assay_name))
+      stopifnot("assay_name does not exist in the input Seurat object"= assay_name %in% Assays(input))
+      counts <- LayerData(input[[assay_name]], layer = slot)
+      out <- SEraster::rasterizeMatrix(counts, pos, bbox = bbox, resolution = resolution, square = square, fun = fun, n_threads = n_threads, BPPARAM = BPPARAM, verbose = verbose)
+    }
+    
+    output <- createRasterizedObject(input=input, out=out, name=assay_name)
+    return(output)
+  }
+}
+
+#' RunRasterizeCellType
+#' 
+#' @description Function to rasterize cell type labels in spatially-resolved 
+#' omics data represented as Seurat object class.
+#'
+#' @description This function assumes that the input is provided as a \code{Seurat object} 
+#' object or a \code{list} of \code{Seurat} objects.
+#' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param col_name (character) Name of metadata column to rasterize on
+#' 
+#' @param assay_name (character) Assay in Seurat object to use. If not specified, selects the default assay
+#' 
+#' @param image (character) Image in Seurat object to use. If not specified, defaults to the first image available associated with the assay
+#' 
+#' @param resolution \code{integer} or \code{double}: Resolution refers to the side 
+#' length of each pixel for square pixels and the distance between opposite edges 
+#' of each pixel for hexagonal pixels. The unit of this parameter is assumed to 
+#' be the same as the unit of spatial coordinates of the input data.
+#' 
+#' @param square \code{logical}: If TRUE (default), rasterize into square pixels. If FALSE, rasterize into hexagonal pixels, although not supported by Seurat plotting functions. 
+#' 
+#' @param fun \code{character}: If "mean", pixel value for each pixel 
+#' would be the proportion of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel. If "sum", pixel value for each pixel would 
+#' be the number of cells of each cell type based on the one-hot-encoded cell type 
+#' labels for all cells within the pixel.
+#' 
+#' @param n_threads \code{integer}: Number of threads for parallelization. Default = 1. 
+#' Inputting this argument when the \code{BPPARAM} argument is missing would set parallel 
+#' exeuction back-end to be \code{BiocParallel::MulticoreParam(workers = n_threads)}. 
+#' We recommend setting this argument to be the number of cores available 
+#' (\code{parallel::detectCores(logical = FALSE)}). If \code{BPPARAM} argument is 
+#' not missing, the \code{BPPARAM} argument would override \code{n_threads} argument.
+#' 
+#' @param BPPARAM \code{BiocParallelParam}: Optional additional argument for parallelization. 
+#' This argument is provided for advanced users of \code{BiocParallel} for further 
+#' flexibility for setting up parallel-execution back-end. Default is NULL. If 
+#' provided, this is assumed to be an instance of \code{BiocParallelParam}.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a new \code{Seurat} object with \code{assay} slot containing the 
+#' feature (cell types) x observations (pixels) matrix (dgCmatrix), \code{field of view} 
+#' slot containing spatial x,y coordinates of pixel centroids, and meta data for pixels 
+#' (number of cells that were aggregated in each pixel, 
+#' cell IDs of cells that were aggregated in each pixel, pixel type based on the 
+#' \code{square} argument, pixel resolution based on the \code{resolution} argument. 
+#' If the input was provided as \code{list} of \code{Seurat} objects, the output is 
+#' returned as a new \code{list} of \code{Seurat} objects containing information described 
+#' above for corresponding \code{Seurat} object. 
+#' 
+#' @importFrom SEraster rasterizeMatrix
+#' @importFrom Matrix sparse.model.matrix t colSums
+#' 
+#' @export
+#' 
+RunRasterizeCellType <- function(
+  input, 
+  col_name, 
+  assay_name = NULL, 
+  image = NULL, 
+  resolution = 100, 
+  square = TRUE, 
+  fun = "sum", 
+  n_threads = 1, 
+  BPPARAM = NULL, 
+  verbose = FALSE
+) {
+  if (is.list(input)) {
+    ## create a common bbox
+    bbox_mat <- do.call(rbind, lapply(seq_along(input), function(i) {
+      pos <- GetTissueCoordinates(input[[i]], scale = NULL)
+      if (!is.null(names(input))) {
+        dataset <- names(input)[[i]]
+      } else {
+        dataset <- i
+      }
+      return(data.frame(dataset = dataset, xmin = min(pos[,1]), xmax = max(pos[,1]), ymin = min(pos[,2]), ymax = max(pos[,2])))
+    }))
+    bbox_common <- sf::st_bbox(c(
+      xmin = floor(min(bbox_mat$xmin)-resolution/2), 
+      xmax = ceiling(max(bbox_mat$xmax)+resolution/2), 
+      ymin = floor(min(bbox_mat$ymin)-resolution/2), 
+      ymax = ceiling(max(bbox_mat$ymax)+resolution/2)
+    ))
+    
+    ## rasterize iteratively
+    output_list <- lapply(seq_along(input), function(i) {
+      ## get Seurat object of the given index
+      spe <- input[[i]]
+      image <- ifelse(is.null(image), Images(spe, assay=assay_name)[1], image)
+      coords <- GetTissueCoordinates(spe, image = image, scale = NULL)
+      if("cell" %in% colnames(coords)){
+        rownames(coords) <- coords$cell
+      }
+      
+      ## extract cell type labels from Seurat object 
+      stopifnot(is.character(col_name))
+      stopifnot("col_name does not exist in the input Seurat object"= col_name %in% colnames(spe[[]]))
+      cellTypes <- as.factor(spe@meta.data[,col_name])
+      
+      ## one-hot encode cell type labels as sparse matrix
+      mat_ct <- Matrix::t(Matrix::sparse.model.matrix(~ 0 + cellTypes))
+      rownames(mat_ct) <- levels(cellTypes)
+      colnames(mat_ct) <- rownames(coords)
+      
+      ## rasterize
+      out <- SEraster::rasterizeMatrix(mat_ct, coords, bbox_common, resolution = resolution, square = square, fun = fun, n_threads = 1, BPPARAM = BPPARAM, verbose = verbose)
+      output <- createRasterizedObject(spe, out, col_name)
+      return(output)
+    })
+    
+    if (!is.null(names(input))) {
+      names(output_list) <- names(input)
+    }
+    
+    ## return a list of Seurat objects
+    return(output_list)
+    
+  } else {
+    ## create bbox
+    image <- ifelse(is.null(image), Images(input, assay=assay_name)[1], image)
+    pos <- GetTissueCoordinates(input, image = image, scale = NULL)
+    if("cell" %in% colnames(pos)){
+        rownames(pos) <- pos$cell
+    }
+    bbox <- sf::st_bbox(c(
+      xmin = floor(min(pos[,1])-resolution/2), 
+      xmax = ceiling(max(pos[,1])+resolution/2), 
+      ymin = floor(min(pos[,2])-resolution/2), 
+      ymax = ceiling(max(pos[,2])+resolution/2)
+    ))
+    
+    ## extract cell type labels 
+    stopifnot(is.character(col_name))
+    stopifnot("col_name does not exist in the input Seurat object"= col_name %in% colnames(input[[]]))
+    cellTypes <- as.factor(input@meta.data[,col_name])
+    
+    ## one-hot encode cell type labels as sparse matrix
+    mat_ct <- Matrix::t(Matrix::sparse.model.matrix(~ 0 + cellTypes))
+    rownames(mat_ct) <- levels(cellTypes)
+    colnames(mat_ct) <- rownames(pos)
+    
+    ## rasterize
+    out <- SEraster::rasterizeMatrix(mat_ct, pos, bbox, resolution = resolution, square = square, fun = fun, n_threads = 1, BPPARAM = BPPARAM, verbose = verbose)
+    output <- createRasterizedObject(input=input, out=out, name=col_name)
+    return(output)
+  }
+}
+
+#' RunPermutateByRotation
+#' 
+#' @description Function to permutate a given input Seurat object(s) 
+#' by rotating the x,y coordinates around the midrange point.
+#' 
+#' @description This function assumes that the input is provided as a \code{Seurat} 
+#' object or a \code{list} of \code{Seurat} objects.
+#'
+#' @description When the input is a \code{list} of \code{Seurat} objects, 
+#' all \code{Seurat} objects will be rotated around a common midrange 
+#' point computed based on combined x,y coordinates.
+#' 
+#' @param input \code{Seurat} object or \code{list}: Input data represented as a 
+#' \code{Seurat} object or \code{list} of \code{Seurat} objects. 
+#' 
+#' @param n_perm \code{integer}: Number of permutations. Default = 1. This number is used to compute the angles at which the input is rotated at.
+#' 
+#' @param verbose \code{logical}: Whether to display verbose output or warning. Default is FALSE. 
+#' 
+#' @return If the input was given as \code{Seurat} object, the output is returned 
+#' as a \code{list} of \code{n_perm} \code{Seurat} objects. Each \code{SpatialExperiment} 
+#' object has an updated field of view containing the spatial x,y coordinates 
+#' rotated at a corresponding angle. \code{assay} and metadata are inherited.
+#' If the input was given as \code{list} of \code{Seurat} objects, 
+#' the output is returned as a new \code{list} of \code{length(input)} * \code{n_perm} 
+#' \code{Seurat} objects. 
+#' 
+#' @importFrom rearrr rotate_2d midrange
+#' 
+#' @export
+#' 
+RunPermutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
+  angles <- seq(0, 360, by = 360/n_perm)[1:n_perm]
+  
+  if (verbose) {
+    message(paste0("Number of permutations = ", n_perm))
+    message(paste0("Angles used for rotations are ", paste(angles, collapse = ", "), " degrees"))
+  }
+  
+  if (is.list(input)) {
+    pos_comb <- do.call(rbind, lapply(seq_along(input), function(i) {
+      pos <- GetTissueCoordinates(input[[i]], scale = NULL)
+      if ("cell" %in% colnames(pos)) {
+        rownames(pos) <- pos$cell
+      }
+      dataset <- ifelse(!is.null(names(input)), names(input)[[i]], i)
+      dataset <- data.frame(dataset = dataset, x = pos[, 1], y = pos[, 2])
+      rownames(dataset) <- rownames(pos)
+      return (dataset)
+    }))
+    midrange_pt <- rearrr::midrange(pos_comb, cols = c("x", "y"))
+    
+    if (verbose) {
+      message(paste0("Rotating all datasets around (x, y) = (", midrange_pt$x, ", ", midrange_pt$y, ")."))
+    }
+    
+    output <- unlist(lapply(input, function(spe) {
+      assay_name <- DefaultAssay(spe)
+      pos_orig <- data.frame(GetTissueCoordinates(spe, scale = NULL))
+      colnames(pos_orig) <- c("x", "y")
+      if("cell" %in% colnames(pos_orig)){
+        rownames(pos_orig) <- pos_orig$cell
+      }
+      
+      stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
+      
+      lapply(angles, function(angle) {
+        pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = F)
+        pos_rotated <- as.data.frame(pos_rotated[, c("x_rotated", "y_rotated")])
+        
+        image_name <- Images(spe, assay = assay_name)[[1]]
+        class <- class(spe[[image_name]])
+        
+        if (class == 'VisiumV1' || class == 'VisiumV2') {
+          message("Returning objects as VisiumV2 classes...")
+          input <- updateVisiumV2(spe, pos_rotated, assay_name, angle, image_name)
+        } else if (class == 'FOV') {
+          input <- updateFOV(spe, pos_rotated, assay_name, angle, image_name)
+        }
+      })
+    }))
+    
+    return(output)
+    
+  } else {
+    assay_name <- DefaultAssay(input)
+    pos_orig <- GetTissueCoordinates(input, scale = NULL)
+    colnames(pos_orig) <- c("x", "y")
+    if("cell" %in% colnames(pos_orig)){
+        rownames(pos_orig) <- pos_orig$cell
+    }
+    stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
+    
+    output_list <- list()
+    for (angle in angles) {
+      image_name <- Images(input, assay = assay_name)[[1]]
+      image <- input[[image_name]]
+      midrange_pt <- rearrr::midrange(pos_orig, cols = c("x", "y"))
+      pos_rotated <- rearrr::rotate_2d(data = pos_orig, degrees = angle, x_col = "x", y_col = "y", origin = as.numeric(midrange_pt), overwrite = F)
+      pos_rotated <- as.data.frame(pos_rotated[, c("x_rotated", "y_rotated")])
+      
+      class <- class(input[[image_name]])
+      
+      if (class == 'VisiumV1' || class == 'VisiumV2') {
+        message("Returning objects as VisiumV2 classes...")
+        output <- updateVisiumV2(input, pos_rotated, assay_name, angle, image_name)
+      } else if (class == 'FOV') {
+        output <- updateFOV(input, pos_rotated, assay_name, angle, image_name)
+      }
+      output_list <- append(output_list, output)
+    }
+    return(output_list)
+  }
+}
+
+
+#' @keyword internal
+#' 
+updateFOV <- function(object, image_name, rotated_coordinates, angle) {
+  fov <- object[[image_name]]
+
+  rotated_name <- paste0(image_name, ".rotated", angle)
+  fov@key <- Key(rotated_name, quiet = TRUE)
+
+  rotated_centroids <- tryCatch({
+    input_centroids <- fov[["centroids"]]
+    rotated_centroids <- CreateCentroids(
+      coords = rotated_coordinates[, c("x_rotated", "y_rotated")],
+      nside = input_centroids@nsides,
+      radius = input_centroids@radius,
+      theta = angle
+    )
+    
+    rotated_centroids
+  }, error = function(e) {
+    rotated_centroids <- CreateCentroids(
+      coords = rotated_coordinates[, c("x_rotated", "y_rotated")],
+      theta = angle
+    )
+    return (rotated_centroids)
+  })
+
+  fov[["centroids"]] <- rotated_centroids
+
+  # rotate a background image if one is present
+  tryCatch({
+    background_image <- fov@image
+    fov@image <- rotate(background_image)
+  }, error = function(e) NULL)
+  
+  object[[image_name]] <- NULL
+  object[[rotated_name]] <- fov
+
+  return (object)
+}
+
+#' rotate
+#' @keyword internal
+#' 
+rotate <- function(arr, angle, pos) {
+  angle_rad <- angle * pi / 180
+  rows <- dim(arr)[1]
+  cols <- dim(arr)[2]
+
+  center_x <- cols / 2 
+  center_y <- rows / 2
+
+  size <- max(center_x*2,center_y*2)
+
+  rotated_arr <- array(0, dim = c(size,size,3))
+  
+  for (i in 1:rows) {
+    for (j in 1:cols) {
+      x <- j - center_x 
+      y <- i - center_y
+
+      rotated_x <- x * cos(-angle_rad) - y * sin(-angle_rad)
+      rotated_y <- x * sin(-angle_rad) + y * cos(-angle_rad)
+      
+      rotated_x <- rotated_x + center_x
+      rotated_y <- rotated_y + center_y 
+
+      if (rotated_x >= 1 && rotated_x <= dim(rotated_arr)[2] && rotated_y >= 1 && rotated_y <= dim(rotated_arr)[1]) {
+        rotated_arr[ceiling(rotated_y), ceiling(rotated_x), ] <- arr[i, j, ]
+      } 
+    }
+  }
+  return(rotated_arr)
+}
