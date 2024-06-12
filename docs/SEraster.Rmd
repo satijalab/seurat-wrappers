@@ -28,14 +28,6 @@ While the original framework was created to accomodate SpatialExperiment objects
 
 ## Load libraries
 
-```{r, include = F, eval = T}
-library(Seurat)
-#library(SeuratWrappers)
-devtools::load_all()
-library(SeuratData)
-library(SEraster)
-library(ggplot2)
-```
 ```{r, include = T}
 library(Seurat)
 library(SeuratWrappers)
