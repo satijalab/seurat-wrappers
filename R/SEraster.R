@@ -518,25 +518,42 @@ updateVisiumV2 <- function(input, pos_rotated, assay_name, angle, image_name) {
 
 #' @keyword internal
 #' 
-updateFOV <- function(input, pos_rotated, assay_name, angle, image_name) {
-  pos_new <- pos_rotated[, c("x_rotated", "y_rotated")]
-  input_fov <- input[[image_name]]
-  pos_new$cell <- Cells(input_fov)
-  radius <- slot(input_fov$centroids, name = 'radius')
+updateFOV <- function(object, image_name, rotated_coordinates, angle) {
+  fov <- object[[image_name]]
 
-  output_boundaries <- list(
-    "centroids" = CreateCentroids(coords = pos_new[, c("x_rotated", "y_rotated")], nsides = input_fov[["centroids"]]@nsides, radius = radius, theta = angle)
-  )
+  rotated_name <- paste0(image_name, ".rotated", angle)
+  fov@key <- Key(rotated_name, quiet = TRUE)
 
-  new.fov <- CreateFOV(
-    coords = output_boundaries,
-    molecules = input_fov$molecules,
-    assay = assay_name,
-    key = Key(paste0("rotated", angle), quiet = TRUE)
-  )
-  input[[image_name]] <- NULL
-  input@images[[paste0("rotated", angle)]] <- new.fov
-  return(input)
+  rotated_centroids <- tryCatch({
+    input_centroids <- fov[["centroids"]]
+    rotated_centroids <- CreateCentroids(
+      coords = rotated_coordinates[, c("x_rotated", "y_rotated")],
+      nside = input_centroids@nsides,
+      radius = input_centroids@radius,
+      theta = angle
+    )
+    
+    rotated_centroids
+  }, error = function(e) {
+    rotated_centroids <- CreateCentroids(
+      coords = rotated_coordinates[, c("x_rotated", "y_rotated")],
+      theta = angle
+    )
+    return (rotated_centroids)
+  })
+
+  fov[["centroids"]] <- rotated_centroids
+
+  # rotate a background image if one is present
+  tryCatch({
+    background_image <- fov@image
+    fov@image <- rotate(background_image)
+  }, error = function(e) NULL)
+  
+  object[[image_name]] <- NULL
+  object[[rotated_name]] <- fov
+
+  return (object)
 }
 
 #' rotate
