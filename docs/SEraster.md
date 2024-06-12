@@ -1,6 +1,6 @@
 Getting Started With SEraster
 ================
-Compiled: May 30, 2024
+Compiled: June 07, 2024
 
 # Getting Started with SEraster
 
@@ -83,7 +83,7 @@ Let’s try rasterizing the gene expression of the Xenium mouse brain
 dataset we loaded.
 
 ``` r
-rastGexp <- SeuratWrappers::rasterizeGeneExpression(xenium.obj, assay_name = "Xenium", resolution = 100)
+rastGexp <- RunRasterizeGeneExpression(xenium.obj, assay_name = "Xenium", resolution = 100)
 
 # check dimensions of spot by gene matrix after rasterization
 dim(rastGexp[['Xenium']])
@@ -154,7 +154,7 @@ ImageDimPlot(xenium.obj, group.by='seurat_clusters')
 ![](SEraster_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
 
 ``` r
-rastCt <- SeuratWrappers::rasterizeCellType(xenium.obj, col_name = "seurat_clusters", resolution = 200)
+rastCt <- RunRasterizeCellType(xenium.obj, col_name = "seurat_clusters", resolution = 200)
 
 # check the dimension of the cell-types-by-cells matrix after rasterizing cell-type labels
 dim(rastCt[['seurat_clusters']])
@@ -190,10 +190,10 @@ various resolutions using square pixels, which is specified by `shape`.
 
 ``` r
 # rasterize at defined resolution
-rast2000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
+rast2000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
 rast2000 <- NormalizeData(rast2000)
 
-rast1000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
+rast1000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
 rast1000 <- NormalizeData(rast1000)
 
 # visualize
@@ -235,10 +235,10 @@ vs. disease tissues.
 ``` r
 # permutate
 DefaultAssay(xenium.obj) <- "Xenium"
-spe_list <- SeuratWrappers::permutateByRotation(xenium.obj, n_perm = 3)
+spe_list <- RunPermutateByRotation(xenium.obj, n_perm = 3)
 
 # rasterize permutated datasets at once
-out_list <- SeuratWrappers::rasterizeGeneExpression(spe_list, assay_name = "Xenium", resolution = 200)
+out_list <- RunRasterizeGeneExpression(spe_list, assay_name = "Xenium", resolution = 200)
 
 for (i in seq_along(out_list)) {
   # extract rotated angle
@@ -288,7 +288,7 @@ sessionInfo()
     ## [13] hcabm40k.SeuratData_3.0.0       cbmc.SeuratData_3.1.4          
     ## [15] bonemarrowref.SeuratData_1.0.0  bmcite.SeuratData_0.3.0        
     ## [17] SeuratData_0.2.2.9001           SeuratWrappers_0.3.6           
-    ## [19] Seurat_5.1.0                    SeuratObject_5.0.2             
+    ## [19] Seurat_5.0.3.9922               SeuratObject_5.0.2             
     ## [21] sp_2.1-3                       
     ## 
     ## loaded via a namespace (and not attached):

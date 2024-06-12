@@ -76,7 +76,7 @@ For continuous variables such as gene expression or other molecular information,
 Let's try rasterizing the gene expression of the Xenium mouse brain dataset we loaded. 
 
 ```{r}
-rastGexp <- SeuratWrappers::rasterizeGeneExpression(xenium.obj, assay_name = "Xenium", resolution = 100)
+rastGexp <- RunRasterizeGeneExpression(xenium.obj, assay_name = "Xenium", resolution = 100)
 
 # check dimensions of spot by gene matrix after rasterization
 dim(rastGexp[['Xenium']])
@@ -116,7 +116,7 @@ ImageDimPlot(xenium.obj, group.by='seurat_clusters')
 ```
 
 ```{r}
-rastCt <- SeuratWrappers::rasterizeCellType(xenium.obj, col_name = "seurat_clusters", resolution = 200)
+rastCt <- RunRasterizeCellType(xenium.obj, col_name = "seurat_clusters", resolution = 200)
 
 # check the dimension of the cell-types-by-cells matrix after rasterizing cell-type labels
 dim(rastCt[['seurat_clusters']])
@@ -137,10 +137,10 @@ Let's see how the rasterized VisiumHD mouse brain dataset looks with various res
 
 ```{r}
 # rasterize at defined resolution
-rast2000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
+rast2000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 2000)
 rast2000 <- NormalizeData(rast2000)
 
-rast1000 <- SeuratWrappers::rasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
+rast1000 <- RunRasterizeGeneExpression(visiumhd.obj, assay_name="Spatial.016um", resolution = 1000)
 rast1000 <- NormalizeData(rast1000)
 
 # visualize
@@ -159,10 +159,10 @@ In addition to a single `Seurat` spatial object, `rasterizeGeneExpression` and `
 ```{r}
 # permutate
 DefaultAssay(xenium.obj) <- "Xenium"
-spe_list <- SeuratWrappers::permutateByRotation(xenium.obj, n_perm = 3)
+spe_list <- RunPermutateByRotation(xenium.obj, n_perm = 3)
 
 # rasterize permutated datasets at once
-out_list <- SeuratWrappers::rasterizeGeneExpression(spe_list, assay_name = "Xenium", resolution = 200)
+out_list <- RunRasterizeGeneExpression(spe_list, assay_name = "Xenium", resolution = 200)
 
 for (i in seq_along(out_list)) {
   # extract rotated angle

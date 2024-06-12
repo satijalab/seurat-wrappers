@@ -67,7 +67,7 @@ createRasterizedObject <- function(input, out, name) {
   return(output)
 }
 
-#' rasterizeGeneExpression
+#' RunRasterizeGeneExpression
 #' 
 #' @description Function to rasterize feature x observation matrix in spatially-resolved 
 #' omics data represented as Seurat objects.
@@ -126,7 +126,7 @@ createRasterizedObject <- function(input, out, name) {
 #' @importFrom Matrix colSums
 #' 
 #' @export
-rasterizeGeneExpression <- function(
+RunRasterizeGeneExpression <- function(
   input, 
   assay_name = NULL, 
   image = NULL, 
@@ -219,7 +219,7 @@ rasterizeGeneExpression <- function(
   }
 }
 
-#' rasterizeCellType
+#' RunRasterizeCellType
 #' 
 #' @description Function to rasterize cell type labels in spatially-resolved 
 #' omics data represented as Seurat object class.
@@ -279,7 +279,7 @@ rasterizeGeneExpression <- function(
 #' 
 #' @export
 #' 
-rasterizeCellType <- function(
+RunRasterizeCellType <- function(
   input, 
   col_name, 
   assay_name = NULL, 
@@ -373,7 +373,7 @@ rasterizeCellType <- function(
   }
 }
 
-#' permutateByRotation
+#' RunPermutateByRotation
 #' 
 #' @description Function to permutate a given input Seurat object(s) 
 #' by rotating the x,y coordinates around the midrange point.
@@ -404,7 +404,7 @@ rasterizeCellType <- function(
 #' 
 #' @export
 #' 
-permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
+RunPermutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   angles <- seq(0, 360, by = 360/n_perm)[1:n_perm]
   
   if (verbose) {
@@ -428,6 +428,10 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
       assay_name <- DefaultAssay(spe)
       pos_orig <- data.frame(GetTissueCoordinates(spe, scale = NULL))
       colnames(pos_orig) <- c("x", "y")
+      if("cell" %in% colnames(pos_orig)){
+        rownames(pos_orig) <- pos_orig$cell
+      }
+      
       stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
       
       lapply(angles, function(angle) {
@@ -452,6 +456,9 @@ permutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
     assay_name <- DefaultAssay(input)
     pos_orig <- GetTissueCoordinates(input, scale = NULL)
     colnames(pos_orig) <- c("x", "y")
+    if("cell" %in% colnames(pos_orig)){
+        rownames(pos_orig) <- pos_orig$cell
+    }
     stopifnot("Column 1 and 2 of the spatialCoords slot should be named x and y, respectively." = colnames(pos_orig)[1:2] == c("x", "y"))
     
     output_list <- list()
