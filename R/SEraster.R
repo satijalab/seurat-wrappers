@@ -488,33 +488,6 @@ RunPermutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   }
 }
 
-#' @keyword internal
-#' 
-updateVisiumV2 <- function(input, pos_rotated, assay_name, angle, image_name) {
-  pos_new <- pos_rotated[, c("x_rotated", "y_rotated")]
-  input_fov <- input[[image_name]]
-
-  fov <- CreateFOV(
-    pos_new[, c("x_rotated", "y_rotated")],
-    type = "centroids",
-    radius = input_fov@scale.factors[["spot"]],
-    assay = assay_name,
-    theta = angle,
-    key = paste0("rotated", angle, "_")
-  )
-  visium.fov <- new(
-    Class = "VisiumV2",
-    boundaries = fov@boundaries,
-    molecules = fov@molecules,
-    assay = fov@assay,
-    key = fov@key,
-    image = rotate(input_fov@image, angle, pos_new),
-    scale.factors = input_fov@scale.factors
-  )
-  input[[image_name]] <- NULL
-  input@images[[paste0("rotated", angle)]] <- visium.fov
-  return(input)
-}
 
 #' @keyword internal
 #' 
