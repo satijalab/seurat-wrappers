@@ -415,8 +415,13 @@ RunPermutateByRotation <- function(input, n_perm = 1, verbose = FALSE) {
   if (is.list(input)) {
     pos_comb <- do.call(rbind, lapply(seq_along(input), function(i) {
       pos <- GetTissueCoordinates(input[[i]], scale = NULL)
+      if ("cell" %in% colnames(pos)) {
+        rownames(pos) <- pos$cell
+      }
       dataset <- ifelse(!is.null(names(input)), names(input)[[i]], i)
-      return(data.frame(dataset = dataset, x = pos[, 1], y = pos[, 2]))
+      dataset <- data.frame(dataset = dataset, x = pos[, 1], y = pos[, 2])
+      rownames(dataset) <- rownames(pos)
+      return (dataset)
     }))
     midrange_pt <- rearrr::midrange(pos_comb, cols = c("x", "y"))
     
