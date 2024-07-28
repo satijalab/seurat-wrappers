@@ -195,7 +195,8 @@ get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, group, verbose) {
         max_x = max(locs[,1]) * 2
         n_groups = length(unique(unlist(object[[group]])))
         shift = seq(from = 0, length.out = n_groups, by = max_x)
-        locs[,1] = locs[,1] + rep(shift, table(object[[group]]))
+        shift_order= match(unique(unlist(seu[[group]])), names(table(seu[[group]])))
+        locs[, 1] = locs[, 1] + rep(shift, table(seu[[group]])[shift_order])
     }
 
     return(locs)
