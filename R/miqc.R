@@ -117,13 +117,13 @@ RunMiQC <- function(
     else if (backup.option == "percentile") {
       message("defaulting to backup.percentile for filtering")
       compromised_probability <- 0
-      raw_values <- my_data[,percent.mt]
+      raw_values <- my_data[,"percent.mt"]
       percentile_cutoff <- quantile(raw_values, probs = backup.percentile)
       cells_to_keep <- ifelse(raw_values <= percentile_cutoff, "keep", "discard")}
     else if (backup.option == "percent"){
       message("defaulting to backup.percent for filtering")
       compromised_probability <- 0
-      raw_values <- my_data[,percent.mt]
+      raw_values <- my_data[,"percent.mt"]
       cells_to_keep <- ifelse(raw_values <= backup.percent, "keep", "discard")}
     else {
       stop("backup.option must be one of \"percentile\", \"percent\", \"halt\", or \"pass\"")
