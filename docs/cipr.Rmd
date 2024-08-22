@@ -132,7 +132,7 @@ pbmc$unnamed_clusters <- Idents(pbmc)
 
 __This is the step where we generate the input for CIPR's log fold change (logFC) comparison methods.__
 
-```{r, echo=F, results="hide"}
+```{r, results="hide"}
 allmarkers <- FindAllMarkers(pbmc)
 ```
 
