@@ -42,7 +42,7 @@
 #' @examples
 #' pancreas_sub <- Seurat::FindVariableFeatures(pancreas_sub)
 #' pancreas_sub <- RunPaCMAP(object = pancreas_sub, features = Seurat::VariableFeatures(pancreas_sub))
-#' CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "pacmap")
+#' DimPlot(pancreas_sub, reduction = "pacmap")
 #'
 #' @rdname RunPaCMAP
 #' @export
