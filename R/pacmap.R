@@ -1,5 +1,17 @@
 #' Run PaCMAP (Pairwise Controlled Manifold Approximation)
 #'
+#' Runs PaCMAP, a method for dimensionality reduction for scRNA-seq data.
+#' data. Constructs three kinds of pairs of points: neighbor pairs (pair_neighbors),
+#' mid-near pair (pair_MN), and further pairs (pair_FP) based on positional relationship
+#' in the original space, and optimize a low-dimensional embedding accordingly.
+#' Described in Wang, Y., Huang, H., Rudin, C., & Shaposhnik, Y. (2021). "Understanding
+#' how dimension reduction tools work: an empirical approach to deciphering t-SNE, UMAP,
+#' TriMAP, and PaCMAP for data visualization." Journal of Machine Learning Research,
+#' 22(201), 1-73.
+#' This implementation is based on the work of Hao Zhang, as found in
+#' https://github.com/zhanghao-njmu/SCP/. We made modifications to ensure compatibility
+#' across multiple platforms, including Windows and macOS.
+#'
 #' @param object An object. This can be a Seurat object or a matrix-like object.
 #' @param reduction A character string specifying the reduction to be used. Default is "pca".
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
@@ -20,6 +32,12 @@
 #' @param verbose A logical value indicating whether to print verbose output. Default is TRUE.
 #' @param seed.use An integer specifying the random seed to be used. Default is 11.
 #' @param ... Additional arguments to be passed to the pacmap.PaCMAP function.
+#'
+#' @author Yiyang Sun, Haiyang Huang, Gaurav Rajesh Parikh
+#' @references Wang, Y., Huang, H., Rudin, C., & Shaposhnik, Y. (2021). "Understanding
+#' how dimension reduction tools work: an empirical approach to deciphering t-SNE, UMAP,
+#' TriMAP, and PaCMAP for data visualization." Journal of Machine Learning Research,
+#' 22(201), 1-73.
 #'
 #' @examples
 #' pancreas_sub <- Seurat::FindVariableFeatures(pancreas_sub)
