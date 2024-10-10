@@ -2,12 +2,12 @@
 title: "Running PaCMAP on a Seurat Object"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  github_document:
-    html_preview: false
-    toc: false
   html_document:
     toc: false
     df_print: paged
+  github_document:
+    html_preview: false
+    toc: false
 ---
   
 This vignette demonstrates how to run PaCMAP, a dimensionality reduction method that can
@@ -83,7 +83,7 @@ To learn more about this dataset, type `?pbmc3k`
 
 ```{r pacmap, cache=TRUE, cache.lazy=TRUE}
 InstallData("pbmc3k")
-data("pbmc3k.final")
+pbmc3k.final <- LoadData("pbmc3k",type="pbmc3k.final")
 
 # Initial processing to select variable features
 pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)

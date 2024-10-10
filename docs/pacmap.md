@@ -1,6 +1,6 @@
 Running PaCMAP on a Seurat Object
 ================
-Compiled: October 09, 2024
+Compiled: October 10, 2024
 
 This vignette demonstrates how to run PaCMAP, a dimensionality reduction
 method that can be used for providing robust and trustworthy
@@ -74,7 +74,7 @@ To learn more about this dataset, type `?pbmc3k`
 
 ``` r
 InstallData("pbmc3k")
-data("pbmc3k.final")
+pbmc3k.final <- LoadData("pbmc3k",type="pbmc3k.final")
 
 # Initial processing to select variable features
 pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)
@@ -158,7 +158,7 @@ pbmc3k.final <- RunPaCMAP.Seurat(object = pbmc3k.final, features=Seurat::Variabl
     ## Iteration:  630, Loss: 6954.013672
     ## Iteration:  640, Loss: 6953.199219
     ## Iteration:  650, Loss: 6952.405762
-    ## Elapsed time: 0.94s
+    ## Elapsed time: 1.53s
 
 ``` r
 # visualize markers
