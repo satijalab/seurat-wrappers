@@ -2,16 +2,16 @@ Running PaCMAP on a Seurat Object
 ================
 Compiled: 十月 09, 2024
 
-This vignette demonstrates how to run PaCMAP, which a dimensionality
-reduction method that can be used for visualization, preserving both
-local and global structure of the data in original space on a Seurat
-object. If you use this, please cite both papers:
+This vignette demonstrates how to run PaCMAP, a dimensionality reduction
+method that can be used for providing robust and trustworthy
+visualization, on a Seurat object. If you use our work, please cite both
+papers:
 
 > *Understanding How Dimension Reduction Tools Work: An Empirical
 > Approach to Deciphering t-SNE, UMAP, TriMap, and PaCMAP for Data
 > Visualization*
 >
-> Yingfan Wang and Haiyang Huang and Cynthia Rudin and Yaron Shaposhnik
+> Yingfan Wang, Haiyang Huang, Cynthia Rudin & Yaron Shaposhnik
 >
 > Journal of Machine Learning Research, 2021
 >
@@ -20,8 +20,7 @@ object. If you use this, please cite both papers:
 > *Towards a comprehensive evaluation of dimension reduction methods for
 > transcriptomic data visualization*
 >
-> Huang, Haiyang and Wang, Yingfan and Rudin, Cynthia and Browne, Edward
-> P
+> Haiyang Huang, Yingfan Wang, Cynthia Rudin and Edward P. Browne
 >
 > Communications biology, 2022
 >
@@ -34,27 +33,34 @@ Prerequisites to install:
 - [Seurat](https://satijalab.org/seurat/install)
 - [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
 - [SeuratData](https://github.com/satijalab/seurat-data)
+- [Reticulate](https://rstudio.github.io/reticulate/)
 
-Aside from R packages, please also install
+In addition to R packages, PaCMAP relies on Python to deliver high
+performance. To streamline the installation process and make environment
+management easier, we strongly recommend you to use
 anaconda(<https://www.anaconda.com/download>) or
-miniconda(<https://docs.anaconda.com/miniconda/miniconda-install/>) if
-you want to use PaCMAP. Create a conda environment and install PaCMAP
+miniconda(<https://docs.anaconda.com/miniconda/miniconda-install/>) for
+managing Python environments. Below, we provide step-by-step
+instructions on how to properly install PaCMAP **after** you have
+installed one of these tools.
+
+Create a conda environment with PaCMAP installed:
 
 ``` conda
-conda create -n "pacmap" python=3.12
+conda create -n "pacmap" python=3.12  # Install in the environment called "pacmap"
 conda activate pacmap
 conda install -y conda-forge::pacmap
 ```
 
-To run PaCMAP, you need to connect R to your corresponding conda
-environment
+To run PaCMAP, you need to connect your R console to the corresponding
+conda environment. If your Conda/Miniconda installation is located in a
+non-default directory, you might set up the conda variable as
+`/path/to/your/conda`. This ensures the correct environment is used
+during the installation.
 
 ``` r
 reticulate::use_condaenv(condaenv = "pacmap", conda = "auto")
 ```
-
-If you are using a specific version of conda, you might set up your
-conda variable as /path/to/your/conda
 
 ``` r
 library(Seurat)

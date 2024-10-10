@@ -2,12 +2,12 @@
 title: "Running PaCMAP on a Seurat Object"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  html_document:
-    toc: false
-    df_print: paged
   github_document:
     html_preview: false
     toc: false
+  html_document:
+    toc: false
+    df_print: paged
 ---
   
 This vignette demonstrates how to run PaCMAP, a dimensionality reduction method that can

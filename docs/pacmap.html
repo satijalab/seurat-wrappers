@@ -1625,22 +1625,20 @@ display: none;
 </div>
 
 
-<p>This vignette demonstrates how to run PaCMAP, which a dimensionality
-reduction method that can be used for visualization, preserving both
-local and global structure of the data in original space on a Seurat
-object. If you use this, please cite both papers:</p>
+<p>This vignette demonstrates how to run PaCMAP, a dimensionality
+reduction method that can be used for providing robust and trustworthy
+visualization, on a Seurat object. If you use our work, please cite both
+papers:</p>
 <blockquote>
 <p><em>Understanding How Dimension Reduction Tools Work: An Empirical
 Approach to Deciphering t-SNE, UMAP, TriMap, and PaCMAP for Data
 Visualization</em></p>
-<p>Yingfan Wang and Haiyang Huang and Cynthia Rudin and Yaron
-Shaposhnik</p>
+<p>Yingfan Wang, Haiyang Huang, Cynthia Rudin &amp; Yaron Shaposhnik</p>
 <p>Journal of Machine Learning Research, 2021</p>
 <p>doi: <a href="https://doi.org/10.48550/arXiv.2012.04456" class="uri">https://doi.org/10.48550/arXiv.2012.04456</a></p>
 <p><em>Towards a comprehensive evaluation of dimension reduction methods
 for transcriptomic data visualization</em></p>
-<p>Huang, Haiyang and Wang, Yingfan and Rudin, Cynthia and Browne,
-Edward P</p>
+<p>Haiyang Huang, Yingfan Wang, Cynthia Rudin and Edward P. Browne</p>
 <p>Communications biology, 2022</p>
 <p>doi: <a href="https://doi.org/10.1038/s42003-022-03628-x" class="uri">https://doi.org/10.1038/s42003-022-03628-x</a></p>
 <p>GitHub: <a href="https://github.com/YingfanWang/PaCMAP" class="uri">https://github.com/YingfanWang/PaCMAP</a></p>
@@ -1650,18 +1648,24 @@ Edward P</p>
 <li><a href="https://satijalab.org/seurat/install">Seurat</a></li>
 <li><a href="https://github.com/satijalab/seurat-wrappers">SeuratWrappers</a></li>
 <li><a href="https://github.com/satijalab/seurat-data">SeuratData</a></li>
+<li><a href="https://rstudio.github.io/reticulate/">Reticulate</a></li>
 </ul>
-<p>Aside from R packages, please also install anaconda(<a href="https://www.anaconda.com/download" class="uri">https://www.anaconda.com/download</a>) or miniconda(<a href="https://docs.anaconda.com/miniconda/miniconda-install/" class="uri">https://docs.anaconda.com/miniconda/miniconda-install/</a>)
-if you want to use PaCMAP. Create a conda environment and install
-PaCMAP</p>
-<pre class="conda"><code>conda create -n &quot;pacmap&quot; python=3.12
+<p>In addition to R packages, PaCMAP relies on Python to deliver high
+performance. To streamline the installation process and make environment
+management easier, we strongly recommend you to use anaconda(<a href="https://www.anaconda.com/download" class="uri">https://www.anaconda.com/download</a>) or miniconda(<a href="https://docs.anaconda.com/miniconda/miniconda-install/" class="uri">https://docs.anaconda.com/miniconda/miniconda-install/</a>)
+for managing Python environments. Below, we provide step-by-step
+instructions on how to properly install PaCMAP <strong>after</strong>
+you have installed one of these tools.</p>
+<p>Create a conda environment with PaCMAP installed:</p>
+<pre class="conda"><code>conda create -n &quot;pacmap&quot; python=3.12  # Install in the environment called &quot;pacmap&quot;
 conda activate pacmap
 conda install -y conda-forge::pacmap</code></pre>
-<p>To run PaCMAP, you need to connect R to your corresponding conda
-environment</p>
+<p>To run PaCMAP, you need to connect your R console to the
+corresponding conda environment. If your Conda/Miniconda installation is
+located in a non-default directory, you might set up the conda variable
+as <code>/path/to/your/conda</code>. This ensures the correct
+environment is used during the installation.</p>
 <pre class="r"><code>reticulate::use_condaenv(condaenv = &quot;pacmap&quot;, conda = &quot;auto&quot;)</code></pre>
-<p>If you are using a specific version of conda, you might set up your
-conda variable as /path/to/your/conda</p>
 <pre class="r"><code>library(Seurat)
 library(SeuratData)
 library(SeuratWrappers)</code></pre>
