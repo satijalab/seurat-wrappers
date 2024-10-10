@@ -1,6 +1,6 @@
 Running PaCMAP on a Seurat Object
 ================
-Compiled: 十月 09, 2024
+Compiled: October 09, 2024
 
 This vignette demonstrates how to run PaCMAP, a dimensionality reduction
 method that can be used for providing robust and trustworthy
