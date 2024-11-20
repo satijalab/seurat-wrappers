@@ -103,3 +103,11 @@ DimPlot(object=pbmc3k.final,reduction="pacmap")
 pbmc3k.final <- NormalizeData(pbmc3k.final, verbose = FALSE) 
 FeaturePlot(pbmc3k.final, features.plot, ncol = 2, reduction="pacmap")
 ```
+You can also specify dims of your original dataset for running PaCMAP
+```{r pacmap, cache=TRUE, cache.lazy=TRUE}
+# run PaCMAP on Seurat object. 
+pbmc3k.final <- RunPaCMAP(object = pbmc3k.final, dims=2:5)
+# visualize markers
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
+DimPlot(object=pbmc3k.final,reduction="pacmap")
+```
