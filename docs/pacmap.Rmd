@@ -86,8 +86,8 @@ InstallData("pbmc3k")
 pbmc3k.final <- LoadData("pbmc3k",type="pbmc3k.final")
 
 # Initial processing to select variable features
-pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)
-pbmc3k.final <- Seurat::FindVariableFeatures(pbmc3k.final)
+pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
 
 # run PaCMAP on Seurat object. 
 pbmc3k.final <- RunPaCMAP.Seurat(object = pbmc3k.final, features=Seurat::VariableFeatures(pbmc3k.final))
