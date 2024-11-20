@@ -13,25 +13,6 @@
 #' across multiple platforms, including Windows and macOS.
 #'
 #' @param object An object. This can be a Seurat object or a matrix-like object.
-#' @param reduction A character string specifying the reduction to be used. Default is "pca".
-#' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
-#' @param features A character vector specifying the features to be used. Default is NULL.
-#' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
-#' @param n_components An integer specifying the number of PaCMAP components. Default is 2.
-#' @param n.neighbors An integer specifying the number of neighbors considered in the k-Nearest Neighbor graph. Default to 10 for dataset whose sample size is smaller than 10000. For large dataset whose sample size (n) is larger than 10000, the default value is: 10 + 15 * (log10(n) - 4).
-#' @param MN_ratio A numeric value specifying the ratio of the ratio of the number of mid-near pairs to the number of neighbors. Default is 0.5.
-#' @param FP_ratio A numeric value specifying the ratio of the ratio of the number of further pairs to the number of neighbors. Default is 2.
-#' @param distance_method A character string specifying the distance metric to be used. Default is "euclidean".
-#' @param lr A numeric value specifying the learning rate of the AdaGrad optimizer. Default is 1.
-#' @param num_iters An integer specifying the number of iterations for PaCMAP optimization. Default is 450.
-#' @param apply_pca A logical value indicating whether pacmap should apply PCA to the data before constructing the k-Nearest Neighbor graph. Using PCA to preprocess the data can largely accelerate the DR process without losing too much accuracy. Notice that this option does not affect the initialization of the optimization process. Default is TRUE.
-#' @param init A character string specifying the initialization of the lower dimensional embedding. One of "pca" or "random". Default is "random".
-#' @param reduction.name A character string specifying the name of the reduction to be stored in the Seurat object. Default is "pacmap".
-#' @param reduction.key A character string specifying the prefix for the column names of the PaCMAP embeddings. Default is "PaCMAP_".
-#' @param verbose A logical value indicating whether to print verbose output. Default is TRUE.
-#' @param seed.use An integer specifying the random seed to be used. Default is 11.
-#' @param ... Additional arguments to be passed to the pacmap.PaCMAP function.
 #'
 #' @author Yiyang Sun, Haiyang Huang, Gaurav Rajesh Parikh
 #' @references Wang, Y., Huang, H., Rudin, C., & Shaposhnik, Y. (2021). "Understanding
@@ -52,6 +33,15 @@ RunPaCMAP <- function(object, ...) {
 
 #' @rdname RunPaCMAP
 #' @method RunPaCMAP Seurat
+#' @param object An object. This can be a Seurat object or a matrix-like object.
+#' @param reduction A character string specifying the reduction to be used as input. Default is "pca".
+#' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
+#' @param features A character vector specifying the features to be used. Default is NULL.
+#' @param assay A character string specifying the assay to be used. Default is NULL.
+#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param reduction.name A character string specifying the name of the reduction to be stored in the Seurat object. Default is "pacmap".
+#' @param reduction.key A character string specifying the prefix for the column names of the PaCMAP embeddings. Default is "PaCMAP_".
+#' 
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
@@ -112,6 +102,26 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
 #' @method RunPaCMAP default
 #' @importFrom Seurat CreateDimReducObject
 #' @importFrom reticulate import
+#' @param object An object. This can be a Seurat object or a matrix-like object.
+#' @param reduction A character string specifying the reduction to be used as input. Default is "pca".
+#' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
+#' @param features A character vector specifying the features to be used. Default is NULL.
+#' @param assay A character string specifying the assay to be used. Default is NULL.
+#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param n_components An integer specifying the number of PaCMAP components. Default is 2.
+#' @param n.neighbors An integer specifying the number of neighbors considered in the k-Nearest Neighbor graph. Default to 10 for dataset whose sample size is smaller than 10000. For large dataset whose sample size (n) is larger than 10000, the default value is: 10 + 15 * (log10(n) - 4).
+#' @param MN_ratio A numeric value specifying the ratio of the ratio of the number of mid-near pairs to the number of neighbors. Default is 0.5.
+#' @param FP_ratio A numeric value specifying the ratio of the ratio of the number of further pairs to the number of neighbors. Default is 2.
+#' @param distance_method A character string specifying the distance metric to be used. Default is "euclidean".
+#' @param lr A numeric value specifying the learning rate of the AdaGrad optimizer. Default is 1.
+#' @param num_iters An integer specifying the number of iterations for PaCMAP optimization. Default is 450.
+#' @param apply_pca A logical value indicating whether pacmap should apply PCA to the data before constructing the k-Nearest Neighbor graph. Using PCA to preprocess the data can largely accelerate the DR process without losing too much accuracy. Notice that this option does not affect the initialization of the optimization process. Default is TRUE.
+#' @param init A character string specifying the initialization of the lower dimensional embedding. One of "pca" or "random". Default is "random".
+#' @param reduction.name A character string specifying the name of the reduction to be stored in the Seurat object. Default is "pacmap".
+#' @param reduction.key A character string specifying the prefix for the column names of the PaCMAP embeddings. Default is "PaCMAP_".
+#' @param verbose A logical value indicating whether to print verbose output. Default is TRUE.
+#' @param seed.use An integer specifying the random seed to be used. Default is 11.
+#' @param ... Additional arguments to be passed to the pacmap.PaCMAP function.
 #' @export
 RunPaCMAP.default <- function(object, assay = NULL,
                               n_components = 2, n.neighbors = NULL, MN_ratio = 0.5, FP_ratio = 2,
