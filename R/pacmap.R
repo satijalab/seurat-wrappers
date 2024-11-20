@@ -78,6 +78,9 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
       )
     }
   } else if (!is.null(x = dims)) {
+    if (!is.null(x = assay) && assay != DefaultAssay(object = object[[reduction]])){
+      warning("If both `assay` and `dims` are specified, the value of `assay` will get ignored.")
+    }
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
     if (length(x = dims) < n_components) {
