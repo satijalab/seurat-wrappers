@@ -61,7 +61,7 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
                              lr = 1, num_iters = 450L, apply_pca = TRUE, init = "random",
                              reduction.name = "pacmap", reduction.key = "PaCMAP_",
                              verbose = TRUE, seed.use = 11L, ...) {
-  if (sum(c(is.null(x = dims), is.null(x = features))) < 1) {
+  if (is.null(dims) && is.null(features)) {
     stop("Please specify only one of `dims` or `features`.")
   }
   if (!is.null(x = features)) {
