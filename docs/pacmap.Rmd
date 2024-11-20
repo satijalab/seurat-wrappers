@@ -56,7 +56,7 @@ environments. Below, we provide step-by-step instructions on how to properly ins
 
 Create a conda environment with PaCMAP installed:
 
-```{conda environment setup, eval=FALSE}
+```{bash conda environment setup, eval=FALSE}
 conda create -n "pacmap" python=3.12  # Install in the environment called "pacmap"
 conda activate pacmap
 conda install -y conda-forge::pacmap
