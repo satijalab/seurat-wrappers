@@ -21,7 +21,7 @@ RunPaCMAP(object, ...)
   FP_ratio = 2,
   distance_method = "euclidean",
   lr = 1,
-  num_iters = 450L,
+  num_iters = 250L,
   apply_pca = TRUE,
   init = "random",
   reduction.name = "pacmap",
@@ -40,7 +40,7 @@ RunPaCMAP(object, ...)
   FP_ratio = 2,
   distance_method = "euclidean",
   lr = 1,
-  num_iters = 450L,
+  num_iters = 250L,
   apply_pca = TRUE,
   init = "random",
   reduction.key = "PaCMAP_",
@@ -89,6 +89,8 @@ RunPaCMAP(object, ...)
 \item{verbose}{A logical value indicating whether to print verbose output. Default is TRUE.}
 
 \item{seed.use}{An integer specifying the random seed to be used. Default is 11.}
+
+\item{slot}{A character string specifying the slot name to be used. Default is "data".}
 }
 \description{
 Runs PaCMAP, a method for dimensionality reduction for scRNA-seq data.

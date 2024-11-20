@@ -60,14 +60,14 @@ Collate:
     'liger.R'
     'miqc.R'
     'monocle3.R'
+    'pacmap.R'
     'presto.R'
     'scVI.R'
     'tricycle.R'
     'velocity.R'
-    'pacmap.R'
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.0
+RoxygenNote: 7.3.2
 Suggests:
     cipr,
     conos,
