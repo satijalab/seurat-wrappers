@@ -53,7 +53,7 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
                              assay = NULL, layer = "data",
                              n_components = 2, n.neighbors = NULL, MN_ratio = 0.5, FP_ratio = 2,
                              distance_method = "euclidean",
-                             lr = 1, num_iters = 450L, apply_pca = TRUE, init = "random",
+                             lr = 1, num_iters = 250L, apply_pca = TRUE, init = "random",
                              reduction.name = "pacmap", reduction.key = "PaCMAP_",
                              verbose = TRUE, seed.use = 11L, ...) {
   if (is.null(dims) && is.null(features)) {
@@ -132,7 +132,7 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
 RunPaCMAP.default <- function(object, assay = NULL,
                               n_components = 2, n.neighbors = NULL, MN_ratio = 0.5, FP_ratio = 2,
                               distance_method = "euclidean",
-                              lr = 1, num_iters = 450L, apply_pca = TRUE, init = "random",
+                              lr = 1, num_iters = 250L, apply_pca = TRUE, init = "random",
                               reduction.key = "PaCMAP_", verbose = TRUE, seed.use = 11L, ...) {
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
