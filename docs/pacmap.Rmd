@@ -2,12 +2,12 @@
 title: "Running PaCMAP on a Seurat Object"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  html_document:
-    toc: false
-    df_print: paged
   github_document:
     html_preview: false
     toc: false
+  html_document:
+    toc: false
+    df_print: paged
 ---
   
 This vignette demonstrates how to run PaCMAP, a dimensionality reduction method that can
@@ -104,7 +104,7 @@ pbmc3k.final <- NormalizeData(pbmc3k.final, verbose = FALSE)
 FeaturePlot(pbmc3k.final, features.plot, ncol = 2, reduction="pacmap")
 ```
 You can also specify dims of your original dataset for running PaCMAP
-```{r pacmap, cache=TRUE, cache.lazy=TRUE}
+```{r pacmap_dim, cache=TRUE, cache.lazy=TRUE}
 # run PaCMAP on Seurat object. 
 pbmc3k.final <- RunPaCMAP(object = pbmc3k.final, dims=2:5)
 # visualize markers

@@ -28,8 +28,13 @@
 #' @rdname RunPaCMAP
 #' @export
 RunPaCMAP <- function(object, ...) {
-  UseMethod(generic = "RunPaCMAP", object = object)
+  if (inherits(object, "Seurat")) {
+    RunPaCMAP.Seurat(object, ...)
+  } else {
+    RunPaCMAP.default(object, ...)
+  }
 }
+
 
 #' @rdname RunPaCMAP
 #' @method RunPaCMAP Seurat
@@ -41,11 +46,11 @@ RunPaCMAP <- function(object, ...) {
 #' @param slot A character string specifying the slot name to be used. Default is "data".
 #' @param reduction.name A character string specifying the name of the reduction to be stored in the Seurat object. Default is "pacmap".
 #' @param reduction.key A character string specifying the prefix for the column names of the PaCMAP embeddings. Default is "PaCMAP_".
-#' 
+#'
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
-                             assay = NULL, slot = "data",
+                             assay = NULL, layer = "data",
                              n_components = 2, n.neighbors = NULL, MN_ratio = 0.5, FP_ratio = 2,
                              distance_method = "euclidean",
                              lr = 1, num_iters = 450L, apply_pca = TRUE, init = "random",
@@ -56,7 +61,8 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- t(as.matrix(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+
+    data.use <- t(as.matrix(x = GetAssayData(object = object, layer=layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -107,7 +113,7 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param n_components An integer specifying the number of PaCMAP components. Default is 2.
 #' @param n.neighbors An integer specifying the number of neighbors considered in the k-Nearest Neighbor graph. Default to 10 for dataset whose sample size is smaller than 10000. For large dataset whose sample size (n) is larger than 10000, the default value is: 10 + 15 * (log10(n) - 4).
 #' @param MN_ratio A numeric value specifying the ratio of the ratio of the number of mid-near pairs to the number of neighbors. Default is 0.5.
@@ -133,7 +139,7 @@ RunPaCMAP.default <- function(object, assay = NULL,
   }
 
   if (!py_module_available(module = 'pacmap')) {
-    stop("Cannot find UMAP, please install through conda (e.g. conda install conda-forge::pacmap).")
+    stop("Cannot find PaCMAP, please install through conda (e.g. conda install conda-forge::pacmap).")
   }
   pacmap <- reticulate::import("pacmap")
 
