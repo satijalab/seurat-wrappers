@@ -90,7 +90,7 @@ pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
 pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
 
 # run PaCMAP on Seurat object. 
-pbmc3k.final <- RunPaCMAP.Seurat(object = pbmc3k.final, features=Seurat::VariableFeatures(pbmc3k.final))
+pbmc3k.final <- RunPaCMAP(object = pbmc3k.final, features=VariableFeatures(pbmc3k.final))
 ```
 
 ```{r explore, fig.width=6}
