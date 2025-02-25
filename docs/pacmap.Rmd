@@ -1,0 +1,113 @@
+---
+title: "Running PaCMAP on a Seurat Object"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: false
+    toc: false
+  html_document:
+    toc: false
+    df_print: paged
+---
+  
+This vignette demonstrates how to run PaCMAP, a dimensionality reduction method that can
+be used for providing robust and trustworthy visualization, on a Seurat object.
+If you use our work, please cite both papers:
+
+> *Understanding How Dimension Reduction Tools Work: An Empirical Approach to Deciphering t-SNE, UMAP, TriMap, and PaCMAP for Data Visualization*
+>
+> Yingfan Wang, Haiyang Huang, Cynthia Rudin & Yaron Shaposhnik
+>
+> Journal of Machine Learning Research, 2021
+>
+> doi: https://doi.org/10.48550/arXiv.2012.04456
+> 
+> *Towards a comprehensive evaluation of dimension reduction methods for transcriptomic data visualization*
+>
+> Haiyang Huang, Yingfan Wang, Cynthia Rudin and Edward P. Browne
+>
+> Communications biology, 2022
+>
+> doi: https://doi.org/10.1038/s42003-022-03628-x
+>
+> GitHub: https://github.com/YingfanWang/PaCMAP
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10
+)
+```
+
+Prerequisites to install: 
+  
+* [Seurat](https://satijalab.org/seurat/install) 
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [Reticulate](https://rstudio.github.io/reticulate/)
+
+In addition to R packages, PaCMAP relies on Python to deliver high performance. 
+To streamline the installation process and make environment management easier, 
+we strongly recommend you to use anaconda(https://www.anaconda.com/download) or
+miniconda(https://docs.anaconda.com/miniconda/miniconda-install/) for managing Python
+environments. Below, we provide step-by-step instructions on how to properly install PaCMAP 
+**after** you have installed one of these tools.
+
+Create a conda environment with PaCMAP installed:
+
+```{bash conda environment setup, eval=FALSE}
+conda create -n "pacmap" python=3.12  # Install in the environment called "pacmap"
+conda activate pacmap
+conda install -y conda-forge::pacmap
+```
+
+To run PaCMAP, you need to connect your R console to the corresponding conda environment.
+If your Conda/Miniconda installation is located in a non-default directory, you might
+set up the conda variable as `/path/to/your/conda`. This ensures the correct environment
+is used during the installation.
+
+```{r conda environment connects, eval=FALSE}
+reticulate::use_condaenv(condaenv = "pacmap", conda = "auto")
+```
+
+```{r packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+### PaCMAP on PBMC3k
+
+To learn more about this dataset, type `?pbmc3k` 
+
+```{r pacmap, cache=TRUE, cache.lazy=TRUE}
+InstallData("pbmc3k")
+pbmc3k.final <- LoadData("pbmc3k",type="pbmc3k.final")
+
+# Initial processing to select variable features
+pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
+
+# run PaCMAP on Seurat object. 
+pbmc3k.final <- RunPaCMAP(object = pbmc3k.final, features=VariableFeatures(pbmc3k.final))
+```
+
+```{r explore, fig.width=6}
+# visualize markers
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
+DimPlot(object=pbmc3k.final,reduction="pacmap")
+```
+
+```{r explore2, fig.height=10}
+pbmc3k.final <- NormalizeData(pbmc3k.final, verbose = FALSE) 
+FeaturePlot(pbmc3k.final, features.plot, ncol = 2, reduction="pacmap")
+```
+You can also specify dims of your original dataset for running PaCMAP
+```{r pacmap_dim, cache=TRUE, cache.lazy=TRUE}
+# run PaCMAP on Seurat object. 
+pbmc3k.final <- RunPaCMAP(object = pbmc3k.final, dims=2:5)
+# visualize markers
+features.plot <- c('CD3D', 'MS4A1', 'CD8A', 'GZMK', 'GZMB', 'FCGR3A')
+DimPlot(object=pbmc3k.final,reduction="pacmap")
+```
