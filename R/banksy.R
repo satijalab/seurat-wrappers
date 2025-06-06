@@ -37,7 +37,11 @@ NULL
 #' @param chunk_size A integer scalar specifying the number of rows / genes of
 #'   the neighborhood cell matrix to compute. Must be less than floor of
 #'   2e31-1 / number of cells. This is automatically computed but can be
-#'   specified.#'
+#'   specified.
+#' @param parallel A logical scalar specifying whether to compute chunks in
+#'   parallel using bplapply. Not implemented for Windows.
+#' @param num_cores A integer scalar specifying the number of cores to use
+#'   if parallel is TRUE.
 #' @param verbose (boolean) Print messages
 #'
 #' @return A Seurat object with new assay holding a Banksy matrix
@@ -57,6 +61,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_median',
                       assay_name='BANKSY', M=NULL, chunk_size=NULL,
+                      parallel=FALSE, num_cores=NULL,
                       verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
@@ -92,7 +97,13 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     # Only center higher harmonics
     center[1] <- FALSE
     har <- Map(function(knn_df, M, center) {
-      x <- Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose, chunk_size)
+      x <- Banksy:::computeHarmonics(gcm=data_own,
+                                     knn_df=knn_df,
+                                     M=M, center=center,
+                                     verbose=verbose,
+                                     chunk_size=chunk_size,
+                                     parallel=parallel,
+                                     num_cores=num_cores)
       rownames(x) <- paste0(rownames(x), '.m', M)
       x
     }, knn_list, M, center)

@@ -26,6 +26,8 @@ RunBanksy(
   assay_name = "BANKSY",
   M = NULL,
   chunk_size = NULL,
+  parallel = FALSE,
+  num_cores = NULL,
   verbose = TRUE
 )
 }
@@ -82,7 +84,13 @@ a vector of feature names}
 \item{chunk_size}{A integer scalar specifying the number of rows / genes of
 the neighborhood cell matrix to compute. Must be less than floor of
 2e31-1 / number of cells. This is automatically computed but can be
-specified.#'}
+specified.}
+
+\item{parallel}{A logical scalar specifying whether to compute chunks in
+parallel using bplapply. Not implemented for Windows.}
+
+\item{num_cores}{A integer scalar specifying the number of cores to use
+if parallel is TRUE.}
 
 \item{verbose}{(boolean) Print messages}
 }
