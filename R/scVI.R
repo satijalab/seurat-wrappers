@@ -64,6 +64,7 @@ scVIIntegration <- function(
     new.reduction = "integrated.dr",
     ndims = 30,
     nlayers = 2,
+    meta.data.df = NULL,
     categorical.vars.to.regress = NULL,
     continuous.vars.to.regress = NULL,
     gene_likelihood = "nb",
@@ -92,16 +93,21 @@ scVIIntegration <- function(
   if (any('batch' %in% c(categorical.vars.to.regress, continuous.vars.to.regress))) {
     stop('Not use "batch" string in vars.to.regress, change it to another string!')
   }
-
+  # check meta.data data.frame
+  if (any(!is.null(categorical.vars.to.regress), !is.null(continuous.vars.to.regress))) {
+    if (is.null(meta.data.df)) {
+      stop("meta.data.df can be null if any categorical.vars.to.regress or continuous.vars.to.regress is not null!")
+    }
+  }
   # add covariates to batches
   if (!is.null(categorical.vars.to.regress)) {
-    if (!all(categorical.vars.to.regress %in% colnames(object@meta.data))) {
+    if (!all(categorical.vars.to.regress %in% colnames(meta.data.df))) {
       stop("Not all categorical.vars.to.regress existed!")
     }
-    if(!all(sapply(object@meta.data[,categorical.vars.to.regress], is.factor))){
+    if(!all(sapply(meta.data.df[,categorical.vars.to.regress], is.factor))){
       stop("All categorical.vars.to.regress should be factor!")
     }
-    batches <- cbind(batches, object@meta.data[,categorical.vars.to.regress])
+    batches <- cbind(batches, meta.data.df[,categorical.vars.to.regress])
   }
 
   # scVI expects a single counts matrix so we'll join our layers together
