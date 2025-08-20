@@ -107,9 +107,18 @@ scVIIntegration <- function(
     if(!all(sapply(meta.data.df[,categorical.vars.to.regress], is.factor))){
       stop("All categorical.vars.to.regress should be factor!")
     }
-    batches <- cbind(batches, meta.data.df[,categorical.vars.to.regress])
+    batches <- cbind(batches, meta.data.df[,categorical.vars.to.regress, drop = FALSE])
   }
 
+  if (!is.null(continuous.vars.to.regress)) {
+    if (!all(continuous.vars.to.regress %in% colnames(meta.data.df))) {
+      stop("Not all continuous.vars.to.regress existed!")
+    }
+    if(!all(sapply(meta.data.df[,continuous.vars.to.regress], is.numeric))){
+      stop("All continuous.vars.to.regress should be numeric!")
+    }
+    batches <- cbind(batches, meta.data.df[,continuous.vars.to.regress, drop = FALSE])
+  }
   # scVI expects a single counts matrix so we'll join our layers together
   # it also expects the raw counts matrix
   # TODO: avoid hardcoding this - users can rename their layers arbitrarily
@@ -128,11 +137,12 @@ scVIIntegration <- function(
   if (all(c(is.null(categorical.vars.to.regress), is.null(continuous.vars.to.regress)))) {
     scvi$model$SCVI$setup_anndata(adata, batch_key = "batch")
   }else if (!is.null(categorical.vars.to.regress) & is.null(continuous.vars.to.regress)) {
-    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch", categorical_covariate_keys = categorical.vars.to.regress)
+    scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch', categorical.vars.to.regress))
   }else if (is.null(categorical.vars.to.regress) & !is.null(continuous.vars.to.regress)) {
-    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch", continuous_covariate_keys = continuous.vars.to.regress)
+    scvi$model$SCVI$setup_anndata(adata, categorical.vars.to.regress = "batch",
+                                  continuous_covariate_keys = continuous.vars.to.regress)
   }else{
-    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch", categorical_covariate_keys = categorical.vars.to.regress,
+    scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch',categorical.vars.to.regress),
                                   continuous_covariate_keys = continuous.vars.to.regress)
   }
 
