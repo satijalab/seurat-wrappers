@@ -96,7 +96,7 @@ scVIIntegration <- function(
   # check meta.data data.frame
   if (any(!is.null(categorical.vars.to.regress), !is.null(continuous.vars.to.regress))) {
     if (is.null(meta.data.df)) {
-      stop("meta.data.df can be null if any categorical.vars.to.regress or continuous.vars.to.regress is not null!")
+      stop("meta.data.df can not be null if any categorical.vars.to.regress or continuous.vars.to.regress is not null!")
     }
   }
   # add covariates to batches
