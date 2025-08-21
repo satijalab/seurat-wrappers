@@ -139,7 +139,7 @@ scVIIntegration <- function(
   }else if (!is.null(categorical.vars.to.regress) & is.null(continuous.vars.to.regress)) {
     scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch', categorical.vars.to.regress))
   }else if (is.null(categorical.vars.to.regress) & !is.null(continuous.vars.to.regress)) {
-    scvi$model$SCVI$setup_anndata(adata, categorical.vars.to.regress = "batch",
+    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch",
                                   continuous_covariate_keys = continuous.vars.to.regress)
   }else{
     scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch',categorical.vars.to.regress),
