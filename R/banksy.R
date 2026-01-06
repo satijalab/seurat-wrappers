@@ -137,7 +137,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     if (verbose) message('Setting default assay to ', assay_name)
     object[[assay_name]] <- banksy_assay
     DefaultAssay(object) <- assay_name
-    object <- SetAssayData(object, slot = 'scale.data', new.data = data_scaled,
+    object <- SetAssayData(object, layer = 'scale.data', new.data = data_scaled,
                            assay = assay_name)
 
     # Log commands
@@ -150,7 +150,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
 get_data <- function(object, assay, slot, features, verbose) {
     # Fetch data from Seurat
     if (verbose) message('Fetching data from slot ', slot,' from assay ', assay)
-    data_own <- Seurat::GetAssayData(object = object, assay = assay, slot = slot)
+    data_own <- Seurat::GetAssayData(object = object, assay = assay, layer = slot)
     # Feature subset
     if (features[1] != 'all') {
         if (verbose) message('Subsetting by features')
