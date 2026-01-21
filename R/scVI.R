@@ -11,7 +11,7 @@ NULL
 #' @param new.reduction Name under which to store resulting DimReduc object
 #' @param ndims Dimensionality of the latent space
 #' @param nlayers Number of hidden layers used for encoder and decoder NNs
-#' @param gene_likelihood Distribution to use for modelling expression 
+#' @param gene_likelihood Distribution to use for modelling expression
 #' data: {"zinb", "nb", "poisson"}
 #' @param max_epochs Number of passes through the dataset taken while
 #' training the model
@@ -64,10 +64,13 @@ scVIIntegration <- function(
     new.reduction = "integrated.dr",
     ndims = 30,
     nlayers = 2,
+    meta.data.df = NULL,
+    categorical.vars.to.regress = NULL,
+    continuous.vars.to.regress = NULL,
     gene_likelihood = "nb",
     max_epochs = NULL,
     ...) {
-  
+
   # import python methods from specified conda env
   reticulate::use_condaenv(conda_env, required = TRUE)
   sc <- reticulate::import("scanpy", convert = FALSE)
@@ -86,10 +89,40 @@ scVIIntegration <- function(
 
   # build a meta.data-style data.frame indicating the batch for each cell
   batches <- .FindBatches(object, layers = layers)
+
+  if (any('batch' %in% c(categorical.vars.to.regress, continuous.vars.to.regress))) {
+    stop('Not use "batch" string in vars.to.regress, change it to another string!')
+  }
+  # check meta.data data.frame
+  if (any(!is.null(categorical.vars.to.regress), !is.null(continuous.vars.to.regress))) {
+    if (is.null(meta.data.df)) {
+      stop("meta.data.df can not be null if any categorical.vars.to.regress or continuous.vars.to.regress is not null!")
+    }
+  }
+  # add covariates to batches
+  if (!is.null(categorical.vars.to.regress)) {
+    if (!all(categorical.vars.to.regress %in% colnames(meta.data.df))) {
+      stop("Not all categorical.vars.to.regress existed!")
+    }
+    if(!all(sapply(meta.data.df[,categorical.vars.to.regress], is.factor))){
+      stop("All categorical.vars.to.regress should be factor!")
+    }
+    batches <- cbind(batches, meta.data.df[,categorical.vars.to.regress, drop = FALSE])
+  }
+
+  if (!is.null(continuous.vars.to.regress)) {
+    if (!all(continuous.vars.to.regress %in% colnames(meta.data.df))) {
+      stop("Not all continuous.vars.to.regress existed!")
+    }
+    if(!all(sapply(meta.data.df[,continuous.vars.to.regress], is.numeric))){
+      stop("All continuous.vars.to.regress should be numeric!")
+    }
+    batches <- cbind(batches, meta.data.df[,continuous.vars.to.regress, drop = FALSE])
+  }
   # scVI expects a single counts matrix so we'll join our layers together
   # it also expects the raw counts matrix
   # TODO: avoid hardcoding this - users can rename their layers arbitrarily
-  # so there's no gauruntee that the usual naming conventions will be followed
+  # so there's no guaruntee that the usual naming conventions will be followed
   object <- JoinLayers(object = object, layers = "counts")
   # setup an `AnnData` python instance
   adata <- sc$AnnData(
@@ -100,7 +133,18 @@ scVIIntegration <- function(
     obs = batches,
     var = object[[]][features, ]
   )
-  scvi$model$SCVI$setup_anndata(adata, batch_key = "batch")
+  # setup `anndata`
+  if (all(c(is.null(categorical.vars.to.regress), is.null(continuous.vars.to.regress)))) {
+    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch")
+  }else if (!is.null(categorical.vars.to.regress) & is.null(continuous.vars.to.regress)) {
+    scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch', categorical.vars.to.regress))
+  }else if (is.null(categorical.vars.to.regress) & !is.null(continuous.vars.to.regress)) {
+    scvi$model$SCVI$setup_anndata(adata, batch_key = "batch",
+                                  continuous_covariate_keys = continuous.vars.to.regress)
+  }else{
+    scvi$model$SCVI$setup_anndata(adata, categorical_covariate_keys = c('batch',categorical.vars.to.regress),
+                                  continuous_covariate_keys = continuous.vars.to.regress)
+  }
 
   # initialize and train the model
   model <- scvi$model$SCVI(
@@ -124,7 +168,7 @@ scVIIntegration <- function(
   # build a `DimReduc` instance
   suppressWarnings(
     latent.dr <- CreateDimReducObject(
-      embeddings = latent, 
+      embeddings = latent,
       key = new.reduction
     )
   )
@@ -143,7 +187,7 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' \code{object}. For \code{SCTAssay}s, batches are split using their
 #' model identifiers. For \code{StdAssays}, batches are split by layer.
 #'
-#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups} 
+#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups}
 #' except that it does not take in a `scale.layer` param.
 #'
 #' @noRd
@@ -151,7 +195,7 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' @param object A \code{SCTAssay} or \code{StdAssays} instance.
 #' @param layers Layers in \code{object} to integrate.
 #'
-#' @return A dataframe indexed on the cell identifiers from \code{object} - 
+#' @return A dataframe indexed on the cell identifiers from \code{object} -
 #' the dataframe contains a single column, "batch", indicating the ...
 .FindBatches <- function(object, layers) {
   # if an `SCTAssay` is passed in it's expected that the transformation
