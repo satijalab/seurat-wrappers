@@ -5,6 +5,7 @@ NULL
 #' scVI Integration
 #' @param object A \code{StdAssay} or \code{STDAssay} instance containing
 #' merged data
+#' @param assay Assay name passed, to be logged in the DimRedc object
 #' @param features Features to integrate
 #' @param layers Layers to integrate
 #' @param conda_env conda environment to run scVI
@@ -58,6 +59,7 @@ NULL
 #' the integrated data
 scVIIntegration <- function(
     object,
+    assay = NULL,
     features = NULL,
     layers = "counts",
     conda_env = NULL,
@@ -67,7 +69,7 @@ scVIIntegration <- function(
     gene_likelihood = "nb",
     max_epochs = NULL,
     ...) {
-  
+
   # import python methods from specified conda env
   reticulate::use_condaenv(conda_env, required = TRUE)
   sc <- reticulate::import("scanpy", convert = FALSE)
@@ -86,11 +88,14 @@ scVIIntegration <- function(
 
   # build a meta.data-style data.frame indicating the batch for each cell
   batches <- .FindBatches(object, layers = layers)
-  # scVI expects a single counts matrix so we'll join our layers together
-  # it also expects the raw counts matrix
-  # TODO: avoid hardcoding this - users can rename their layers arbitrarily
-  # so there's no gauruntee that the usual naming conventions will be followed
-  object <- JoinLayers(object = object, layers = "counts")
+  
+  if (inherits(x = object, what = 'StdAssay')) {
+    # scVI expects a single counts matrix so we'll join our layers together
+    # it also expects the raw counts matrix
+    # TODO: avoid hardcoding this - users can rename their layers arbitrarily
+    # so there's no gauruntee that the usual naming conventions will be followed
+    object <- JoinLayers(object = object, layers = "counts")
+  }
   # setup an `AnnData` python instance
   adata <- sc$AnnData(
     X = scipy$sparse$csr_matrix(
@@ -125,7 +130,8 @@ scVIIntegration <- function(
   suppressWarnings(
     latent.dr <- CreateDimReducObject(
       embeddings = latent, 
-      key = new.reduction
+      key = new.reduction,
+      assay = assay
     )
   )
   # to make it easier to add the reduction into a `Seurat` instance
