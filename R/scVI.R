@@ -11,10 +11,11 @@ NULL
 #' @param new.reduction Name under which to store resulting DimReduc object
 #' @param ndims Dimensionality of the latent space
 #' @param nlayers Number of hidden layers used for encoder and decoder NNs
-#' @param gene_likelihood Distribution to use for modelling expression 
+#' @param gene_likelihood Distribution to use for modelling expression
 #' data: {"zinb", "nb", "poisson"}
 #' @param max_epochs Number of passes through the dataset taken while
 #' training the model
+#' @param num_threads The number of threads PyTorch will use
 #' @param ... Unused - currently just capturing parameters passed in from
 #' \code{Seurat::IntegrateLayers} intended for other integration methods
 #'
@@ -66,8 +67,9 @@ scVIIntegration <- function(
     nlayers = 2,
     gene_likelihood = "nb",
     max_epochs = NULL,
+    num_threads = NULL,
     ...) {
-  
+
   # import python methods from specified conda env
   reticulate::use_condaenv(conda_env, required = TRUE)
   sc <- reticulate::import("scanpy", convert = FALSE)
@@ -90,7 +92,9 @@ scVIIntegration <- function(
   # it also expects the raw counts matrix
   # TODO: avoid hardcoding this - users can rename their layers arbitrarily
   # so there's no gauruntee that the usual naming conventions will be followed
-  object <- JoinLayers(object = object, layers = "counts")
+  if (!inherits(object, what = "SCTAssay")) {
+    object <- JoinLayers(object = object, layers = "counts")
+  }
   # setup an `AnnData` python instance
   adata <- sc$AnnData(
     X = scipy$sparse$csr_matrix(
@@ -98,8 +102,10 @@ scVIIntegration <- function(
       Matrix::t(LayerData(object, layer = "counts")[features, ])
     ),
     obs = batches,
-    var = object[[]][features, ]
+    var = if (inherits(object, what = "SCTAssay")) {reticulate::r_to_py(NULL)} else {object[[]][features, ]}
   )
+
+  scvi$settings$num_threads = if (is.null(num_threads)) {reticulate::r_to_py(num_threads)} else {as.integer(num_threads)}
   scvi$model$SCVI$setup_anndata(adata, batch_key = "batch")
 
   # initialize and train the model
@@ -124,7 +130,7 @@ scVIIntegration <- function(
   # build a `DimReduc` instance
   suppressWarnings(
     latent.dr <- CreateDimReducObject(
-      embeddings = latent, 
+      embeddings = latent,
       key = new.reduction
     )
   )
@@ -143,7 +149,7 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' \code{object}. For \code{SCTAssay}s, batches are split using their
 #' model identifiers. For \code{StdAssays}, batches are split by layer.
 #'
-#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups} 
+#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups}
 #' except that it does not take in a `scale.layer` param.
 #'
 #' @noRd
@@ -151,7 +157,7 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' @param object A \code{SCTAssay} or \code{StdAssays} instance.
 #' @param layers Layers in \code{object} to integrate.
 #'
-#' @return A dataframe indexed on the cell identifiers from \code{object} - 
+#' @return A dataframe indexed on the cell identifiers from \code{object} -
 #' the dataframe contains a single column, "batch", indicating the ...
 .FindBatches <- function(object, layers) {
   # if an `SCTAssay` is passed in it's expected that the transformation

@@ -14,6 +14,7 @@ scVIIntegration(
   nlayers = 2,
   gene_likelihood = "nb",
   max_epochs = NULL,
+  num_threads = NULL,
   ...
 )
 }
@@ -33,11 +34,13 @@ merged data}
 
 \item{nlayers}{Number of hidden layers used for encoder and decoder NNs}
 
-\item{gene_likelihood}{Distribution to use for modelling expression 
+\item{gene_likelihood}{Distribution to use for modelling expression
 data: {"zinb", "nb", "poisson"}}
 
 \item{max_epochs}{Number of passes through the dataset taken while
 training the model}
+
+\item{num_threads}{The number of threads PyTorch will use}
 
 \item{...}{Unused - currently just capturing parameters passed in from
 \code{Seurat::IntegrateLayers} intended for other integration methods}
