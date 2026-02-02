@@ -200,7 +200,7 @@ RunALRA.Seurat <- function(
     k <- alra.previous[["k"]]
     message("Using previously computed value of k")
   }
-  data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
+  data.used <- GetAssayData(object = object, assay = assay, layer = slot)[genes.use,]
   # Choose k with heuristics if k is not given
   if (is.null(x = k)) {
     # set K based on data dimension
