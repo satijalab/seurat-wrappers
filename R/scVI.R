@@ -15,6 +15,8 @@ NULL
 #' data: {"zinb", "nb", "poisson"}
 #' @param max_epochs Number of passes through the dataset taken while
 #' training the model
+#' @param batch_size Minibatch_size used in inference, scVI has a default
+#' value of 128
 #' @param ... Unused - currently just capturing parameters passed in from
 #' \code{Seurat::IntegrateLayers} intended for other integration methods
 #'
@@ -66,6 +68,7 @@ scVIIntegration <- function(
     nlayers = 2,
     gene_likelihood = "nb",
     max_epochs = NULL,
+    batch_size = NULL,
     ...) {
   
   # import python methods from specified conda env
@@ -82,6 +85,32 @@ scVIIntegration <- function(
   } else {
     # otherwise make sure it's an int
     max_epochs <- as.integer(max_epochs)
+  }
+
+  # if `batch_size` is not set
+  if (is.null(batch_size)) {
+    number_of_cells = ncol(object)
+    number_of_whole_minibatches = as.integer(number_of_cells/128)
+    last_batch_size = number_of_cells%%128
+
+    if (last_batch_size==1) {
+      # changing the batch size manually if the last batch size is 1
+      if (number_of_whole_minibatches==127){
+        batch_size = 126
+      }
+      else {
+        batch_size = 127
+      }
+    } else {
+        # convert `NULL` to python's `None`
+        batch_size <- reticulate::r_to_py(batch_size)
+    }
+    
+  } else {
+    # otherwise make sure it's an int
+    # make sure that number of cells != batch_size*n+1, scVI cannot process a
+    # minibatch size of 1
+    batch_size <- as.integer(batch_size)
   }
 
   # build a meta.data-style data.frame indicating the batch for each cell
@@ -109,7 +138,7 @@ scVIIntegration <- function(
     n_layers = as.integer(x = nlayers),
     gene_likelihood = gene_likelihood
   )
-  model$train(max_epochs = max_epochs)
+  model$train(max_epochs = max_epochs, batch_size = batch_size)
 
   # extract the latent representation of the merged data
   latent <- model$get_latent_representation()
