@@ -90,7 +90,7 @@ scVIIntegration <- function(
   # TODO: avoid hardcoding this - users can rename their layers arbitrarily
   # so there's no gauruntee that the usual naming conventions will be followed
   if (inherits(object, what = "SCTAssay")) {
-      batches <- .FindSCTBatches(object, layers = layers)
+      batches <- .FindSCTBatches(object)
   } else {
       batches <- .FindBatches(object, layers = layers)
       object <- JoinLayers(object = object, layers = "counts")
@@ -187,7 +187,7 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #'
 #' @return A dataframe indexed on the cell identifiers from \code{object} - 
 #' the dataframe contains a single column, "batch", indicating the layer/batch each cell is from
-.FindSCTBatches <- function(object, layers) {
+.FindSCTBatches <- function(object) {
   # build an empty data.frame indexed
   # on the cell identifiers from `object`
   batch.df <- SeuratObject::EmptyDF(n = ncol(object))
