@@ -152,24 +152,24 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #'
 #' @noRd
 #'
-#' @param object A \code{SCTAssay} or \code{StdAssays} instance.
+#' @param object A \code{StdAssay} instance.
 #' @param layers Layers in \code{object} to integrate.
 #'
 #' @return A dataframe indexed on the cell identifiers from \code{object} - 
-#' the dataframe contains a single column, "batch", indicating the ...
+#' the dataframe contains a single column, "batch", indicating the layer/batch each cell is from
 .FindBatches <- function(object, layers) {
-    # build a LogMap indicating which layer each cell is from
-    layer.masks <- slot(object, name = "cells")[, layers]
-    # get a named vector mapping each cell to its respective layer
-    layer.map <- labels(
-        layer.masks,
-        values = Cells(object, layer = layers)
-    )
-    # wrap the vector up in a data.frame
-    batch.df <- as.data.frame(layer.map)
-    names(batch.df) <- "batch"
-    
-    return(batch.df)
+  # build a LogMap indicating which layer each cell is from
+  layer.masks <- slot(object, name = "cells")[, layers]
+  # get a named vector mapping each cell to its respective layer
+  layer.map <- labels(
+      layer.masks,
+      values = Cells(object, layer = layers)
+  )
+  # wrap the vector up in a data.frame
+  batch.df <- as.data.frame(layer.map)
+  names(batch.df) <- "batch"
+  
+  return(batch.df)
 }
 
 
@@ -186,18 +186,18 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' @param layers Layers in \code{object} to integrate.
 #'
 #' @return A dataframe indexed on the cell identifiers from \code{object} - 
-#' the dataframe contains a single column, "batch", indicating the ...
+#' the dataframe contains a single column, "batch", indicating the layer/batch each cell is from
 .FindSCTBatches <- function(object, layers) {
-    # build an empty data.frame indexed
-    # on the cell identifiers from `object`
-    batch.df <- SeuratObject::EmptyDF(n = ncol(object))
-    row.names(batch.df) <- Cells(object)
-    # for each
-    for (sct.model in levels(object)) {
-        cell.identifiers <- Cells(object, layer = sct.model)
-        batch.df[cell.identifiers, "batch"] <- sct.model
-    }
-    return(batch.df)
+  # build an empty data.frame indexed
+  # on the cell identifiers from `object`
+  batch.df <- SeuratObject::EmptyDF(n = ncol(object))
+  row.names(batch.df) <- Cells(object)
+  # for each
+  for (sct.model in levels(object)) {
+      cell.identifiers <- Cells(object, layer = sct.model)
+      batch.df[cell.identifiers, "batch"] <- sct.model
+  }
+  return(batch.df)
 }
 
 
