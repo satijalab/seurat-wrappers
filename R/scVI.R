@@ -85,12 +85,17 @@ scVIIntegration <- function(
   }
 
   # build a meta.data-style data.frame indicating the batch for each cell
-  batches <- .FindBatches(object, layers = layers)
   # scVI expects a single counts matrix so we'll join our layers together
   # it also expects the raw counts matrix
   # TODO: avoid hardcoding this - users can rename their layers arbitrarily
   # so there's no gauruntee that the usual naming conventions will be followed
-  object <- JoinLayers(object = object, layers = "counts")
+  if (inherits(object, what = "SCTAssay")) {
+      batches <- .FindSCTBatches(object)
+  } else {
+      batches <- .FindBatches(object, layers = layers)
+      object <- JoinLayers(object = object, layers = "counts")
+  }
+  
   # setup an `AnnData` python instance
   adata <- sc$AnnData(
     X = scipy$sparse$csr_matrix(
@@ -140,8 +145,37 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 
 
 #' Builds a data.frame with batch identifiers to use when integrating
+#' \code{object}. For \code{StdAssays}, batches are split by layer.
+#'
+#' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups} 
+#' except that it does not take in a `scale.layer` param.
+#'
+#' @noRd
+#'
+#' @param object A \code{StdAssay} instance.
+#' @param layers Layers in \code{object} to integrate.
+#'
+#' @return A dataframe indexed on the cell identifiers from \code{object} - 
+#' the dataframe contains a single column, "batch", indicating the layer/batch each cell is from
+.FindBatches <- function(object, layers) {
+  # build a LogMap indicating which layer each cell is from
+  layer.masks <- slot(object, name = "cells")[, layers]
+  # get a named vector mapping each cell to its respective layer
+  layer.map <- labels(
+      layer.masks,
+      values = Cells(object, layer = layers)
+  )
+  # wrap the vector up in a data.frame
+  batch.df <- as.data.frame(layer.map)
+  names(batch.df) <- "batch"
+  
+  return(batch.df)
+}
+
+
+#' Builds a data.frame with batch identifiers to use when integrating
 #' \code{object}. For \code{SCTAssay}s, batches are split using their
-#' model identifiers. For \code{StdAssays}, batches are split by layer.
+#' model identifiers. 
 #'
 #' Internal - essentially the same as \code{Seurat:::CreateIntegrationGroups} 
 #' except that it does not take in a `scale.layer` param.
@@ -152,34 +186,22 @@ attr(x = scVIIntegration, which = "Seurat.method") <- "integration"
 #' @param layers Layers in \code{object} to integrate.
 #'
 #' @return A dataframe indexed on the cell identifiers from \code{object} - 
-#' the dataframe contains a single column, "batch", indicating the ...
-.FindBatches <- function(object, layers) {
-  # if an `SCTAssay` is passed in it's expected that the transformation
-  # was run on each batch individually and then merged so we can use
-  # the model identifier to split our batches
-  if (inherits(object, what = "SCTAssay")) {
-    # build an empty data.frame indexed
-    # on the cell identifiers from `object`
-    batch.df <- SeuratObject::EmptyDF(n = ncol(object))
-    row.names(batch.df) <- Cells(object)
-    # for each
-    for (sct.model in levels(object)) {
+#' the dataframe contains a single column, "batch", indicating the layer/batch each cell is from
+.FindSCTBatches <- function(object) {
+  # build an empty data.frame indexed
+  # on the cell identifiers from `object`
+  batch.df <- SeuratObject::EmptyDF(n = ncol(object))
+  row.names(batch.df) <- Cells(object)
+  # for each
+  for (sct.model in levels(object)) {
       cell.identifiers <- Cells(object, layer = sct.model)
       batch.df[cell.identifiers, "batch"] <- sct.model
-    }
-    # otherwise batches can be split using `object`'s layers
-  } else {
-    # build a LogMap indicating which layer each cell is from
-    layer.masks <- slot(object, name = "cells")[, layers]
-    # get a named vector mapping each cell to its respective layer
-    layer.map <- labels(
-      layer.masks,
-      values = Cells(object, layer = layers)
-    )
-    # wrap the vector up in a data.frame
-    batch.df <- as.data.frame(layer.map)
-    names(batch.df) <- "batch"
   }
-
   return(batch.df)
 }
+
+
+
+
+
+
