@@ -34,6 +34,14 @@ NULL
 #' }
 #' @param assay_name (character) Name for Banksy assay in Seurat object
 #' @param M (numeric) Advanced usage. Highest azimuthal harmonic
+#' @param chunk_size A integer scalar specifying the number of rows / genes of
+#'   the neighborhood cell matrix to compute. Must be less than floor of
+#'   2e31-1 / number of cells. This is automatically computed but can be
+#'   specified.
+#' @param parallel A logical scalar specifying whether to compute chunks in
+#'   parallel using bplapply. Not implemented for Windows.
+#' @param num_cores A integer scalar specifying the number of cores to use
+#'   if parallel is TRUE.
 #' @param verbose (boolean) Print messages
 #'
 #' @return A Seurat object with new assay holding a Banksy matrix
@@ -52,7 +60,9 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       group=NULL, split.scale=TRUE,
                       k_geom=15, n=2, sigma=1.5,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_median',
-                      assay_name='BANKSY', M=NULL, verbose=TRUE) {
+                      assay_name='BANKSY', M=NULL, chunk_size=NULL,
+                      parallel=FALSE, num_cores=NULL,
+                      verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
     SeuratWrappers:::CheckPackage(package = 'Matrix', repository = 'CRAN')
@@ -87,7 +97,13 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     # Only center higher harmonics
     center[1] <- FALSE
     har <- Map(function(knn_df, M, center) {
-      x <- Banksy:::computeHarmonics(data_own, knn_df, M, center, verbose)
+      x <- Banksy:::computeHarmonics(gcm=data_own,
+                                     knn_df=knn_df,
+                                     M=M, center=center,
+                                     verbose=verbose,
+                                     chunk_size=chunk_size,
+                                     parallel=parallel,
+                                     num_cores=num_cores)
       rownames(x) <- paste0(rownames(x), '.m', M)
       x
     }, knn_list, M, center)
@@ -195,7 +211,8 @@ get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, group, verbose) {
         max_x = max(locs[,1]) * 2
         n_groups = length(unique(unlist(object[[group]])))
         shift = seq(from = 0, length.out = n_groups, by = max_x)
-        locs[,1] = locs[,1] + rep(shift, table(object[[group]]))
+        shift_order = match(unique(unlist(object[[group]])), names(table(object[[group]])))
+        locs[, 1] = locs[, 1] + rep(shift, table(object[[group]])[shift_order])
     }
 
     return(locs)
