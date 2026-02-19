@@ -1,0 +1,29 @@
+---
+title: "Using decoupleR with Seurat"
+output:
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+  html_document:
+    df_print: kable
+vignette: >
+  %\VignetteIndexEntry{Using decoupleR with Seurat}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> *decoupleR: Ensemble of computational methods to infer biological activities from omics data*  
+>
+> Badia-i-Mompel, P. et al.  
+> *Bioinformatics Advances*, Volume 2, Issue 1, 2022 
+> doi: [10.1093/bioadv/vbac016](https://doi.org/10.1093/bioadv/vbac016)  
+> GitHub: https://github.com/saezlab/decoupleR
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE
+)
