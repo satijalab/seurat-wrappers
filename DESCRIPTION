@@ -1,7 +1,7 @@
 Package: SeuratWrappers
 Title: Community-Provided Methods and Extensions for the Seurat Object
-Version: 0.4.0
-Date: 2024-11-20
+Version: 0.4.1
+Date: 2025-06-26
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = "Saket", family = "Choudhary", email = "schoudhary@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5202-7633")),
@@ -29,7 +29,8 @@ Remotes: welch-lab/liger,
     mojaveazure/seurat-disk,
     powellgenomicslab/Nebulosa,
     atakanekiz/CIPR-Package,
-    prabhakarlab/Banksy
+    prabhakarlab/Banksy, 
+    elolab/Coralysis
 Depends:
     R (>= 3.5.0)
 biocViews:
@@ -54,6 +55,7 @@ Collate:
     'cellbrowser.R'
     'cogaps.R'
     'conos.R'
+    'coralysis.R'
     'fast_mnn.R'
     'fast_mnn_v5.R'
     'glmpca.R'
@@ -87,4 +89,5 @@ Suggests:
     presto,
     flexmix,
     tricycle,
-    Banksy
+    Banksy, 
+    Coralysis
