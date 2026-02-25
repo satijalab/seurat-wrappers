@@ -125,6 +125,10 @@ pbmc$unnamed_clusters <- Idents(pbmc)
 **This is the step where we generate the input for CIPR’s log fold
 change (logFC) comparison methods.**
 
+``` r
+allmarkers <- FindAllMarkers(pbmc)
+```
+
 ## Calculate average gene expression per cluster
 
 **This is the step where we generate the input for CIPR’s all-genes
