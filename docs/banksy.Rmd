@@ -8,6 +8,8 @@ output:
   html_document:
     df_print: kable
     theme: simplex
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -170,10 +172,14 @@ Visualize the UMAP and Spatial plot:
 
 ```{r ss_viz, fig.align='center', fig.height=5, fig.width=10}
 # Viz
+coords <- GetTissueCoordinates(ss.hippo)
+coords$cluster <- Idents(ss.hippo)[coords$cells]
+spatial_plot <- ggplot(coords, aes(x = x, y = y, color = cluster)) +
+    geom_point(size = 0.25) + theme_minimal() +
+    guides(color = guide_legend(override.aes = list(size = 3)))
 grid.arrange(
     DimPlot(ss.hippo, pt.size = 0.25, label = TRUE, label.size = 3, repel = TRUE),
-    SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
-                   repel = TRUE, alpha = 0.5, pt.size.factor = 2),
+    spatial_plot,
     ncol = 2
 )
 ```
@@ -184,13 +190,22 @@ differentially expressed genes between the CA1 and CA3 regions.
 ```{r ss_markers, fig.align='center', fig.height=5, fig.width=10}
 # Find markers
 DefaultAssay(ss.hippo) <- 'Spatial'
-markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 9, only.pos = F, 
+markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 9, only.pos = F,
                        logfc.threshold = 1, min.pct = 0.5)
 markers <- markers[markers$p_val_adj < 0.01,]
 markers
 genes <- c('ATP2B1', 'CHGB')
-SpatialFeaturePlot(ss.hippo, features = genes, pt.size.factor = 3, 
-                   stroke = NA, alpha = 0.5, max.cutoff = 'q95')
+coords <- GetTissueCoordinates(ss.hippo)
+gene_plots <- lapply(genes, function(g) {
+    val <- GetAssayData(ss.hippo, assay = 'Spatial', layer = 'data')[g, coords$cells]
+    val[val > quantile(val, 0.95)] <- quantile(val, 0.95)
+    coords$expr <- val
+    ggplot(coords, aes(x = x, y = y, color = expr)) +
+        geom_point(size = 0.25) + theme_minimal() +
+        scale_color_gradient(low = 'grey90', high = 'red') +
+        ggtitle(g) + theme(legend.title = element_blank())
+})
+grid.arrange(grobs = gene_plots, ncol = 2)
 ```
 
 ## Running BANKSY with locations provided explicitly
@@ -273,9 +288,9 @@ DefaultAssay(vf.hippo) <- 'RNA'
 markers <- FindMarkers(vf.hippo, ident.1 = 6, only.pos = TRUE)
 
 genePlot <- function(object, dimx, dimy, gene, assay = 'RNA',
-                     slot = 'scale.data', q.low = 0.01, q.high = 0.99,
+                     layer = 'scale.data', q.low = 0.01, q.high = 0.99,
                      col.low='blue', col.high='red') {
-    val <- GetAssayData(object, assay=assay, slot=slot)[gene,]
+    val <- GetAssayData(object, assay=assay, layer=layer)[gene,]
     val.low <- quantile(val, q.low)
     val.high <- quantile(val, q.high)
     val[val < val.low] <- val.low
@@ -401,7 +416,7 @@ datasets in the presence of strong batch effects.
 
 Download the data. 
 
-```{r, eval=FALSE}
+```{r harmony_download}
 library(spatialLIBD)
 library(ExperimentHub)
 library(harmony)
@@ -433,7 +448,7 @@ invisible(gc())
 
 Normalise the data and compute highly variable features. 
 
-```{r, eval=FALSE}
+```{r harmony_norm}
 # Convert to Seurat and Normalize data
 seu_list <- lapply(spe_list, function(x) {
   x <- as.Seurat(x, data = NULL)
@@ -466,7 +481,7 @@ staggered locations are stored in the metadata for sanity checking.
 Within-group scaling has little effect in the presence of strong batch effects, 
 hence, we set `split.scale=FALSE` for efficiency. 
 
-```{r, eval=FALSE}
+```{r harmony_banksy}
 # Grouping variable
 head(seu@meta.data)
 table(seu$sample_id)
@@ -483,14 +498,14 @@ seu <- RunBanksy(seu, lambda = 0.2, assay = 'originalexp', slot = 'data',
 Compute a spatially-aware embedding with PCA on the BANKSY matrix, and run 
 Harmony on this embedding.
 
-```{r, eval=FALSE}
+```{r harmony_pca}
 seu <- RunPCA(seu, assay = 'BANKSY', features = rownames(seu), npcs = 10)
 seu <- RunHarmony(seu, group.by.vars='sample_id')
 ```
 
 The rest of the workflow follows as before:
 
-```{r, eval=FALSE}
+```{r harmony_cluster}
 seu <- RunUMAP(seu, dims = 1:10, reduction = 'harmony')
 seu <- FindNeighbors(seu, dims = 1:10, reduction = 'harmony')
 seu <- FindClusters(seu, resolution = 0.4)
@@ -498,10 +513,163 @@ seu <- FindClusters(seu, resolution = 0.4)
 
 Visualise clusters:
 
-```{r, eval=FALSE}
-DimPlot(seu, pt.size = 0.25, label = TRUE, label.size = 3, cols = mypal)
-FeatureScatter(seu, 'staggered_sdimx', 'staggered_sdimy', cols = mypal, pt.size = 0.75)
+```{r harmony_viz, fig.align='center', fig.height=5, fig.width=10}
+grid.arrange(
+    DimPlot(seu, pt.size = 0.25, label = TRUE, label.size = 3, cols = mypal),
+    DimPlot(seu, pt.size = 0.25, group.by = 'sample_id'),
+    ncol = 2
+)
 ```
+
+```{r harmony_spatial, fig.align='center', fig.height=4, fig.width=12}
+spatial_plots <- lapply(sample_names, function(s) {
+    sub <- subset(seu, sample_id == s)
+    ggplot(sub@meta.data, aes(x = pxl_col_in_fullres, y = pxl_row_in_fullres,
+                              color = seurat_clusters)) +
+        geom_point(size = 1) + coord_equal() + theme_minimal() +
+        scale_color_manual(values = mypal) +
+        ggtitle(s) + theme(legend.position = 'none') +
+        labs(x = NULL, y = NULL)
+})
+grid.arrange(grobs = spatial_plots, ncol = 3)
+```
+
+## Scaling to large datasets
+
+For large datasets (millions of cells), materializing the full BANKSY matrix can
+exceed memory limits. The `compute_pca` option in `RunBanksy` avoids this by
+computing PCA directly via a lazy linear operator. The BANKSY matrix is never
+formed; instead, matrix-vector products are evaluated on-the-fly using the sparse
+expression matrix and weight matrix. This reduces peak memory from
+$O(\text{genes} \times \text{cells})$ (the dense BANKSY matrix) to
+$O(\text{nnz}(\text{input}))$ (the number of non-zero entries in the sparse
+input), since only the sparse input and sparse weight matrix are held in memory.
+
+**Note**: `compute_pca=TRUE` currently supports M=0 only (no azimuthal Gabor
+filter).
+
+This feature requires the development versions of Banksy and SeuratWrappers:
+
+```{r install_dev, eval=FALSE}
+devtools::install_github('prabhakarlab/Banksy@feat-sparse-matmul')
+devtools::install_github('jleechung/seurat-wrappers@feat-sparse-matmul')
+```
+
+We demonstrate this with a 10X Xenium mouse brain dataset (~37k cells),
+performing domain segmentation with `lambda = 0.8`.
+
+Download the dataset:
+
+```{r xenium_download, eval=FALSE}
+download.file(
+    url = 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip',
+    destfile = '~/Downloads/xenium_subset.zip'
+)
+unzip('~/Downloads/xenium_subset.zip', exdir = '~/Downloads/xenium_subset')
+```
+
+Load and preprocess:
+
+```{r xenium_load}
+xenium <- LoadXenium('~/Downloads/xenium_subset', fov = 'fov')
+xenium <- NormalizeData(xenium)
+xenium <- FindVariableFeatures(xenium)
+xenium <- ScaleData(xenium)
+```
+
+With `compute_pca = TRUE`, `RunBanksy` computes the BANKSY PCA embedding
+directly and stores it as a dimensionality reduction. No `BANKSY` assay is
+created, and there is no need to call `RunPCA` separately:
+
+```{r xenium_lazy}
+xenium_input <- xenium
+xenium <- RunBanksy(xenium, lambda = 0.8, verbose = TRUE,
+                    assay = 'Xenium', slot = 'data', features = 'variable',
+                    use_agf = FALSE, k_geom = 30,
+                    assay_name = 'BANKSY',
+                    compute_pca = TRUE, npcs = 50)
+xenium <- FindNeighbors(xenium, reduction = 'BANKSY', dims = 1:50)
+xenium <- FindClusters(xenium, resolution = 0.5)
+```
+
+Visualize the spatial domains:
+
+```{r xenium_viz, fig.align='center', fig.height=5, fig.width=7}
+ImageDimPlot(xenium, size = 0.5)
+```
+
+<details>
+<summary>Equivalence with the standard workflow</summary>
+
+The standard workflow materializes the full BANKSY matrix as a Seurat assay,
+then runs PCA via `RunPCA`:
+
+```{r xenium_standard}
+xenium_std <- RunBanksy(xenium_input, lambda = 0.8, verbose = TRUE,
+                        assay = 'Xenium', slot = 'data', features = 'variable',
+                        use_agf = FALSE, k_geom = 30)
+xenium_std <- RunPCA(xenium_std, assay = 'BANKSY', features = rownames(xenium_std),
+                     npcs = 50)
+xenium_std <- FindNeighbors(xenium_std, dims = 1:50)
+xenium_std <- FindClusters(xenium_std, resolution = 0.5)
+```
+
+```{r xenium_std_viz, fig.align='center', fig.height=5, fig.width=7}
+ImageDimPlot(xenium_std, size = 0.5)
+```
+
+We compare the two embeddings with three checks:
+
+```{r xenium_check, fig.align='center', fig.height=4, fig.width=6}
+U1 <- scale(Embeddings(xenium_std, 'pca'), scale = FALSE)
+U2 <- scale(Embeddings(xenium, 'BANKSY'), scale = FALSE)
+npcs <- ncol(U1)
+```
+
+**Subspace overlap.** Individual PCs may differ due to near-degenerate singular
+values, but the subspaces they span should be equivalent. We measure this via
+principal angles between the top-k subspaces from each path. A minimum cosine
+near 1 means the two subspaces are effectively identical:
+
+```{r xenium_subspace, fig.align='center', fig.height=4, fig.width=6}
+subspace_cos <- sapply(seq_len(npcs), function(k) {
+    Q1 <- qr.Q(qr(U1[, 1:k, drop = FALSE]))
+    Q2 <- qr.Q(qr(U2[, 1:k, drop = FALSE]))
+    min(svd(crossprod(Q1, Q2))$d)
+})
+
+plot(seq_len(npcs), subspace_cos, type = 'b', pch = 19, ylim = c(0.5, 1),
+     xlab = 'Number of PCs (k)', ylab = 'Min cosine of principal angles',
+     main = 'Subspace overlap: standard vs compute_pca')
+abline(h = 0.99, lty = 2, col = 'grey50')
+```
+
+**kNN overlap.** Since clustering operates on the nearest-neighbor graph, we
+compare the 30-NN graphs built from each embedding. The mean Jaccard index
+measures what fraction of each cell's neighbors are shared between the two
+paths:
+
+```{r xenium_knn}
+nn1 <- RANN::nn2(U1, k = 30)$nn.idx
+nn2 <- RANN::nn2(U2, k = 30)$nn.idx
+jaccard <- mean(sapply(seq_len(nrow(nn1)), function(i) {
+    length(intersect(nn1[i,], nn2[i,])) / length(union(nn1[i,], nn2[i,]))
+}))
+cat('Mean kNN Jaccard overlap (k=30):', round(jaccard, 4), '\n')
+```
+
+**Clustering agreement.** The adjusted Rand index (ARI) measures how closely
+the two sets of cluster labels agree, adjusted for chance:
+
+```{r xenium_ari}
+ari <- mclust::adjustedRandIndex(
+    as.integer(Idents(xenium_std)),
+    as.integer(Idents(xenium))
+)
+cat('Adjusted Rand Index:', round(ari, 4), '\n')
+```
+
+</details>
 
 ## Getting help
 

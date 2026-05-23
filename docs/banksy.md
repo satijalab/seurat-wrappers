@@ -1,6 +1,6 @@
 Running BANKSY with Seurat
 ================
-Compiled: April 04, 2024
+Compiled: May 22, 2026
 
 - [Introduction](#introduction)
 - [Overview](#overview)
@@ -11,6 +11,7 @@ Compiled: April 04, 2024
 - [Multi-sample analysis](#multi-sample-analysis)
 - [Spatial data integration with
   Harmony](#spatial-data-integration-with-harmony)
+- [Scaling to large datasets](#scaling-to-large-datasets)
 - [Getting help](#getting-help)
 
 ## Introduction
@@ -177,16 +178,20 @@ ss.hippo <- FindClusters(ss.hippo, resolution = 0.5)
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9033
     ## Number of communities: 13
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
 
 Visualize the UMAP and Spatial plot:
 
 ``` r
 # Viz
+coords <- GetTissueCoordinates(ss.hippo)
+coords$cluster <- Idents(ss.hippo)[coords$cells]
+spatial_plot <- ggplot(coords, aes(x = x, y = y, color = cluster)) +
+    geom_point(size = 0.25) + theme_minimal() +
+    guides(color = guide_legend(override.aes = list(size = 3)))
 grid.arrange(
     DimPlot(ss.hippo, pt.size = 0.25, label = TRUE, label.size = 3, repel = TRUE),
-    SpatialDimPlot(ss.hippo, stroke = NA, label = TRUE, label.size = 3, 
-                   repel = TRUE, alpha = 0.5, pt.size.factor = 2),
+    spatial_plot,
     ncol = 2
 )
 ```
@@ -199,7 +204,7 @@ find differentially expressed genes between the CA1 and CA3 regions.
 ``` r
 # Find markers
 DefaultAssay(ss.hippo) <- 'Spatial'
-markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 9, only.pos = F, 
+markers <- FindMarkers(ss.hippo, ident.1 = 4, ident.2 = 9, only.pos = F,
                        logfc.threshold = 1, min.pct = 0.5)
 markers <- markers[markers$p_val_adj < 0.01,]
 markers
@@ -220,8 +225,17 @@ markers
 
 ``` r
 genes <- c('ATP2B1', 'CHGB')
-SpatialFeaturePlot(ss.hippo, features = genes, pt.size.factor = 3, 
-                   stroke = NA, alpha = 0.5, max.cutoff = 'q95')
+coords <- GetTissueCoordinates(ss.hippo)
+gene_plots <- lapply(genes, function(g) {
+    val <- GetAssayData(ss.hippo, assay = 'Spatial', layer = 'data')[g, coords$cells]
+    val[val > quantile(val, 0.95)] <- quantile(val, 0.95)
+    coords$expr <- val
+    ggplot(coords, aes(x = x, y = y, color = expr)) +
+        geom_point(size = 0.25) + theme_minimal() +
+        scale_color_gradient(low = 'grey90', high = 'red') +
+        ggtitle(g) + theme(legend.title = element_blank())
+})
+grid.arrange(grobs = gene_plots, ncol = 2)
 ```
 
 <img src="banksy_files/figure-gfm/ss_markers-1.png" style="display: block; margin: auto;" />
@@ -317,7 +331,7 @@ vf.hippo <- FindClusters(vf.hippo, resolution = 0.5)
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9099
     ## Number of communities: 15
-    ## Elapsed time: 1 seconds
+    ## Elapsed time: 0 seconds
 
 Visualise BANKSY clusters in spatial dimensions:
 
@@ -344,9 +358,9 @@ DefaultAssay(vf.hippo) <- 'RNA'
 markers <- FindMarkers(vf.hippo, ident.1 = 6, only.pos = TRUE)
 
 genePlot <- function(object, dimx, dimy, gene, assay = 'RNA',
-                     slot = 'scale.data', q.low = 0.01, q.high = 0.99,
+                     layer = 'scale.data', q.low = 0.01, q.high = 0.99,
                      col.low='blue', col.high='red') {
-    val <- GetAssayData(object, assay=assay, slot=slot)[gene,]
+    val <- GetAssayData(object, assay=assay, layer=layer)[gene,]
     val.low <- quantile(val, q.low)
     val.high <- quantile(val, q.high)
     val[val < val.low] <- val.low
@@ -614,6 +628,11 @@ seu@meta.data <- cbind(seu@meta.data, locs)
 seu
 ```
 
+    ## An object of class Seurat 
+    ## 4467 features across 11526 samples within 1 assay 
+    ## Active assay: originalexp (4467 features, 0 variable features)
+    ##  2 layers present: counts, data
+
 Run BANKSY. When analysing multiple samples, the argument `group` must
 be provided, which specifies the name of the metadata column that gives
 the assignment of each cell or spot to its original Seurat object. Here,
@@ -627,8 +646,39 @@ strong batch effects, hence, we set `split.scale=FALSE` for efficiency.
 ``` r
 # Grouping variable
 head(seu@meta.data)
-table(seu$sample_id)
+```
 
+    ##                         orig.ident nCount_originalexp nFeature_originalexp
+    ## AAACAACGAATAGTTC-1_1 SeuratProject                288                  197
+    ## AAACAAGTATCTCCCA-1_1 SeuratProject               1546                  550
+    ## AAACAATCTACTAGCA-1_1 SeuratProject                525                  247
+    ## AAACACCAATAACTGC-1_1 SeuratProject               1123                  457
+    ## AAACAGCTTTCAGAAG-1_1 SeuratProject               1008                  415
+    ## AAACAGGGTCTATATT-1_1 SeuratProject               1431                  539
+    ##                      sample_id clust_annotation in_tissue pxl_col_in_fullres
+    ## AAACAACGAATAGTTC-1_1    151507                1      TRUE               3276
+    ## AAACAAGTATCTCCCA-1_1    151507                3      TRUE               9178
+    ## AAACAATCTACTAGCA-1_1    151507                1      TRUE               5133
+    ## AAACACCAATAACTGC-1_1    151507                7      TRUE               3462
+    ## AAACAGCTTTCAGAAG-1_1    151507                6      TRUE               2779
+    ## AAACAGGGTCTATATT-1_1    151507                6      TRUE               3053
+    ##                      pxl_row_in_fullres
+    ## AAACAACGAATAGTTC-1_1               2514
+    ## AAACAAGTATCTCCCA-1_1               8520
+    ## AAACAATCTACTAGCA-1_1               2878
+    ## AAACACCAATAACTGC-1_1               9581
+    ## AAACAGCTTTCAGAAG-1_1               7663
+    ## AAACAGGGTCTATATT-1_1               8143
+
+``` r
+table(seu$sample_id)
+```
+
+    ## 
+    ## 151507 151669 151673 
+    ##   4226   3661   3639
+
+``` r
 sdimx <- 'pxl_col_in_fullres'
 sdimy <- 'pxl_row_in_fullres'
 
@@ -654,12 +704,215 @@ seu <- FindNeighbors(seu, dims = 1:10, reduction = 'harmony')
 seu <- FindClusters(seu, resolution = 0.4)
 ```
 
+    ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+    ## 
+    ## Number of nodes: 11526
+    ## Number of edges: 377720
+    ## 
+    ## Running Louvain algorithm...
+    ## Maximum modularity in 10 random starts: 0.8798
+    ## Number of communities: 6
+    ## Elapsed time: 1 seconds
+
 Visualise clusters:
 
 ``` r
-DimPlot(seu, pt.size = 0.25, label = TRUE, label.size = 3, cols = mypal)
-FeatureScatter(seu, 'staggered_sdimx', 'staggered_sdimy', cols = mypal, pt.size = 0.75)
+grid.arrange(
+    DimPlot(seu, pt.size = 0.25, label = TRUE, label.size = 3, cols = mypal),
+    DimPlot(seu, pt.size = 0.25, group.by = 'sample_id'),
+    ncol = 2
+)
 ```
+
+<img src="banksy_files/figure-gfm/harmony_viz-1.png" style="display: block; margin: auto;" />
+
+``` r
+spatial_plots <- lapply(sample_names, function(s) {
+    sub <- subset(seu, sample_id == s)
+    ggplot(sub@meta.data, aes(x = pxl_col_in_fullres, y = pxl_row_in_fullres,
+                              color = seurat_clusters)) +
+        geom_point(size = 1) + coord_equal() + theme_minimal() +
+        scale_color_manual(values = mypal) +
+        ggtitle(s) + theme(legend.position = 'none') +
+        labs(x = NULL, y = NULL)
+})
+grid.arrange(grobs = spatial_plots, ncol = 3)
+```
+
+<img src="banksy_files/figure-gfm/harmony_spatial-1.png" style="display: block; margin: auto;" />
+
+## Scaling to large datasets
+
+For large datasets (millions of cells), materializing the full BANKSY
+matrix can exceed memory limits. The `compute_pca` option in `RunBanksy`
+avoids this by computing PCA directly via a lazy linear operator. The
+BANKSY matrix is never formed; instead, matrix-vector products are
+evaluated on-the-fly using the sparse expression matrix and weight
+matrix. This reduces peak memory from
+$O(\text{genes} \times \text{cells})$ (the dense BANKSY matrix) to
+$O(\text{nnz}(\text{input}))$ (the number of non-zero entries in the
+sparse input), since only the sparse input and sparse weight matrix are
+held in memory.
+
+**Note**: `compute_pca=TRUE` currently supports M=0 only (no azimuthal
+Gabor filter).
+
+This feature requires the development versions of Banksy and
+SeuratWrappers:
+
+``` r
+devtools::install_github('prabhakarlab/Banksy@feat-sparse-matmul')
+devtools::install_github('jleechung/seurat-wrappers@feat-sparse-matmul')
+```
+
+We demonstrate this with a 10X Xenium mouse brain dataset (~37k cells),
+performing domain segmentation with `lambda = 0.8`.
+
+Download the dataset:
+
+``` r
+download.file(
+    url = 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip',
+    destfile = '~/Downloads/xenium_subset.zip'
+)
+unzip('~/Downloads/xenium_subset.zip', exdir = '~/Downloads/xenium_subset')
+```
+
+Load and preprocess:
+
+``` r
+xenium <- LoadXenium('~/Downloads/xenium_subset', fov = 'fov')
+xenium <- NormalizeData(xenium)
+xenium <- FindVariableFeatures(xenium)
+xenium <- ScaleData(xenium)
+```
+
+With `compute_pca = TRUE`, `RunBanksy` computes the BANKSY PCA embedding
+directly and stores it as a dimensionality reduction. No `BANKSY` assay
+is created, and there is no need to call `RunPCA` separately:
+
+``` r
+xenium_input <- xenium
+xenium <- RunBanksy(xenium, lambda = 0.8, verbose = TRUE,
+                    assay = 'Xenium', slot = 'data', features = 'variable',
+                    use_agf = FALSE, k_geom = 30,
+                    assay_name = 'BANKSY',
+                    compute_pca = TRUE, npcs = 50)
+xenium <- FindNeighbors(xenium, reduction = 'BANKSY', dims = 1:50)
+xenium <- FindClusters(xenium, resolution = 0.5)
+```
+
+    ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+    ## 
+    ## Number of nodes: 36602
+    ## Number of edges: 1017512
+    ## 
+    ## Running Louvain algorithm...
+    ## Maximum modularity in 10 random starts: 0.9437
+    ## Number of communities: 22
+    ## Elapsed time: 3 seconds
+
+Visualize the spatial domains:
+
+``` r
+ImageDimPlot(xenium, size = 0.5)
+```
+
+<img src="banksy_files/figure-gfm/xenium_viz-1.png" style="display: block; margin: auto;" />
+
+<details>
+<summary>
+Equivalence with the standard workflow
+</summary>
+
+The standard workflow materializes the full BANKSY matrix as a Seurat
+assay, then runs PCA via `RunPCA`:
+
+``` r
+xenium_std <- RunBanksy(xenium_input, lambda = 0.8, verbose = TRUE,
+                        assay = 'Xenium', slot = 'data', features = 'variable',
+                        use_agf = FALSE, k_geom = 30)
+xenium_std <- RunPCA(xenium_std, assay = 'BANKSY', features = rownames(xenium_std),
+                     npcs = 50)
+xenium_std <- FindNeighbors(xenium_std, dims = 1:50)
+xenium_std <- FindClusters(xenium_std, resolution = 0.5)
+```
+
+    ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+    ## 
+    ## Number of nodes: 36602
+    ## Number of edges: 1016983
+    ## 
+    ## Running Louvain algorithm...
+    ## Maximum modularity in 10 random starts: 0.9441
+    ## Number of communities: 23
+    ## Elapsed time: 3 seconds
+
+``` r
+ImageDimPlot(xenium_std, size = 0.5)
+```
+
+<img src="banksy_files/figure-gfm/xenium_std_viz-1.png" style="display: block; margin: auto;" />
+
+We compare the two embeddings with three checks:
+
+``` r
+U1 <- scale(Embeddings(xenium_std, 'pca'), scale = FALSE)
+U2 <- scale(Embeddings(xenium, 'BANKSY'), scale = FALSE)
+npcs <- ncol(U1)
+```
+
+**Subspace overlap.** Individual PCs may differ due to near-degenerate
+singular values, but the subspaces they span should be equivalent. We
+measure this via principal angles between the top-k subspaces from each
+path. A minimum cosine near 1 means the two subspaces are effectively
+identical:
+
+``` r
+subspace_cos <- sapply(seq_len(npcs), function(k) {
+    Q1 <- qr.Q(qr(U1[, 1:k, drop = FALSE]))
+    Q2 <- qr.Q(qr(U2[, 1:k, drop = FALSE]))
+    min(svd(crossprod(Q1, Q2))$d)
+})
+
+plot(seq_len(npcs), subspace_cos, type = 'b', pch = 19, ylim = c(0.5, 1),
+     xlab = 'Number of PCs (k)', ylab = 'Min cosine of principal angles',
+     main = 'Subspace overlap: standard vs compute_pca')
+abline(h = 0.99, lty = 2, col = 'grey50')
+```
+
+<img src="banksy_files/figure-gfm/xenium_subspace-1.png" style="display: block; margin: auto;" />
+
+**kNN overlap.** Since clustering operates on the nearest-neighbor
+graph, we compare the 30-NN graphs built from each embedding. The mean
+Jaccard index measures what fraction of each cell’s neighbors are shared
+between the two paths:
+
+``` r
+nn1 <- RANN::nn2(U1, k = 30)$nn.idx
+nn2 <- RANN::nn2(U2, k = 30)$nn.idx
+jaccard <- mean(sapply(seq_len(nrow(nn1)), function(i) {
+    length(intersect(nn1[i,], nn2[i,])) / length(union(nn1[i,], nn2[i,]))
+}))
+cat('Mean kNN Jaccard overlap (k=30):', round(jaccard, 4), '\n')
+```
+
+    ## Mean kNN Jaccard overlap (k=30): 0.9814
+
+**Clustering agreement.** The adjusted Rand index (ARI) measures how
+closely the two sets of cluster labels agree, adjusted for chance:
+
+``` r
+ari <- mclust::adjustedRandIndex(
+    as.integer(Idents(xenium_std)),
+    as.integer(Idents(xenium))
+)
+cat('Adjusted Rand Index:', round(ari, 4), '\n')
+```
+
+    ## Adjusted Rand Index: 0.8036
+
+</details>
 
 ## Getting help
 
@@ -670,7 +923,7 @@ For more information, visit <https://github.com/prabhakarlab/Banksy>.
 Vignette runtime
 </summary>
 
-    ## Time difference of 1.434785 mins
+    ## Time difference of 2.991815 mins
 
 </details>
 <details>
@@ -682,105 +935,105 @@ Session info
 sessionInfo()
 ```
 
-    ## R version 4.3.2 (2023-10-31)
-    ## Platform: aarch64-apple-darwin20 (64-bit)
-    ## Running under: macOS Sonoma 14.2.1
+    ## R version 4.5.1 (2025-06-13)
+    ## Platform: aarch64-apple-darwin20
+    ## Running under: macOS Sonoma 14.6.1
     ## 
     ## Matrix products: default
-    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
-    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+    ## BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+    ## LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
     ## 
     ## locale:
     ## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
     ## 
-    ## time zone: Europe/London
+    ## time zone: America/Los_Angeles
     ## tzcode source: internal
     ## 
     ## attached base packages:
-    ## [1] stats     graphics  grDevices utils     datasets  methods   base     
+    ## [1] stats4    stats     graphics  grDevices utils     datasets  methods  
+    ## [8] base     
     ## 
     ## other attached packages:
-    ##  [1] pals_1.8                 gridExtra_2.3            ggplot2_3.4.4           
-    ##  [4] SeuratWrappers_0.3.4     ssHippo.SeuratData_3.1.4 SeuratData_0.2.2.9001   
-    ##  [7] Seurat_5.0.1             SeuratObject_5.0.1       sp_2.1-3                
-    ## [10] Banksy_0.99.9           
+    ##  [1] harmony_1.2.4               Rcpp_1.1.0                 
+    ##  [3] ExperimentHub_2.99.5        AnnotationHub_3.99.6       
+    ##  [5] BiocFileCache_2.99.5        dbplyr_2.5.0               
+    ##  [7] spatialLIBD_1.21.6          SpatialExperiment_1.18.1   
+    ##  [9] SingleCellExperiment_1.30.1 SummarizedExperiment_1.39.1
+    ## [11] Biobase_2.69.0              GenomicRanges_1.61.1       
+    ## [13] Seqinfo_0.99.1              IRanges_2.43.0             
+    ## [15] S4Vectors_0.47.0            BiocGenerics_0.55.0        
+    ## [17] generics_0.1.4              MatrixGenerics_1.21.0      
+    ## [19] matrixStats_1.5.0           future_1.58.0              
+    ## [21] pals_1.10                   gridExtra_2.3              
+    ## [23] ggplot2_3.5.2               SeuratWrappers_0.4.0       
+    ## [25] stxBrain.SeuratData_0.1.2   ssHippo.SeuratData_3.1.4   
+    ## [27] bmcite.SeuratData_0.3.0     SeuratData_0.2.2.9002      
+    ## [29] Seurat_5.4.0                SeuratObject_5.3.0         
+    ## [31] sp_2.2-0                    Banksy_1.9.1               
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] RcppHungarian_0.3           RcppAnnoy_0.0.22           
-    ##   [3] splines_4.3.2               later_1.3.2                
-    ##   [5] bitops_1.0-7                tibble_3.2.1               
-    ##   [7] R.oo_1.26.0                 polyclip_1.10-6            
-    ##   [9] fastDummies_1.7.3           lifecycle_1.0.4            
-    ##  [11] aricode_1.0.3               globals_0.16.2             
-    ##  [13] lattice_0.22-5              MASS_7.3-60.0.1            
-    ##  [15] magrittr_2.0.3              limma_3.58.1               
-    ##  [17] plotly_4.10.4               rmarkdown_2.25             
-    ##  [19] yaml_2.3.8                  remotes_2.4.2.1            
-    ##  [21] httpuv_1.6.14               sctransform_0.4.1          
-    ##  [23] spam_2.10-0                 spatstat.sparse_3.0-3      
-    ##  [25] reticulate_1.35.0           mapproj_1.2.11             
-    ##  [27] cowplot_1.1.3               pbapply_1.7-2              
-    ##  [29] RColorBrewer_1.1-3          maps_3.4.2                 
-    ##  [31] abind_1.4-5                 zlibbioc_1.48.0            
-    ##  [33] Rtsne_0.17                  GenomicRanges_1.54.1       
-    ##  [35] purrr_1.0.2                 R.utils_2.12.3             
-    ##  [37] BiocGenerics_0.48.1         RCurl_1.98-1.14            
-    ##  [39] rappdirs_0.3.3              GenomeInfoDbData_1.2.11    
-    ##  [41] IRanges_2.36.0              S4Vectors_0.40.2           
-    ##  [43] ggrepel_0.9.5               irlba_2.3.5.1              
-    ##  [45] listenv_0.9.1               spatstat.utils_3.0-4       
-    ##  [47] goftest_1.2-3               RSpectra_0.16-1            
-    ##  [49] spatstat.random_3.2-2       fitdistrplus_1.1-11        
-    ##  [51] parallelly_1.37.0           leiden_0.4.3.1             
-    ##  [53] codetools_0.2-19            DelayedArray_0.28.0        
-    ##  [55] tidyselect_1.2.0            farver_2.1.1               
-    ##  [57] matrixStats_1.2.0           stats4_4.3.2               
-    ##  [59] spatstat.explore_3.2-6      jsonlite_1.8.8             
-    ##  [61] ellipsis_0.3.2              progressr_0.14.0           
-    ##  [63] ggridges_0.5.6              survival_3.5-7             
-    ##  [65] dbscan_1.1-12               tools_4.3.2                
-    ##  [67] ica_1.0-3                   Rcpp_1.0.12                
-    ##  [69] glue_1.7.0                  SparseArray_1.2.4          
-    ##  [71] xfun_0.42                   MatrixGenerics_1.14.0      
-    ##  [73] GenomeInfoDb_1.38.6         dplyr_1.1.4                
-    ##  [75] withr_3.0.0                 BiocManager_1.30.22        
-    ##  [77] fastmap_1.1.1               fansi_1.0.6                
-    ##  [79] digest_0.6.34               rsvd_1.0.5                 
-    ##  [81] R6_2.5.1                    mime_0.12                  
-    ##  [83] colorspace_2.1-0            scattermore_1.2            
-    ##  [85] sccore_1.0.4                tensor_1.5                 
-    ##  [87] dichromat_2.0-0.1           spatstat.data_3.0-4        
-    ##  [89] R.methodsS3_1.8.2           utf8_1.2.4                 
-    ##  [91] tidyr_1.3.1                 generics_0.1.3             
-    ##  [93] data.table_1.15.0           httr_1.4.7                 
-    ##  [95] htmlwidgets_1.6.4           S4Arrays_1.2.0             
-    ##  [97] uwot_0.1.16                 pkgconfig_2.0.3            
-    ##  [99] gtable_0.3.4                lmtest_0.9-40              
-    ## [101] SingleCellExperiment_1.24.0 XVector_0.42.0             
-    ## [103] htmltools_0.5.7             dotCall64_1.1-1            
-    ## [105] scales_1.3.0                Biobase_2.62.0             
-    ## [107] png_0.1-8                   SpatialExperiment_1.12.0   
-    ## [109] knitr_1.45                  rstudioapi_0.15.0          
-    ## [111] reshape2_1.4.4              rjson_0.2.21               
-    ## [113] nlme_3.1-164                zoo_1.8-12                 
-    ## [115] stringr_1.5.1               KernSmooth_2.23-22         
-    ## [117] parallel_4.3.2              miniUI_0.1.1.1             
-    ## [119] pillar_1.9.0                grid_4.3.2                 
-    ## [121] vctrs_0.6.5                 RANN_2.6.1                 
-    ## [123] promises_1.2.1              xtable_1.8-4               
-    ## [125] cluster_2.1.6               evaluate_0.23              
-    ## [127] magick_2.8.2                cli_3.6.2                  
-    ## [129] compiler_4.3.2              rlang_1.1.3                
-    ## [131] crayon_1.5.2                future.apply_1.11.1        
-    ## [133] labeling_0.4.3              mclust_6.0.1               
-    ## [135] plyr_1.8.9                  stringi_1.8.3              
-    ## [137] viridisLite_0.4.2           deldir_2.0-2               
-    ## [139] munsell_0.5.0               lazyeval_0.2.2             
-    ## [141] spatstat.geom_3.2-8         Matrix_1.6-5               
-    ## [143] RcppHNSW_0.6.0              patchwork_1.2.0            
-    ## [145] future_1.33.1               statmod_1.5.0              
-    ## [147] shiny_1.8.0                 highr_0.10                 
-    ## [149] SummarizedExperiment_1.32.0 ROCR_1.0-11                
-    ## [151] leidenAlg_1.1.2             igraph_2.0.1.1
+    ##   [1] bitops_1.0-9             spatstat.sparse_3.1-0    httr_1.4.7              
+    ##   [4] RColorBrewer_1.1-3       doParallel_1.0.17        tools_4.5.1             
+    ##   [7] sctransform_0.4.2        R6_2.6.1                 DT_0.34.0               
+    ##  [10] lazyeval_0.2.2           uwot_0.2.3               GetoptLong_1.0.5        
+    ##  [13] withr_3.0.2              progressr_0.15.1         cli_3.6.5               
+    ##  [16] spatstat.explore_3.4-3   fastDummies_1.7.5        labeling_0.4.3          
+    ##  [19] sass_0.4.10              spatstat.data_3.1-6      ggridges_0.5.6          
+    ##  [22] pbapply_1.7-2            Rsamtools_2.25.1         dbscan_1.2.2            
+    ##  [25] R.utils_2.13.0           aricode_1.0.3            scater_1.37.0           
+    ##  [28] dichromat_2.0-0.1        sessioninfo_1.2.3        parallelly_1.45.0       
+    ##  [31] attempt_0.3.1            maps_3.4.3               limma_3.65.5            
+    ##  [34] RSQLite_2.4.1            BiocIO_1.19.0            shape_1.4.6.1           
+    ##  [37] ica_1.0-3                spatstat.random_3.4-1    dplyr_1.1.4             
+    ##  [40] Matrix_1.7-3             ggbeeswarm_0.7.2         abind_1.4-8             
+    ##  [43] R.methodsS3_1.8.2        lifecycle_1.0.4          edgeR_4.7.6             
+    ##  [46] yaml_2.3.10              SparseArray_1.9.0        Rtsne_0.17              
+    ##  [49] paletteer_1.6.0          grid_4.5.1               blob_1.2.4              
+    ##  [52] promises_1.3.3           crayon_1.5.3             miniUI_0.1.2            
+    ##  [55] lattice_0.22-7           beachmat_2.25.1          cowplot_1.2.0           
+    ##  [58] KEGGREST_1.49.1          mapproj_1.2.12           magick_2.8.7            
+    ##  [61] pillar_1.11.0            knitr_1.50               ComplexHeatmap_2.25.2   
+    ##  [64] rjson_0.2.23             future.apply_1.20.0      codetools_0.2-20        
+    ##  [67] glue_1.8.0               spatstat.univar_3.1-3    data.table_1.17.6       
+    ##  [70] remotes_2.5.0            vctrs_0.6.5              png_0.1-8               
+    ##  [73] spam_2.11-1              gtable_0.3.6             rematch2_2.1.2          
+    ##  [76] cachem_1.1.0             xfun_0.52                S4Arrays_1.9.1          
+    ##  [79] mime_0.13                survival_3.8-3           RcppHungarian_0.3       
+    ##  [82] iterators_1.0.14         statmod_1.5.1            fitdistrplus_1.2-4      
+    ##  [85] ROCR_1.0-11              nlme_3.1-168             bit64_4.6.0-1           
+    ##  [88] filelock_1.0.3           RcppAnnoy_0.0.22         GenomeInfoDb_1.45.7     
+    ##  [91] bslib_0.9.0              irlba_2.3.5.1            vipor_0.4.7             
+    ##  [94] KernSmooth_2.23-26       colorspace_2.1-1         DBI_1.2.3               
+    ##  [97] tidyselect_1.2.1         bit_4.6.0                compiler_4.5.1          
+    ## [100] curl_6.4.0               httr2_1.1.2              BiocNeighbors_2.3.1     
+    ## [103] DelayedArray_0.35.2      plotly_4.11.0            rtracklayer_1.69.1      
+    ## [106] scales_1.4.0             lmtest_0.9-40            rappdirs_0.3.3          
+    ## [109] stringr_1.5.1            digest_0.6.37            goftest_1.2-3           
+    ## [112] spatstat.utils_3.1-4     rmarkdown_2.29           benchmarkmeData_1.0.4   
+    ## [115] RhpcBLASctl_0.23-42      XVector_0.49.0           htmltools_0.5.8.1       
+    ## [118] pkgconfig_2.0.3          fastmap_1.2.0            rlang_1.1.6             
+    ## [121] GlobalOptions_0.1.2      htmlwidgets_1.6.4        UCSC.utils_1.5.0        
+    ## [124] shiny_1.11.1             farver_2.1.2             jquerylib_0.1.4         
+    ## [127] zoo_1.8-14               jsonlite_2.0.0           BiocParallel_1.43.4     
+    ## [130] mclust_6.1.1             config_0.3.2             R.oo_1.27.1             
+    ## [133] BiocSingular_1.24.0      RCurl_1.98-1.17          magrittr_2.0.3          
+    ## [136] scuttle_1.19.0           dotCall64_1.2            patchwork_1.3.1         
+    ## [139] viridis_0.6.5            reticulate_1.42.0        leidenAlg_1.1.5         
+    ## [142] stringi_1.8.7            MASS_7.3-65              plyr_1.8.9              
+    ## [145] parallel_4.5.1           listenv_0.9.1            ggrepel_0.9.6           
+    ## [148] deldir_2.0-4             Biostrings_2.77.2        sccore_1.0.6            
+    ## [151] splines_4.5.1            tensor_1.5.1             circlize_0.4.16         
+    ## [154] locfit_1.5-9.12          igraph_2.1.4             spatstat.geom_3.4-1     
+    ## [157] RcppHNSW_0.6.0           ScaledMatrix_1.16.0      reshape2_1.4.4          
+    ## [160] XML_3.99-0.18            BiocVersion_3.22.0       evaluate_1.0.4          
+    ## [163] golem_0.5.1              BiocManager_1.30.26      foreach_1.5.2           
+    ## [166] httpuv_1.6.16            RANN_2.6.2               tidyr_1.3.1             
+    ## [169] purrr_1.0.4              polyclip_1.10-7          benchmarkme_1.0.8       
+    ## [172] clue_0.3-66              scattermore_1.2          rsvd_1.0.5              
+    ## [175] xtable_1.8-4             restfulr_0.0.16          RSpectra_0.16-2         
+    ## [178] later_1.4.2              viridisLite_0.4.2        tibble_3.3.0            
+    ## [181] beeswarm_0.4.0           GenomicAlignments_1.45.1 memoise_2.0.1           
+    ## [184] AnnotationDbi_1.71.0     cluster_2.1.8.1          shinyWidgets_0.9.0      
+    ## [187] globals_0.18.0
 
 </details>
