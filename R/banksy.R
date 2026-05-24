@@ -32,7 +32,8 @@ NULL
 #'  \item{kNN_unif: k-nearest neighbors wth uniform kernel}
 #'  \item{rNN_gauss: radial nearest neighbors with Gaussian kernel}
 #' }
-#' @param assay_name (character) Name for Banksy assay in Seurat object
+#' @param assay_name (character) Name for output. When lazy=FALSE, names the
+#'   BANKSY assay. When lazy=TRUE, names the dimensionality reduction.
 #' @param M (numeric) Advanced usage. Highest azimuthal harmonic
 #' @param chunk_size A integer scalar specifying the number of rows / genes of
 #'   the neighborhood cell matrix to compute. Must be less than floor of
@@ -42,15 +43,15 @@ NULL
 #'   parallel using bplapply. Not implemented for Windows.
 #' @param num_cores A integer scalar specifying the number of cores to use
 #'   if parallel is TRUE.
-#' @param compute_pca (boolean) If TRUE, compute PCA directly without materializing
+#' @param lazy (boolean) If TRUE, compute PCA directly without materializing
 #'   the full BANKSY matrix. Enables analysis of very large datasets (millions
 #'   of cells) that would otherwise exceed available memory. Currently only
 #'   supported for M=0 (no AGF). Requires the irlba package.
-#' @param npcs (integer) Number of PCs to compute when compute_pca=TRUE (default 50)
+#' @param npcs (integer) Number of PCs to compute when lazy=TRUE (default 50)
 #' @param verbose (boolean) Print messages
 #'
-#' @return A Seurat object. If compute_pca=FALSE, contains a new assay holding the
-#'   BANKSY matrix. If compute_pca=TRUE, contains a dimensionality reduction named
+#' @return A Seurat object. If lazy=FALSE, contains a new assay holding the
+#'   BANKSY matrix. If lazy=TRUE, contains a dimensionality reduction named
 #'   by assay_name with PCA embeddings computed on the BANKSY matrix.
 #'
 #' @seealso \code{\link[Banksy]{ComputeBanksy}}
@@ -69,7 +70,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_median',
                       assay_name='BANKSY', M=NULL, chunk_size=NULL,
                       parallel=FALSE, num_cores=NULL,
-                      compute_pca=FALSE, npcs=50L,
+                      lazy=FALSE, npcs=50L,
                       verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
@@ -101,18 +102,20 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     # Resolve harmonics
     M <- seq(0, max(Banksy:::getM(use_agf, M)))
 
-    if (compute_pca) {
-        # -----------------------------------------------------------------
-        # Lazy PCA path: compute PCA directly without forming the full
-        # BANKSY matrix. Peak memory ~ sparse input + sparse W + vectors.
-        # Currently M=0 only (no AGF).
-        # -----------------------------------------------------------------
-        if (max(M) > 0) stop('compute_pca=TRUE currently only supports M=0 (no AGF)')
+    if (!lazy && nrow(data_own) * ncol(data_own) > 1e8) {
+        message('Note: dataset is large (', nrow(data_own), ' features x ',
+                ncol(data_own), ' cells). Consider using lazy=TRUE for ',
+                'memory-efficient PCA without materializing the full BANKSY matrix.')
+    }
+
+    if (lazy) {
+        # Lazy PCA path
+        if (max(M) > 0) stop('lazy=TRUE currently only supports M=0 (no AGF)')
         if (!is.null(group)) {
             if (split.scale) {
-                stop('compute_pca=TRUE does not yet support split.scale with group')
+                stop('lazy=TRUE does not yet support split.scale with group')
             }
-            if (verbose) warning('compute_pca=TRUE: group is used for spatial ',
+            if (verbose) warning('lazy=TRUE: group is used for spatial ',
                                  'staggering only; scaling is performed globally')
         }
 
@@ -129,7 +132,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                  max_npcs + 1L)
         }
         if (min(2L * n_genes, n_cells) < 6L) {
-            stop('compute_pca=TRUE requires at least 3 genes and 6 cells')
+            stop('lazy=TRUE requires at least 3 genes and 6 cells')
         }
 
         # Build sparse weight matrix
@@ -169,7 +172,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
             if (any(exceed)) {
                 ei <- own_i[exceed]
                 z_vals <- (data_own@x[exceed] - mu_own[ei]) / sd_own[ei]
-                excess_own <- sparseMatrix(
+                excess_own <- Matrix::sparseMatrix(
                     i = ei, j = own_j[exceed],
                     x = z_vals - scale_max,
                     dims = c(n_genes, n_cells))
@@ -246,7 +249,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                     exc_h0_n <- exc_h0_n + new_n
                 }
             }
-            excess_h0 <- sparseMatrix(
+            excess_h0 <- Matrix::sparseMatrix(
                 i = exc_h0_i[1:exc_h0_n], j = exc_h0_j[1:exc_h0_n],
                 x = exc_h0_x[1:exc_h0_n], dims = c(n_genes, n_cells))
             rm(exc_h0_i, exc_h0_j, exc_h0_x)
@@ -367,9 +370,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
         if (verbose) message('Done. Access reduction with Reductions(obj, "',
                              assay_name, '")')
     } else {
-        # -----------------------------------------------------------------
-        # Standard path: materialize full BANKSY matrix as a Seurat assay.
-        # -----------------------------------------------------------------
+        # Standard path
 
         # Compute harmonics
         center <- rep(TRUE, length(M))

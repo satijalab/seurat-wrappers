@@ -1,6 +1,6 @@
 Running BANKSY with Seurat
 ================
-Compiled: May 22, 2026
+Compiled: May 24, 2026
 
 - [Introduction](#introduction)
 - [Overview](#overview)
@@ -744,18 +744,18 @@ grid.arrange(grobs = spatial_plots, ncol = 3)
 ## Scaling to large datasets
 
 For large datasets (millions of cells), materializing the full BANKSY
-matrix can exceed memory limits. The `compute_pca` option in `RunBanksy`
-avoids this by computing PCA directly via a lazy linear operator. The
-BANKSY matrix is never formed; instead, matrix-vector products are
-evaluated on-the-fly using the sparse expression matrix and weight
-matrix. This reduces peak memory from
+matrix can exceed memory limits. The `lazy` option in `RunBanksy` avoids
+this by computing PCs of the BANKSY matrix directly via a lazy linear
+operator. The BANKSY matrix is never formed; instead, matrix-vector
+products are evaluated on-the-fly using the sparse expression matrix and
+weight matrix. This reduces peak memory from
 $O(\text{genes} \times \text{cells})$ (the dense BANKSY matrix) to
 $O(\text{nnz}(\text{input}))$ (the number of non-zero entries in the
 sparse input), since only the sparse input and sparse weight matrix are
 held in memory.
 
-**Note**: `compute_pca=TRUE` currently supports M=0 only (no azimuthal
-Gabor filter).
+**Note**: `lazy=TRUE` currently supports M=0 only (no azimuthal Gabor
+filter).
 
 This feature requires the development versions of Banksy and
 SeuratWrappers:
@@ -786,17 +786,25 @@ xenium <- NormalizeData(xenium)
 xenium <- FindVariableFeatures(xenium)
 ```
 
-With `compute_pca = TRUE`, `RunBanksy` computes the BANKSY PCA embedding
-directly and stores it as a dimensionality reduction. No `BANKSY` assay
-is created, and there is no need to call `RunPCA` separately:
+With `lazy = TRUE`, `RunBanksy` reads the expression matrix from the
+`data` slot of the `Xenium` assay, computes `npcs` principal components
+of the BANKSY matrix (default 50, matching Seurat’s `RunPCA`) directly
+via a sparse linear operator, and stores the result as a dimensionality
+reduction named by `assay_name`. No `BANKSY` assay is created, and there
+is no need to call `RunPCA` separately. For multi-sample integration,
+you can run Harmony on the BANKSY reduction before `FindNeighbors` (see
+the [Harmony section](#spatial-data-integration-with-harmony) above).
 
 ``` r
 xenium_input <- xenium
-xenium <- RunBanksy(xenium, lambda = 0.8, verbose = TRUE,
+xenium <- RunBanksy(xenium, lazy = TRUE, npcs = 50,
+                    lambda = 0.8, k_geom = 30, use_agf = FALSE,
                     assay = 'Xenium', slot = 'data', features = 'variable',
-                    use_agf = FALSE, k_geom = 30,
-                    assay_name = 'BANKSY',
-                    compute_pca = TRUE, npcs = 50)
+                    assay_name = 'BANKSY', verbose = TRUE)
+
+# Optionally, run Harmony for batch correction
+# xenium <- RunHarmony(xenium, group.by.vars = 'batch', reduction.use = 'BANKSY')
+
 xenium <- FindNeighbors(xenium, reduction = 'BANKSY', dims = 1:50)
 xenium <- FindClusters(xenium, resolution = 0.5)
 ```
@@ -804,17 +812,22 @@ xenium <- FindClusters(xenium, resolution = 0.5)
     ## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
     ## 
     ## Number of nodes: 36602
-    ## Number of edges: 1017512
+    ## Number of edges: 1017035
     ## 
     ## Running Louvain algorithm...
-    ## Maximum modularity in 10 random starts: 0.9437
-    ## Number of communities: 22
+    ## Maximum modularity in 10 random starts: 0.9441
+    ## Number of communities: 23
     ## Elapsed time: 3 seconds
 
 Visualize the spatial domains:
 
 ``` r
-ImageDimPlot(xenium, size = 0.5)
+n_clust <- length(levels(Idents(xenium)))
+pal <- c(mypal, hcl.colors(max(0, n_clust - length(mypal))))
+ImageDimPlot(xenium, size = 0.5, cols = pal) +
+    coord_flip() + scale_x_reverse() + NoLegend() +
+    theme(plot.background = element_rect(fill = 'white'),
+          panel.background = element_rect(fill = 'white'))
 ```
 
 <img src="banksy_files/figure-gfm/xenium_viz-1.png" style="display: block; margin: auto;" />
@@ -825,45 +838,45 @@ Equivalence with the standard workflow
 </summary>
 
 The standard workflow constructs the full BANKSY matrix
-
 $$\mathbf{M} = \begin{bmatrix} \sqrt{1-\lambda}\;\mathbf{Z}(\mathbf{X}) \\[4pt] \sqrt{\lambda}\;\mathbf{Z}(\mathbf{X}\mathbf{W}) \end{bmatrix}$$
+where $\mathbf{X}$ is the expression matrix ($g \times n$), $\mathbf{W}$
+is the sparse neighbor-weight matrix ($n \times n$, $k$ non-zeros per
+column), and $\mathbf{Z}(\cdot)$ denotes row-wise z-scoring followed by
+clipping to $[-10, 10]$ (matching Seurat’s `FastRowScale`). PCA is then
+computed on $\mathbf{M}$ via `RunPCA`.
 
-where **X** is the expression matrix (*g* × *n*), **W** is the sparse
-neighbor-weight matrix (*n* × *n*, *k* non-zeros per column), and
-**Z**(·) denotes row-wise z-scoring followed by clipping to \[-10, 10\]
-(matching Seurat's `FastRowScale`). PCA is then computed on **M** via
-`RunPCA`.
-
-With `compute_pca=TRUE`, **M** is never formed. Instead, `irlba`
-accesses **M** through a lazy linear operator that evaluates
+With `lazy=TRUE`, $\mathbf{M}$ is never formed. Instead, `irlba`
+accesses $\mathbf{M}$ through a lazy linear operator that evaluates
 matrix–vector products on the fly. Writing the row-wise z-score as
-**Z**(**A**)<sub>*ij*</sub> = (*A*<sub>*ij*</sub> −
-*μ*<sub>*i*</sub>) / *σ*<sub>*i*</sub>, since `irlba` only requires
-the ability to compute forward products **Mv** and adjoint products
-**M**<sup>⊤</sup>**u** for arbitrary vectors
-**v** ∈ ℝ<sup>*n*</sup> and **u** ∈ ℝ<sup>2*g*</sup>, rather than
-access to **M** itself, each block of the forward product is evaluated
-as:
+$\mathbf{Z}(\mathbf{A})_{ij} = (A_{ij} - \mu_i) / \sigma_i$, since
+`irlba` only requires the ability to compute forward products
+$\mathbf{M}\mathbf{v}$ and adjoint products
+$\mathbf{M}^{\!\top}\mathbf{u}$ for arbitrary vectors
+$\mathbf{v} \in \mathbb{R}^n$ and $\mathbf{u} \in \mathbb{R}^{2g}$,
+rather than access to $\mathbf{M}$ itself, each block of the forward
+product is evaluated as:
 
 $$\mathbf{Z}(\mathbf{X})\,\mathbf{v}
 = \frac{\mathbf{X}\mathbf{v} - \boldsymbol{\mu}\,\mathbf{1}^{\!\top}\mathbf{v}}
        {\boldsymbol{\sigma}}$$
 
 $$\mathbf{Z}(\mathbf{X}\mathbf{W})\,\mathbf{v}
-= \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}\_{H\_0}\,\mathbf{1}^{\!\top}\mathbf{v}}
-       {\boldsymbol{\sigma}\_{H\_0}}$$
+= \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}_{H_0}\,\mathbf{1}^{\!\top}\mathbf{v}}
+       {\boldsymbol{\sigma}_{H_0}}$$
 
-where the key step is (**XW**)**v** = **X**(**Wv**) by associativity:
-the sparse **W** is applied to **v** first (*O*(*kn*)), then the result
-is left-multiplied by the sparse **X** (*O*(nnz(**X**))), avoiding
-formation of the dense *g* × *n* product **XW**. The adjoint is derived
-analogously. Row means, standard
-deviations, and a sparse correction for Seurat's z-score clipping are
-precomputed once before the Lanczos iterations begin.
+where the key step is
+$(\mathbf{X}\mathbf{W})\mathbf{v} = \mathbf{X}(\mathbf{W}\mathbf{v})$ by
+associativity: the sparse $\mathbf{W}$ is applied to $\mathbf{v}$ first
+($O(kn)$), then the result is left-multiplied by the sparse $\mathbf{X}$
+($O(\mathrm{nnz}(\mathbf{X}))$), avoiding formation of the dense
+$g \times n$ product $\mathbf{X}\mathbf{W}$. The adjoint is derived
+analogously. Row means, standard deviations, and a sparse correction for
+Seurat’s z-score clipping are precomputed once before the Lanczos
+iterations begin.
 
-This reduces peak memory from *O*(*gn*) (the dense BANKSY matrix) to
-*O*(nnz(**X**) + *kn*) (the sparse input plus the sparse weight matrix),
-while producing numerically identical PCA embeddings.
+This reduces peak memory from $O(gn)$ (the dense BANKSY matrix) to
+$O(\mathrm{nnz}(\mathbf{X}) + kn)$ (the sparse input plus the sparse
+weight matrix), while producing numerically identical PCA embeddings.
 
 The standard workflow materializes the full BANKSY matrix as a Seurat
 assay, then runs PCA via `RunPCA`:
@@ -889,7 +902,12 @@ xenium_std <- FindClusters(xenium_std, resolution = 0.5)
     ## Elapsed time: 3 seconds
 
 ``` r
-ImageDimPlot(xenium_std, size = 0.5)
+n_clust <- length(levels(Idents(xenium_std)))
+pal <- c(mypal, hcl.colors(max(0, n_clust - length(mypal))))
+ImageDimPlot(xenium_std, size = 0.5, cols = pal) +
+    coord_flip() + scale_x_reverse() + NoLegend() +
+    theme(plot.background = element_rect(fill = 'white'),
+          panel.background = element_rect(fill = 'white'))
 ```
 
 <img src="banksy_files/figure-gfm/xenium_std_viz-1.png" style="display: block; margin: auto;" />
@@ -917,7 +935,7 @@ subspace_cos <- sapply(seq_len(npcs), function(k) {
 
 plot(seq_len(npcs), subspace_cos, type = 'b', pch = 19, ylim = c(0.5, 1),
      xlab = 'Number of PCs (k)', ylab = 'Min cosine of principal angles',
-     main = 'Subspace overlap: standard vs compute_pca')
+     main = 'Subspace overlap: standard vs lazy')
 abline(h = 0.99, lty = 2, col = 'grey50')
 ```
 
@@ -937,7 +955,7 @@ jaccard <- mean(sapply(seq_len(nrow(nn1)), function(i) {
 cat('Mean kNN Jaccard overlap (k=30):', round(jaccard, 4), '\n')
 ```
 
-    ## Mean kNN Jaccard overlap (k=30): 0.9814
+    ## Mean kNN Jaccard overlap (k=30): 0.9999
 
 **Clustering agreement.** The adjusted Rand index (ARI) measures how
 closely the two sets of cluster labels agree, adjusted for chance:
@@ -950,7 +968,7 @@ ari <- mclust::adjustedRandIndex(
 cat('Adjusted Rand Index:', round(ari, 4), '\n')
 ```
 
-    ## Adjusted Rand Index: 0.8036
+    ## Adjusted Rand Index: 0.8503
 
 </details>
 
@@ -963,7 +981,7 @@ For more information, visit <https://github.com/prabhakarlab/Banksy>.
 Vignette runtime
 </summary>
 
-    ## Time difference of 2.991815 mins
+    ## Time difference of 3.173534 mins
 
 </details>
 <details>
@@ -1017,8 +1035,8 @@ sessionInfo()
     ##   [7] sctransform_0.4.2        R6_2.6.1                 DT_0.34.0               
     ##  [10] lazyeval_0.2.2           uwot_0.2.3               GetoptLong_1.0.5        
     ##  [13] withr_3.0.2              progressr_0.15.1         cli_3.6.5               
-    ##  [16] spatstat.explore_3.4-3   fastDummies_1.7.5        labeling_0.4.3          
-    ##  [19] sass_0.4.10              spatstat.data_3.1-6      ggridges_0.5.6          
+    ##  [16] spatstat.explore_3.4-3   fastDummies_1.7.5        sass_0.4.10             
+    ##  [19] labeling_0.4.3           spatstat.data_3.1-6      ggridges_0.5.6          
     ##  [22] pbapply_1.7-2            Rsamtools_2.25.1         dbscan_1.2.2            
     ##  [25] R.utils_2.13.0           aricode_1.0.3            scater_1.37.0           
     ##  [28] dichromat_2.0-0.1        sessioninfo_1.2.3        parallelly_1.45.0       
@@ -1053,7 +1071,7 @@ sessionInfo()
     ## [115] RhpcBLASctl_0.23-42      XVector_0.49.0           htmltools_0.5.8.1       
     ## [118] pkgconfig_2.0.3          fastmap_1.2.0            rlang_1.1.6             
     ## [121] GlobalOptions_0.1.2      htmlwidgets_1.6.4        UCSC.utils_1.5.0        
-    ## [124] shiny_1.11.1             farver_2.1.2             jquerylib_0.1.4         
+    ## [124] shiny_1.11.1             jquerylib_0.1.4          farver_2.1.2            
     ## [127] zoo_1.8-14               jsonlite_2.0.0           BiocParallel_1.43.4     
     ## [130] mclust_6.1.1             config_0.3.2             R.oo_1.27.1             
     ## [133] BiocSingular_1.24.0      RCurl_1.98-1.17          magrittr_2.0.3          

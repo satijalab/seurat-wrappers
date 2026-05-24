@@ -537,15 +537,15 @@ grid.arrange(grobs = spatial_plots, ncol = 3)
 ## Scaling to large datasets
 
 For large datasets (millions of cells), materializing the full BANKSY matrix can
-exceed memory limits. The `compute_pca` option in `RunBanksy` avoids this by
-computing PCA directly via a lazy linear operator. The BANKSY matrix is never
+exceed memory limits. The `lazy` option in `RunBanksy` avoids this by
+computing PCs of the BANKSY matrix directly via a lazy linear operator. The BANKSY matrix is never
 formed; instead, matrix-vector products are evaluated on-the-fly using the sparse
 expression matrix and weight matrix. This reduces peak memory from
 $O(\text{genes} \times \text{cells})$ (the dense BANKSY matrix) to
 $O(\text{nnz}(\text{input}))$ (the number of non-zero entries in the sparse
 input), since only the sparse input and sparse weight matrix are held in memory.
 
-**Note**: `compute_pca=TRUE` currently supports M=0 only (no azimuthal Gabor
+**Note**: `lazy=TRUE` currently supports M=0 only (no azimuthal Gabor
 filter).
 
 This feature requires the development versions of Banksy and SeuratWrappers:
@@ -576,17 +576,26 @@ xenium <- NormalizeData(xenium)
 xenium <- FindVariableFeatures(xenium)
 ```
 
-With `compute_pca = TRUE`, `RunBanksy` computes the BANKSY PCA embedding
-directly and stores it as a dimensionality reduction. No `BANKSY` assay is
-created, and there is no need to call `RunPCA` separately:
+With `lazy = TRUE`, `RunBanksy` reads the expression matrix from the `data`
+slot of the `Xenium` assay, computes `npcs` principal components of the BANKSY
+matrix (default 50, matching Seurat's `RunPCA`) directly via a sparse linear
+operator, and stores the result as a dimensionality reduction named by
+`assay_name`. No `BANKSY`
+assay is created, and there is no need to call `RunPCA` separately. For
+multi-sample integration, you can run Harmony on the BANKSY reduction before
+`FindNeighbors` (see the
+[Harmony section](#spatial-data-integration-with-harmony) above).
 
 ```{r xenium_lazy}
 xenium_input <- xenium
-xenium <- RunBanksy(xenium, lambda = 0.8, verbose = TRUE,
+xenium <- RunBanksy(xenium, lazy = TRUE, npcs = 50,
+                    lambda = 0.8, k_geom = 30, use_agf = FALSE,
                     assay = 'Xenium', slot = 'data', features = 'variable',
-                    use_agf = FALSE, k_geom = 30,
-                    assay_name = 'BANKSY',
-                    compute_pca = TRUE, npcs = 50)
+                    assay_name = 'BANKSY', verbose = TRUE)
+
+# Optionally, run Harmony for batch correction
+# xenium <- RunHarmony(xenium, group.by.vars = 'batch', reduction.use = 'BANKSY')
+
 xenium <- FindNeighbors(xenium, reduction = 'BANKSY', dims = 1:50)
 xenium <- FindClusters(xenium, resolution = 0.5)
 ```
@@ -594,7 +603,12 @@ xenium <- FindClusters(xenium, resolution = 0.5)
 Visualize the spatial domains:
 
 ```{r xenium_viz, fig.align='center', fig.height=5, fig.width=7}
-ImageDimPlot(xenium, size = 0.5)
+n_clust <- length(levels(Idents(xenium)))
+pal <- c(mypal, hcl.colors(max(0, n_clust - length(mypal))))
+ImageDimPlot(xenium, size = 0.5, cols = pal) +
+    coord_flip() + scale_x_reverse() + NoLegend() +
+    theme(plot.background = element_rect(fill = 'white'),
+          panel.background = element_rect(fill = 'white'))
 ```
 
 <details>
@@ -608,7 +622,7 @@ $\mathbf{Z}(\cdot)$ denotes row-wise z-scoring followed by clipping to
 $[-10, 10]$ (matching Seurat's `FastRowScale`). PCA is then computed on
 $\mathbf{M}$ via `RunPCA`.
 
-With `compute_pca=TRUE`, $\mathbf{M}$ is never formed. Instead, `irlba`
+With `lazy=TRUE`, $\mathbf{M}$ is never formed. Instead, `irlba`
 accesses $\mathbf{M}$ through a lazy linear operator that evaluates
 matrix--vector products on the fly. Writing the row-wise z-score as
 $\mathbf{Z}(\mathbf{A})_{ij} = (A_{ij} - \mu_i) / \sigma_i$, since
@@ -653,7 +667,12 @@ xenium_std <- FindClusters(xenium_std, resolution = 0.5)
 ```
 
 ```{r xenium_std_viz, fig.align='center', fig.height=5, fig.width=7}
-ImageDimPlot(xenium_std, size = 0.5)
+n_clust <- length(levels(Idents(xenium_std)))
+pal <- c(mypal, hcl.colors(max(0, n_clust - length(mypal))))
+ImageDimPlot(xenium_std, size = 0.5, cols = pal) +
+    coord_flip() + scale_x_reverse() + NoLegend() +
+    theme(plot.background = element_rect(fill = 'white'),
+          panel.background = element_rect(fill = 'white'))
 ```
 
 We compare the two embeddings with three checks:
@@ -678,7 +697,7 @@ subspace_cos <- sapply(seq_len(npcs), function(k) {
 
 plot(seq_len(npcs), subspace_cos, type = 'b', pch = 19, ylim = c(0.5, 1),
      xlab = 'Number of PCs (k)', ylab = 'Min cosine of principal angles',
-     main = 'Subspace overlap: standard vs compute_pca')
+     main = 'Subspace overlap: standard vs lazy')
 abline(h = 0.99, lty = 2, col = 'grey50')
 ```
 
