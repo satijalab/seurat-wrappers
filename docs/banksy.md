@@ -838,45 +838,46 @@ Equivalence with the standard workflow
 </summary>
 
 The standard workflow constructs the full BANKSY matrix
-$$\mathbf{M} = \begin{bmatrix} \sqrt{1-\lambda}\;\mathbf{Z}(\mathbf{X}) \\[4pt] \sqrt{\lambda}\;\mathbf{Z}(\mathbf{X}\mathbf{W}) \end{bmatrix}$$
-where $\mathbf{X}$ is the expression matrix ($g \times n$), $\mathbf{W}$
-is the sparse neighbor-weight matrix ($n \times n$, $k$ non-zeros per
-column), and $\mathbf{Z}(\cdot)$ denotes row-wise z-scoring followed by
-clipping to $[-10, 10]$ (matching Seurat’s `FastRowScale`). PCA is then
-computed on $\mathbf{M}$ via `RunPCA`.
 
-With `lazy=TRUE`, $\mathbf{M}$ is never formed. Instead, `irlba`
-accesses $\mathbf{M}$ through a lazy linear operator that evaluates
-matrix–vector products on the fly. Writing the row-wise z-score as
-$\mathbf{Z}(\mathbf{A})_{ij} = (A_{ij} - \mu_i) / \sigma_i$, since
-`irlba` only requires the ability to compute forward products
-$\mathbf{M}\mathbf{v}$ and adjoint products
-$\mathbf{M}^{\!\top}\mathbf{u}$ for arbitrary vectors
-$\mathbf{v} \in \mathbb{R}^n$ and $\mathbf{u} \in \mathbb{R}^{2g}$,
-rather than access to $\mathbf{M}$ itself, each block of the forward
-product is evaluated as:
+```math
+\mathbf{M} = \begin{bmatrix} \sqrt{1-\lambda}\;\mathbf{Z}(\mathbf{X}) \\[4pt] \sqrt{\lambda}\;\mathbf{Z}(\mathbf{X}\mathbf{W}) \end{bmatrix}
+```
 
-$$\mathbf{Z}(\mathbf{X})\,\mathbf{v}
-= \frac{\mathbf{X}\mathbf{v} - \boldsymbol{\mu}\,\mathbf{1}^{\!\top}\mathbf{v}}
-       {\boldsymbol{\sigma}}$$
+where **X** is the expression matrix (*g* × *n*), **W** is the sparse
+neighbor-weight matrix (*n* × *n*, *k* non-zeros per column), and
+**Z**(·) denotes row-wise z-scoring followed by clipping to \[-10, 10\]
+(matching Seurat’s `FastRowScale`). PCA is then computed on **M** via
+`RunPCA`.
 
-$$\mathbf{Z}(\mathbf{X}\mathbf{W})\,\mathbf{v}
-= \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}_{H_0}\,\mathbf{1}^{\!\top}\mathbf{v}}
-       {\boldsymbol{\sigma}_{H_0}}$$
+With `lazy=TRUE`, **M** is never formed. Instead, `irlba` accesses **M**
+through a lazy linear operator that evaluates matrix–vector products on
+the fly. Writing the row-wise z-score as
+**Z**(**A**)<sub>*ij*</sub> = (*A*<sub>*ij*</sub> − *μ*<sub>*i*</sub>) / *σ*<sub>*i*</sub>,
+since `irlba` only requires the ability to compute forward products
+**Mv** and adjoint products **M**<sup>⊤</sup>**u** for arbitrary vectors
+**v** ∈ ℝ<sup>*n*</sup> and **u** ∈ ℝ<sup>2*g*</sup>, rather than
+access to **M** itself, each block of the forward product is evaluated
+as:
 
-where the key step is
-$(\mathbf{X}\mathbf{W})\mathbf{v} = \mathbf{X}(\mathbf{W}\mathbf{v})$ by
-associativity: the sparse $\mathbf{W}$ is applied to $\mathbf{v}$ first
-($O(kn)$), then the result is left-multiplied by the sparse $\mathbf{X}$
-($O(\mathrm{nnz}(\mathbf{X}))$), avoiding formation of the dense
-$g \times n$ product $\mathbf{X}\mathbf{W}$. The adjoint is derived
+```math
+\mathbf{Z}(\mathbf{X})\,\mathbf{v} = \frac{\mathbf{X}\mathbf{v} - \boldsymbol{\mu}\,\mathbf{1}^{\top}\mathbf{v}}{\boldsymbol{\sigma}}
+```
+
+```math
+\mathbf{Z}(\mathbf{X}\mathbf{W})\,\mathbf{v} = \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}_{H_0}\,\mathbf{1}^{\top}\mathbf{v}}{\boldsymbol{\sigma}_{H_0}}
+```
+
+where the key step is **(XW)v** = **X**(**Wv**) by associativity: the
+sparse **W** is applied to **v** first (*O*(*kn*)), then the result is
+left-multiplied by the sparse **X** (*O*(nnz(**X**))), avoiding
+formation of the dense *g* × *n* product **XW**. The adjoint is derived
 analogously. Row means, standard deviations, and a sparse correction for
 Seurat’s z-score clipping are precomputed once before the Lanczos
 iterations begin.
 
-This reduces peak memory from $O(gn)$ (the dense BANKSY matrix) to
-$O(\mathrm{nnz}(\mathbf{X}) + kn)$ (the sparse input plus the sparse
-weight matrix), while producing numerically identical PCA embeddings.
+This reduces peak memory from *O*(*gn*) (the dense BANKSY matrix) to
+*O*(nnz(**X**) + *kn*) (the sparse input plus the sparse weight matrix),
+while producing numerically identical PCA embeddings.
 
 The standard workflow materializes the full BANKSY matrix as a Seurat
 assay, then runs PCA via `RunPCA`:
@@ -1095,3 +1096,14 @@ sessionInfo()
     ## [187] globals_0.18.0
 
 </details>
+```math
+
+```
+
+```math
+
+```
+
+```math
+
+```
