@@ -784,7 +784,6 @@ Load and preprocess:
 xenium <- LoadXenium('~/Downloads/xenium_subset', fov = 'fov')
 xenium <- NormalizeData(xenium)
 xenium <- FindVariableFeatures(xenium)
-xenium <- ScaleData(xenium)
 ```
 
 With `compute_pca = TRUE`, `RunBanksy` computes the BANKSY PCA embedding
@@ -824,6 +823,47 @@ ImageDimPlot(xenium, size = 0.5)
 <summary>
 Equivalence with the standard workflow
 </summary>
+
+The standard workflow constructs the full BANKSY matrix
+
+$$\mathbf{M} = \begin{bmatrix} \sqrt{1-\lambda}\;\mathbf{Z}(\mathbf{X}) \\[4pt] \sqrt{\lambda}\;\mathbf{Z}(\mathbf{X}\mathbf{W}) \end{bmatrix}$$
+
+where **X** is the expression matrix (*g* × *n*), **W** is the sparse
+neighbor-weight matrix (*n* × *n*, *k* non-zeros per column), and
+**Z**(·) denotes row-wise z-scoring followed by clipping to \[-10, 10\]
+(matching Seurat's `FastRowScale`). PCA is then computed on **M** via
+`RunPCA`.
+
+With `compute_pca=TRUE`, **M** is never formed. Instead, `irlba`
+accesses **M** through a lazy linear operator that evaluates
+matrix–vector products on the fly. Writing the row-wise z-score as
+**Z**(**A**)<sub>*ij*</sub> = (*A*<sub>*ij*</sub> −
+*μ*<sub>*i*</sub>) / *σ*<sub>*i*</sub>, since `irlba` only requires
+the ability to compute forward products **Mv** and adjoint products
+**M**<sup>⊤</sup>**u** for arbitrary vectors
+**v** ∈ ℝ<sup>*n*</sup> and **u** ∈ ℝ<sup>2*g*</sup>, rather than
+access to **M** itself, each block of the forward product is evaluated
+as:
+
+$$\mathbf{Z}(\mathbf{X})\,\mathbf{v}
+= \frac{\mathbf{X}\mathbf{v} - \boldsymbol{\mu}\,\mathbf{1}^{\!\top}\mathbf{v}}
+       {\boldsymbol{\sigma}}$$
+
+$$\mathbf{Z}(\mathbf{X}\mathbf{W})\,\mathbf{v}
+= \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}\_{H\_0}\,\mathbf{1}^{\!\top}\mathbf{v}}
+       {\boldsymbol{\sigma}\_{H\_0}}$$
+
+where the key step is (**XW**)**v** = **X**(**Wv**) by associativity:
+the sparse **W** is applied to **v** first (*O*(*kn*)), then the result
+is left-multiplied by the sparse **X** (*O*(nnz(**X**))), avoiding
+formation of the dense *g* × *n* product **XW**. The adjoint is derived
+analogously. Row means, standard
+deviations, and a sparse correction for Seurat's z-score clipping are
+precomputed once before the Lanczos iterations begin.
+
+This reduces peak memory from *O*(*gn*) (the dense BANKSY matrix) to
+*O*(nnz(**X**) + *kn*) (the sparse input plus the sparse weight matrix),
+while producing numerically identical PCA embeddings.
 
 The standard workflow materializes the full BANKSY matrix as a Seurat
 assay, then runs PCA via `RunPCA`:

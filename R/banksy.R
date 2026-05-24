@@ -153,13 +153,118 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
         }
         sd_own[sd_own == 0] <- 1
 
-        # Compute scaling parameters for H0 = data_own %*% W (chunk-by-chunk)
-        if (verbose) message('Computing scaling parameters for H0')
-        h0_params <- Banksy:::.computeH0ScalingParams(data_own, W)
+        # Compute H0 scaling params and clipping excess in a single pass.
+        # FastRowScale clips z-scores at scale_max=10. To match this in the
+        # lazy operator: clip(Z) %*% v = Z %*% v - excess %*% v, where
+        # excess is a sparse matrix of (z - scale_max) at clipped entries.
+        scale_max <- 10
+
+        # Own expression excess: scan sparse non-zero entries (vectorized)
+        if (verbose) message('Computing scaling params and clipping for own expression')
+        thresh_own <- mu_own + scale_max * sd_own
+        if (inherits(data_own, 'sparseMatrix')) {
+            own_i <- data_own@i + 1L
+            own_j <- rep(seq_len(n_cells), diff(data_own@p))
+            exceed <- data_own@x > thresh_own[own_i]
+            if (any(exceed)) {
+                ei <- own_i[exceed]
+                z_vals <- (data_own@x[exceed] - mu_own[ei]) / sd_own[ei]
+                excess_own <- sparseMatrix(
+                    i = ei, j = own_j[exceed],
+                    x = z_vals - scale_max,
+                    dims = c(n_genes, n_cells))
+            } else {
+                excess_own <- NULL
+            }
+        } else {
+            z_own <- (data_own - mu_own) / sd_own
+            exceed_mask <- z_own > scale_max
+            if (any(exceed_mask)) {
+                excess_own <- Matrix::Matrix((z_own - scale_max) * exceed_mask, sparse = TRUE)
+            } else {
+                excess_own <- NULL
+            }
+        }
+
+        # H0 scaling params + clipping excess.
+        # Pass 1: compute mu, ss, and per-gene max of H0 = gcm %*% W.
+        # Pass 2: only re-scan chunks containing genes where max > threshold.
+        if (verbose) message('Computing scaling params and clipping for H0')
+        mu_h0 <- numeric(n_genes)
+        ss_h0 <- numeric(n_genes)
+        max_h0 <- rep(-Inf, n_genes)
+        chunk_sz <- 100L
+
+        for (ch_start in seq(1L, n_genes, by = chunk_sz)) {
+            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+            ri <- ch_start:ch_end
+            chunk <- as.matrix(data_own[ri, , drop = FALSE] %*% W)
+            mu_h0[ri] <- rowMeans(chunk)
+            ss_h0[ri] <- rowSums(chunk * chunk)
+            max_h0[ri] <- apply(chunk, 1, max)
+        }
+        sd_h0 <- sqrt(pmax(n_c / (n_c - 1) * (ss_h0 / n_c - mu_h0 * mu_h0), 0))
+        sd_h0[sd_h0 == 0] <- 1
+        thresh_h0 <- mu_h0 + scale_max * sd_h0
+
+        # Identify genes that need clipping (max value exceeds threshold)
+        clip_genes <- which(max_h0 > thresh_h0)
+        if (verbose) message('H0 genes requiring clipping: ', length(clip_genes),
+                             ' / ', n_genes)
+
+        if (length(clip_genes) > 0) {
+            # Pass 2: only re-scan chunks that contain clipped genes
+            exc_cap <- max(1024L, length(clip_genes) * 10L)
+            exc_h0_i <- integer(exc_cap)
+            exc_h0_j <- integer(exc_cap)
+            exc_h0_x <- numeric(exc_cap)
+            exc_h0_n <- 0L
+
+            # Find which chunks contain clipped genes
+            clip_chunks <- unique((clip_genes - 1L) %/% chunk_sz)
+            for (ch_idx in clip_chunks) {
+                ch_start <- ch_idx * chunk_sz + 1L
+                ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+                ri <- ch_start:ch_end
+                # Only compute rows that need clipping within this chunk
+                ri_clip <- ri[ri %in% clip_genes]
+                chunk <- as.matrix(data_own[ri_clip, , drop = FALSE] %*% W)
+                z_chunk <- (chunk - mu_h0[ri_clip]) / sd_h0[ri_clip]
+                wh <- which(z_chunk > scale_max, arr.ind = TRUE)
+                if (nrow(wh) > 0) {
+                    new_n <- nrow(wh)
+                    while (exc_h0_n + new_n > length(exc_h0_i)) {
+                        exc_cap <- exc_cap * 2L
+                        length(exc_h0_i) <- exc_cap
+                        length(exc_h0_j) <- exc_cap
+                        length(exc_h0_x) <- exc_cap
+                    }
+                    idx <- seq(exc_h0_n + 1L, exc_h0_n + new_n)
+                    exc_h0_i[idx] <- ri_clip[wh[, 1]]
+                    exc_h0_j[idx] <- wh[, 2]
+                    exc_h0_x[idx] <- z_chunk[wh] - scale_max
+                    exc_h0_n <- exc_h0_n + new_n
+                }
+            }
+            excess_h0 <- sparseMatrix(
+                i = exc_h0_i[1:exc_h0_n], j = exc_h0_j[1:exc_h0_n],
+                x = exc_h0_x[1:exc_h0_n], dims = c(n_genes, n_cells))
+            rm(exc_h0_i, exc_h0_j, exc_h0_x)
+        } else {
+            excess_h0 <- NULL
+        }
+        h0_params <- list(mu = mu_h0, sd = sd_h0)
+        rm(mu_h0, sd_h0, ss_h0, max_h0, thresh_h0)
+
+        if (verbose) {
+            n_own_clip <- if (!is.null(excess_own)) length(excess_own@x) else 0
+            n_h0_clip <- if (!is.null(excess_h0)) length(excess_h0@x) else 0
+            message('Clipping corrections: own=', n_own_clip, ' H0=', n_h0_clip, ' entries')
+        }
 
         # Define lazy linear operator for irlba.
-        # A = rbind(lam0 * S(data_own), lam1 * S(H0))
-        # where S(X) = row-wise z-score.
+        # A = rbind(lam0 * clip(S(data_own)), lam1 * clip(S(H0)))
+        # where S(X) = row-wise z-score, clip caps at scale_max=10.
         # Forward:  A %*% v  (features x 1)
         # Adjoint:  t(A) %*% u  (cells x 1)
         banksy_op <- structure(list(
@@ -167,6 +272,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
             mu = list(mu_own, h0_params$mu),
             sd = list(sd_own, h0_params$sd),
             lam = lambdas,
+            excess = list(excess_own, excess_h0),
             n_genes = n_genes, n_cells = n_cells
         ), class = 'BanksyLazy')
 
@@ -188,15 +294,23 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
 
             if (!transpose) {
                 # A %*% x: x is n_cells x k
+                # clip(Z) %*% x = Z %*% x - excess %*% x
                 cs <- colSums(x)
                 own <- .as_base(A$gcm %*% x)
                 own <- A$lam[1] * (own - outer(A$mu[[1]], cs)) / A$sd[[1]]
+                if (!is.null(A$excess[[1]])) {
+                    own <- own - A$lam[1] * .as_base(A$excess[[1]] %*% x)
+                }
                 Wx <- .as_base(A$W %*% x)
                 h0 <- .as_base(A$gcm %*% Wx)
                 h0 <- A$lam[2] * (h0 - outer(A$mu[[2]], cs)) / A$sd[[2]]
+                if (!is.null(A$excess[[2]])) {
+                    h0 <- h0 - A$lam[2] * .as_base(A$excess[[2]] %*% x)
+                }
                 rbind(own, h0)
             } else {
                 # t(A) %*% x: x is (2*n_genes) x k
+                # t(clip(Z)) %*% x = t(Z) %*% x - t(excess) %*% x
                 ng <- A$n_genes
                 xo <- x[1:ng, , drop = FALSE]
                 xh <- x[(ng+1):(2*ng), , drop = FALSE]
@@ -205,11 +319,18 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                 adj_o <- colSums(A$mu[[1]] * xo_s)
                 r <- A$lam[1] * (.as_base(crossprod(A$gcm, xo_s)) -
                      matrix(adj_o, A$n_cells, k, byrow = TRUE))
+                if (!is.null(A$excess[[1]])) {
+                    r <- r - A$lam[1] * .as_base(crossprod(A$excess[[1]], xo))
+                }
                 adj_h <- colSums(A$mu[[2]] * xh_s)
                 ht <- .as_base(crossprod(A$gcm, xh_s))
                 ht <- .as_base(crossprod(A$W, ht))
                 ht <- ht - matrix(adj_h, A$n_cells, k, byrow = TRUE)
-                r + A$lam[2] * ht
+                r <- r + A$lam[2] * ht
+                if (!is.null(A$excess[[2]])) {
+                    r <- r - A$lam[2] * .as_base(crossprod(A$excess[[2]], xh))
+                }
+                r
             }
         }
 
