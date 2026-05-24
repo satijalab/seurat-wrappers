@@ -817,7 +817,7 @@ xenium <- FindClusters(xenium, resolution = 0.5)
     ## Running Louvain algorithm...
     ## Maximum modularity in 10 random starts: 0.9441
     ## Number of communities: 23
-    ## Elapsed time: 3 seconds
+    ## Elapsed time: 4 seconds
 
 Visualize the spatial domains:
 
@@ -837,47 +837,24 @@ ImageDimPlot(xenium, size = 0.5, cols = pal) +
 Equivalence with the standard workflow
 </summary>
 
-The standard workflow constructs the full BANKSY matrix
+The standard workflow constructs the full BANKSY matrix `M` by
+vertically stacking the z-scored expression matrix and the z-scored
+neighborhood-smoothed matrix (weighted by `lambda`), where z-scoring
+includes clipping to \[-10, 10\] to match Seurat’s `FastRowScale`. PCA
+is then computed on `M` via `RunPCA`.
 
-```math
-\mathbf{M} = \begin{bmatrix} \sqrt{1-\lambda}\;\mathbf{Z}(\mathbf{X}) \\[4pt] \sqrt{\lambda}\;\mathbf{Z}(\mathbf{X}\mathbf{W}) \end{bmatrix}
-```
-
-where **X** is the expression matrix (*g* × *n*), **W** is the sparse
-neighbor-weight matrix (*n* × *n*, *k* non-zeros per column), and
-**Z**(·) denotes row-wise z-scoring followed by clipping to \[-10, 10\]
-(matching Seurat’s `FastRowScale`). PCA is then computed on **M** via
-`RunPCA`.
-
-With `lazy=TRUE`, **M** is never formed. Instead, `irlba` accesses **M**
-through a lazy linear operator that evaluates matrix–vector products on
-the fly. Writing the row-wise z-score as
-**Z**(**A**)<sub>*ij*</sub> = (*A*<sub>*ij*</sub> − *μ*<sub>*i*</sub>) / *σ*<sub>*i*</sub>,
-since `irlba` only requires the ability to compute forward products
-**Mv** and adjoint products **M**<sup>⊤</sup>**u** for arbitrary vectors
-**v** ∈ ℝ<sup>*n*</sup> and **u** ∈ ℝ<sup>2*g*</sup>, rather than
-access to **M** itself, each block of the forward product is evaluated
-as:
-
-```math
-\mathbf{Z}(\mathbf{X})\,\mathbf{v} = \frac{\mathbf{X}\mathbf{v} - \boldsymbol{\mu}\,\mathbf{1}^{\top}\mathbf{v}}{\boldsymbol{\sigma}}
-```
-
-```math
-\mathbf{Z}(\mathbf{X}\mathbf{W})\,\mathbf{v} = \frac{\mathbf{X}(\mathbf{W}\mathbf{v}) - \boldsymbol{\mu}_{H_0}\,\mathbf{1}^{\top}\mathbf{v}}{\boldsymbol{\sigma}_{H_0}}
-```
-
-where the key step is **(XW)v** = **X**(**Wv**) by associativity: the
-sparse **W** is applied to **v** first (*O*(*kn*)), then the result is
-left-multiplied by the sparse **X** (*O*(nnz(**X**))), avoiding
-formation of the dense *g* × *n* product **XW**. The adjoint is derived
-analogously. Row means, standard deviations, and a sparse correction for
-Seurat’s z-score clipping are precomputed once before the Lanczos
+With `lazy=TRUE`, `M` is never formed. Instead, `irlba` accesses `M`
+through a lazy linear operator that evaluates matrix-vector products on
+the fly. The key insight is that `(XW)v = X(Wv)` by associativity: the
+sparse neighbor-weight matrix `W` is applied to the vector first, then
+left-multiplied by the sparse expression matrix `X`, avoiding formation
+of the dense product `XW`. Row means, standard deviations, and a sparse
+correction for z-score clipping are precomputed once before the Lanczos
 iterations begin.
 
-This reduces peak memory from *O*(*gn*) (the dense BANKSY matrix) to
-*O*(nnz(**X**) + *kn*) (the sparse input plus the sparse weight matrix),
-while producing numerically identical PCA embeddings.
+This reduces peak memory from `O(g*n)` (the dense BANKSY matrix) to
+`O(nnz(X) + kn)` (the sparse input plus the sparse weight matrix), while
+producing numerically identical PCA embeddings.
 
 The standard workflow materializes the full BANKSY matrix as a Seurat
 assay, then runs PCA via `RunPCA`:
@@ -982,7 +959,7 @@ For more information, visit <https://github.com/prabhakarlab/Banksy>.
 Vignette runtime
 </summary>
 
-    ## Time difference of 3.279604 mins
+    ## Time difference of 3.255762 mins
 
 </details>
 <details>
@@ -1096,14 +1073,3 @@ sessionInfo()
     ## [187] globals_0.18.0
 
 </details>
-```math
-
-```
-
-```math
-
-```
-
-```math
-
-```
