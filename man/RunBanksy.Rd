@@ -30,6 +30,7 @@ RunBanksy(
   num_cores = NULL,
   lazy = FALSE,
   npcs = 50L,
+  scale_max = 10,
   verbose = TRUE
 )
 }
@@ -98,9 +99,13 @@ if parallel is TRUE.}
 \item{lazy}{(boolean) If TRUE, compute PCA directly without materializing
 the full BANKSY matrix. Enables analysis of very large datasets (millions
 of cells) that would otherwise exceed available memory. Currently only
-supported for M=0 (no AGF). Requires the irlba package.}
+supported for M=0 (no AGF). Supports within-group scaling with
+\code{split.scale=TRUE}. Requires the irlba package.}
 
 \item{npcs}{(integer) Number of PCs to compute when lazy=TRUE (default 50)}
+
+\item{scale_max}{(numeric) Maximum absolute z-score for clipping when
+lazy=TRUE. Matches Seurat's FastRowScale default of 10.}
 
 \item{verbose}{(boolean) Print messages}
 }

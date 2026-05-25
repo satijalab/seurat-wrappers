@@ -46,8 +46,11 @@ NULL
 #' @param lazy (boolean) If TRUE, compute PCA directly without materializing
 #'   the full BANKSY matrix. Enables analysis of very large datasets (millions
 #'   of cells) that would otherwise exceed available memory. Currently only
-#'   supported for M=0 (no AGF). Requires the irlba package.
+#'   supported for M=0 (no AGF). Supports within-group scaling with
+#'   \code{split.scale=TRUE}. Requires the irlba package.
 #' @param npcs (integer) Number of PCs to compute when lazy=TRUE (default 50)
+#' @param scale_max (numeric) Maximum absolute z-score for clipping when
+#'   lazy=TRUE. Matches Seurat's FastRowScale default of 10.
 #' @param verbose (boolean) Print messages
 #'
 #' @return A Seurat object. If lazy=FALSE, contains a new assay holding the
@@ -70,7 +73,7 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
                       alpha=0.05, k_spatial=10, spatial_mode='kNN_median',
                       assay_name='BANKSY', M=NULL, chunk_size=NULL,
                       parallel=FALSE, num_cores=NULL,
-                      lazy=FALSE, npcs=50L,
+                      lazy=FALSE, npcs=50L, scale_max=10,
                       verbose=TRUE) {
     # Check packages
     SeuratWrappers:::CheckPackage(package = 'data.table', repository = 'CRAN')
@@ -109,328 +112,533 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     }
 
     if (lazy) {
-        # Lazy PCA path
-        if (max(M) > 0) stop('lazy=TRUE currently only supports M=0 (no AGF)')
-        if (!is.null(group)) {
-            if (split.scale) {
-                stop('lazy=TRUE does not yet support split.scale with group')
-            }
-            if (verbose) warning('lazy=TRUE: group is used for spatial ',
-                                 'staggering only; scaling is performed globally')
-        }
-
-        SeuratWrappers:::CheckPackage(package = 'irlba', repository = 'CRAN')
-
-        n_genes <- nrow(data_own)
-        n_cells <- ncol(data_own)
-        lambdas <- Banksy:::getLambdas(lambda, n_harmonics = 1)
-
-        # Validate npcs
-        max_npcs <- min(2L * n_genes, n_cells) - 1L
-        if (npcs >= max_npcs) {
-            stop('npcs (', npcs, ') must be < min(2*n_genes, n_cells) = ',
-                 max_npcs + 1L)
-        }
-        if (min(2L * n_genes, n_cells) < 6L) {
-            stop('lazy=TRUE requires at least 3 genes and 6 cells')
-        }
-
-        # Build sparse weight matrix
-        if (verbose) message('Building sparse weight matrix')
-        W <- Banksy:::.buildWeightMatrix(knn_list[[1]], n_cells)
-
-        # Compute scaling parameters for data_own (sample sd, n-1 denom,
-        # to match Seurat::FastRowScale)
-        if (verbose) message('Computing scaling parameters for own expression')
-        n_c <- as.double(n_cells)
-        if (inherits(data_own, 'sparseMatrix')) {
-            mu_own <- Matrix::rowMeans(data_own)
-            sd_own <- sqrt(pmax(
-                n_c / (n_c - 1) * (Matrix::rowMeans(data_own^2) - mu_own^2), 0
-            ))
-        } else {
-            mu_own <- rowMeans(data_own)
-            sd_own <- sqrt(pmax(
-                n_c / (n_c - 1) * (rowMeans(data_own^2) - mu_own^2), 0
-            ))
-        }
-        sd_own[sd_own == 0] <- 1
-
-        # Compute H0 scaling params and clipping excess in a single pass.
-        # FastRowScale clips z-scores at scale_max=10. To match this in the
-        # lazy operator: clip(Z) %*% v = Z %*% v - excess %*% v, where
-        # excess is a sparse matrix of (z - scale_max) at clipped entries.
-        scale_max <- 10
-
-        # Own expression excess: scan sparse non-zero entries (vectorized)
-        if (verbose) message('Computing scaling params and clipping for own expression')
-        thresh_own <- mu_own + scale_max * sd_own
-        if (inherits(data_own, 'sparseMatrix')) {
-            own_i <- data_own@i + 1L
-            own_j <- rep(seq_len(n_cells), diff(data_own@p))
-            exceed <- data_own@x > thresh_own[own_i]
-            if (any(exceed)) {
-                ei <- own_i[exceed]
-                z_vals <- (data_own@x[exceed] - mu_own[ei]) / sd_own[ei]
-                excess_own <- Matrix::sparseMatrix(
-                    i = ei, j = own_j[exceed],
-                    x = z_vals - scale_max,
-                    dims = c(n_genes, n_cells))
-            } else {
-                excess_own <- NULL
-            }
-        } else {
-            z_own <- (data_own - mu_own) / sd_own
-            exceed_mask <- z_own > scale_max
-            if (any(exceed_mask)) {
-                excess_own <- Matrix::Matrix((z_own - scale_max) * exceed_mask, sparse = TRUE)
-            } else {
-                excess_own <- NULL
-            }
-        }
-
-        # H0 scaling params + clipping excess.
-        # Pass 1: compute mu, ss, and per-gene max of H0 = gcm %*% W.
-        # Pass 2: only re-scan chunks containing genes where max > threshold.
-        if (verbose) message('Computing scaling params and clipping for H0')
-        mu_h0 <- numeric(n_genes)
-        ss_h0 <- numeric(n_genes)
-        max_h0 <- rep(-Inf, n_genes)
-        chunk_sz <- 100L
-
-        for (ch_start in seq(1L, n_genes, by = chunk_sz)) {
-            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
-            ri <- ch_start:ch_end
-            chunk <- as.matrix(data_own[ri, , drop = FALSE] %*% W)
-            mu_h0[ri] <- rowMeans(chunk)
-            ss_h0[ri] <- rowSums(chunk * chunk)
-            max_h0[ri] <- apply(chunk, 1, max)
-        }
-        sd_h0 <- sqrt(pmax(n_c / (n_c - 1) * (ss_h0 / n_c - mu_h0 * mu_h0), 0))
-        sd_h0[sd_h0 == 0] <- 1
-        thresh_h0 <- mu_h0 + scale_max * sd_h0
-
-        # Identify genes that need clipping (max value exceeds threshold)
-        clip_genes <- which(max_h0 > thresh_h0)
-        if (verbose) message('H0 genes requiring clipping: ', length(clip_genes),
-                             ' / ', n_genes)
-
-        if (length(clip_genes) > 0) {
-            # Pass 2: only re-scan chunks that contain clipped genes
-            exc_cap <- max(1024L, length(clip_genes) * 10L)
-            exc_h0_i <- integer(exc_cap)
-            exc_h0_j <- integer(exc_cap)
-            exc_h0_x <- numeric(exc_cap)
-            exc_h0_n <- 0L
-
-            # Find which chunks contain clipped genes
-            clip_chunks <- unique((clip_genes - 1L) %/% chunk_sz)
-            for (ch_idx in clip_chunks) {
-                ch_start <- ch_idx * chunk_sz + 1L
-                ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
-                ri <- ch_start:ch_end
-                # Only compute rows that need clipping within this chunk
-                ri_clip <- ri[ri %in% clip_genes]
-                chunk <- as.matrix(data_own[ri_clip, , drop = FALSE] %*% W)
-                z_chunk <- (chunk - mu_h0[ri_clip]) / sd_h0[ri_clip]
-                wh <- which(z_chunk > scale_max, arr.ind = TRUE)
-                if (nrow(wh) > 0) {
-                    new_n <- nrow(wh)
-                    while (exc_h0_n + new_n > length(exc_h0_i)) {
-                        exc_cap <- exc_cap * 2L
-                        length(exc_h0_i) <- exc_cap
-                        length(exc_h0_j) <- exc_cap
-                        length(exc_h0_x) <- exc_cap
-                    }
-                    idx <- seq(exc_h0_n + 1L, exc_h0_n + new_n)
-                    exc_h0_i[idx] <- ri_clip[wh[, 1]]
-                    exc_h0_j[idx] <- wh[, 2]
-                    exc_h0_x[idx] <- z_chunk[wh] - scale_max
-                    exc_h0_n <- exc_h0_n + new_n
-                }
-            }
-            excess_h0 <- Matrix::sparseMatrix(
-                i = exc_h0_i[1:exc_h0_n], j = exc_h0_j[1:exc_h0_n],
-                x = exc_h0_x[1:exc_h0_n], dims = c(n_genes, n_cells))
-            rm(exc_h0_i, exc_h0_j, exc_h0_x)
-        } else {
-            excess_h0 <- NULL
-        }
-        h0_params <- list(mu = mu_h0, sd = sd_h0)
-        rm(mu_h0, sd_h0, ss_h0, max_h0, thresh_h0)
-
-        if (verbose) {
-            n_own_clip <- if (!is.null(excess_own)) length(excess_own@x) else 0
-            n_h0_clip <- if (!is.null(excess_h0)) length(excess_h0@x) else 0
-            message('Clipping corrections: own=', n_own_clip, ' H0=', n_h0_clip, ' entries')
-        }
-
-        # Define lazy linear operator for irlba.
-        # A = rbind(lam0 * clip(S(data_own)), lam1 * clip(S(H0)))
-        # where S(X) = row-wise z-score, clip caps at scale_max=10.
-        # Forward:  A %*% v  (features x 1)
-        # Adjoint:  t(A) %*% u  (cells x 1)
-        banksy_op <- structure(list(
-            gcm = data_own, W = W,
-            mu = list(mu_own, h0_params$mu),
-            sd = list(sd_own, h0_params$sd),
-            lam = lambdas,
-            excess = list(excess_own, excess_h0),
-            n_genes = n_genes, n_cells = n_cells
-        ), class = 'BanksyLazy')
-
-        # Ensure base numeric matrix (no Matrix S4 classes for irlba compat)
-        .as_base <- function(x) {
-            if (inherits(x, 'Matrix')) x <- as.matrix(x)
-            if (!is.matrix(x)) x <- as.matrix(x)
-            storage.mode(x) <- 'double'
-            x
-        }
-
-        banksy_mult <- function(A, x, transpose = FALSE) {
-            # irlba may swap A and x for transpose multiply
-            if (inherits(x, 'BanksyLazy')) {
-                tmp <- A; A <- x; x <- tmp; transpose <- TRUE
-            }
-            x <- .as_base(x)
-            k <- ncol(x)
-
-            if (!transpose) {
-                # A %*% x: x is n_cells x k
-                # clip(Z) %*% x = Z %*% x - excess %*% x
-                cs <- colSums(x)
-                own <- .as_base(A$gcm %*% x)
-                own <- A$lam[1] * (own - outer(A$mu[[1]], cs)) / A$sd[[1]]
-                if (!is.null(A$excess[[1]])) {
-                    own <- own - A$lam[1] * .as_base(A$excess[[1]] %*% x)
-                }
-                Wx <- .as_base(A$W %*% x)
-                h0 <- .as_base(A$gcm %*% Wx)
-                h0 <- A$lam[2] * (h0 - outer(A$mu[[2]], cs)) / A$sd[[2]]
-                if (!is.null(A$excess[[2]])) {
-                    h0 <- h0 - A$lam[2] * .as_base(A$excess[[2]] %*% x)
-                }
-                rbind(own, h0)
-            } else {
-                # t(A) %*% x: x is (2*n_genes) x k
-                # t(clip(Z)) %*% x = t(Z) %*% x - t(excess) %*% x
-                ng <- A$n_genes
-                xo <- x[1:ng, , drop = FALSE]
-                xh <- x[(ng+1):(2*ng), , drop = FALSE]
-                xo_s <- xo / A$sd[[1]]
-                xh_s <- xh / A$sd[[2]]
-                adj_o <- colSums(A$mu[[1]] * xo_s)
-                r <- A$lam[1] * (.as_base(crossprod(A$gcm, xo_s)) -
-                     matrix(adj_o, A$n_cells, k, byrow = TRUE))
-                if (!is.null(A$excess[[1]])) {
-                    r <- r - A$lam[1] * .as_base(crossprod(A$excess[[1]], xo))
-                }
-                adj_h <- colSums(A$mu[[2]] * xh_s)
-                ht <- .as_base(crossprod(A$gcm, xh_s))
-                ht <- .as_base(crossprod(A$W, ht))
-                ht <- ht - matrix(adj_h, A$n_cells, k, byrow = TRUE)
-                r <- r + A$lam[2] * ht
-                if (!is.null(A$excess[[2]])) {
-                    r <- r - A$lam[2] * .as_base(crossprod(A$excess[[2]], xh))
-                }
-                r
-            }
-        }
-
-        if (verbose) message('Computing BANKSY PCA (', npcs, ' PCs) via lazy operator')
-        pca <- irlba::irlba(banksy_op, nv = npcs, mult = banksy_mult)
-
-        # Cell embeddings: V * D
-        embeddings <- sweep(pca$v, 2, pca$d, `*`)
-        rownames(embeddings) <- colnames(data_own)
-        colnames(embeddings) <- paste0(assay_name, '_', seq_len(npcs))
-
-        # Feature loadings
-        loadings <- pca$u
-        feat_names <- c(rownames(data_own),
-                        paste0(rownames(data_own), '.m0'))
-        rownames(loadings) <- feat_names
-        colnames(loadings) <- paste0(assay_name, '_', seq_len(npcs))
-
-        # Percent variance
-        total_var <- sum(pca$d^2)
-        stdev <- pca$d / sqrt(max(1, n_cells - 1))
-
-        # Store as DimReduc
-        dimreduc <- Seurat::CreateDimReducObject(
-            embeddings = embeddings,
-            loadings = loadings,
-            stdev = stdev,
-            key = paste0(assay_name, '_'),
-            assay = assay,
-            misc = list(total.variance = total_var)
-        )
-        object[[assay_name]] <- dimreduc
-
-        if (verbose) message('Done. Access reduction with Reductions(obj, "',
-                             assay_name, '")')
+        object <- .banksy_lazy_pca(
+            object, data_own, knn_list, M, lambda, group, split.scale,
+            assay, assay_name, npcs, scale_max, verbose)
     } else {
-        # Standard path
-
-        # Compute harmonics
-        center <- rep(TRUE, length(M))
-        center[1] <- FALSE
-        har <- Map(function(knn_df, M, center) {
-          x <- Banksy:::computeHarmonics(gcm=data_own,
-                                         knn_df=knn_df,
-                                         M=M, center=center,
-                                         verbose=verbose,
-                                         chunk_size=chunk_size,
-                                         parallel=parallel,
-                                         num_cores=num_cores)
-          rownames(x) <- paste0(rownames(x), '.m', M)
-          x
-        }, knn_list, M, center)
-
-        # Scale by lambdas
-        lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
-
-        # Merge with own expression (coerce to dense for Seurat operations)
-        if (verbose) message('Creating Banksy matrix')
-        data_own <- as.matrix(data_own)
-        data_banksy <- c(list(data_own), har)
-        if (verbose) message('Scaling BANKSY matrix. Do not call ScaleData on assay ', assay_name)
-        data_scaled <- lapply(data_banksy, fast_scaler,
-                              object, group, split.scale, verbose)
-
-        # Multiple by lambdas
-        data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
-        data_scaled <- Map(function(lam, mat) lam * mat, lambdas, data_scaled)
-
-        # Rbind
-        data_banksy <- do.call(rbind, data_banksy)
-        data_scaled <- do.call(rbind, data_scaled)
-
-        # Create an assay object
-        if (grepl(pattern = 'counts', x = slot)) {
-            banksy_assay <- Seurat::CreateAssayObject(counts = data_banksy)
-        } else {
-            banksy_assay <- Seurat::CreateAssayObject(data = data_banksy)
-        }
-
-        # Add assay to Seurat object and set as default
-        if (verbose) message('Setting default assay to ', assay_name)
-        object[[assay_name]] <- banksy_assay
-        DefaultAssay(object) <- assay_name
-        object <- SetAssayData(object, layer = 'scale.data', new.data = data_scaled,
-                               assay = assay_name)
+        object <- .banksy_standard(
+            object, data_own, knn_list, M, lambda, group, split.scale,
+            assay, slot, assay_name, verbose, chunk_size, parallel, num_cores)
     }
 
     # Log commands
     object <- Seurat::LogSeuratCommand(object = object)
-
-  return(object)
+    return(object)
 }
 
-# S3 method for irlba to get dimensions of lazy BANKSY operator
+# Lazy PCA path
+.banksy_lazy_pca <- function(object, data_own, knn_list, M, lambda, group,
+                             split.scale, assay, assay_name, npcs, scale_max,
+                             verbose) {
+    # Guards
+    if (max(M) > 0) stop('lazy=TRUE currently only supports M=0 (no AGF)')
+    if (!is.null(group) && !split.scale) {
+        if (verbose) warning('lazy=TRUE: group is used for spatial ',
+                             'staggering only; scaling is performed globally')
+    }
+    SeuratWrappers:::CheckPackage(package = 'irlba', repository = 'CRAN')
+
+    n_genes <- nrow(data_own)
+    n_cells <- ncol(data_own)
+    lambdas <- Banksy:::getLambdas(lambda, n_harmonics = 1)
+
+    # Determine split-scale grouping
+    split_scale <- !is.null(group) && split.scale
+    if (split_scale) {
+        groups <- unlist(object[[group]])
+        ugroups <- unique(groups)
+        group_idx <- lapply(ugroups, function(g) which(g == groups))
+    } else {
+        group_idx <- NULL
+    }
+
+    # Validate npcs
+    max_npcs <- min(2L * n_genes, n_cells) - 1L
+    if (npcs >= max_npcs) {
+        stop('npcs (', npcs, ') must be < min(2*n_genes, n_cells) = ',
+             max_npcs + 1L)
+    }
+    if (min(2L * n_genes, n_cells) < 6L) {
+        stop('lazy=TRUE requires at least 3 genes and 6 cells')
+    }
+
+    # Build sparse weight matrix
+    if (verbose) message('Building sparse weight matrix')
+    W <- Banksy:::.buildWeightMatrix(knn_list[[1]], n_cells)
+
+    # Compute scaling parameters and clipping excess
+    own_result <- .lazy_own_scaling(data_own, split_scale, group_idx,
+                                    groups = if (split_scale) groups else NULL,
+                                    ugroups = if (split_scale) ugroups else NULL,
+                                    n_genes, n_cells, scale_max, verbose)
+    h0_result <- .lazy_h0_scaling(data_own, W, split_scale, group_idx,
+                                  n_genes, n_cells, scale_max, verbose)
+
+    if (verbose) {
+        n_own_clip <- if (!is.null(own_result$excess)) length(own_result$excess@x) else 0
+        n_h0_clip <- if (!is.null(h0_result$excess)) length(h0_result$excess@x) else 0
+        message('Clipping corrections: own=', n_own_clip, ' H0=', n_h0_clip, ' entries')
+    }
+
+    # Build operator struct
+    banksy_op <- structure(list(
+        gcm = data_own, W = W,
+        mu = list(own_result$mu, h0_result$mu),
+        sd = list(own_result$sd, h0_result$sd),
+        lam = lambdas,
+        excess = list(own_result$excess, h0_result$excess),
+        valid = list(own_result$valid, h0_result$valid),
+        split_scale = split_scale,
+        group_idx = group_idx,
+        n_genes = n_genes, n_cells = n_cells
+    ), class = 'BanksyLazy')
+
+    # Run irlba and store result
+    if (verbose) message('Computing BANKSY PCA (', npcs, ' PCs) via lazy operator')
+    pca <- irlba::irlba(banksy_op, nv = npcs, mult = .banksy_lazy_mult)
+
+    # Cell embeddings: V * D
+    embeddings <- sweep(pca$v, 2, pca$d, `*`)
+    rownames(embeddings) <- colnames(data_own)
+    colnames(embeddings) <- paste0(assay_name, '_', seq_len(npcs))
+
+    # Feature loadings
+    loadings <- pca$u
+    feat_names <- c(rownames(data_own), paste0(rownames(data_own), '.m0'))
+    rownames(loadings) <- feat_names
+    colnames(loadings) <- paste0(assay_name, '_', seq_len(npcs))
+
+    # Percent variance
+    total_var <- sum(pca$d^2)
+    stdev <- pca$d / sqrt(max(1, n_cells - 1))
+
+    # Store as DimReduc
+    dimreduc <- Seurat::CreateDimReducObject(
+        embeddings = embeddings,
+        loadings = loadings,
+        stdev = stdev,
+        key = paste0(assay_name, '_'),
+        assay = assay,
+        misc = list(total.variance = total_var)
+    )
+    object[[assay_name]] <- dimreduc
+
+    if (verbose) message('Done. Access reduction with Reductions(obj, "',
+                         assay_name, '")')
+    object
+}
+
+# Own expression scaling params + clipping excess
+.lazy_own_scaling <- function(data_own, split_scale, group_idx, groups,
+                              ugroups, n_genes, n_cells, scale_max, verbose) {
+    if (verbose) message('Computing scaling parameters for own expression')
+
+    if (split_scale) {
+        mu <- matrix(0, nrow = n_genes, ncol = length(group_idx))
+        sd <- matrix(0, nrow = n_genes, ncol = length(group_idx))
+        for (gr in seq_along(group_idx)) {
+            cid <- group_idx[[gr]]
+            n_c <- as.double(length(cid))
+            if (inherits(data_own, 'sparseMatrix')) {
+                mu[, gr] <- Matrix::rowMeans(data_own[, cid, drop = FALSE])
+                sd[, gr] <- sqrt(pmax(
+                    n_c / (n_c - 1) * (
+                        Matrix::rowMeans(data_own[, cid, drop = FALSE]^2) -
+                            mu[, gr]^2
+                    ), 0
+                ))
+            } else {
+                mu[, gr] <- rowMeans(data_own[, cid, drop = FALSE])
+                sd[, gr] <- sqrt(pmax(
+                    n_c / (n_c - 1) * (
+                        rowMeans(data_own[, cid, drop = FALSE]^2) -
+                            mu[, gr]^2
+                    ), 0
+                ))
+            }
+        }
+        valid <- rowSums(sd == 0) == 0
+        sd[sd == 0] <- 1
+    } else {
+        n_c <- as.double(n_cells)
+        if (inherits(data_own, 'sparseMatrix')) {
+            mu <- Matrix::rowMeans(data_own)
+            sd <- sqrt(pmax(
+                n_c / (n_c - 1) * (Matrix::rowMeans(data_own^2) - mu^2), 0
+            ))
+        } else {
+            mu <- rowMeans(data_own)
+            sd <- sqrt(pmax(
+                n_c / (n_c - 1) * (rowMeans(data_own^2) - mu^2), 0
+            ))
+        }
+        sd[sd == 0] <- 1
+        valid <- NULL
+    }
+
+    # Compute clipping excess
+    if (verbose) message('Computing clipping excess for own expression')
+    excess <- .lazy_own_excess(data_own, mu, sd, valid, split_scale, group_idx,
+                               groups, ugroups, n_genes, n_cells, scale_max)
+
+    list(mu = mu, sd = sd, valid = valid, excess = excess)
+}
+
+.lazy_own_excess <- function(data_own, mu, sd, valid, split_scale, group_idx,
+                             groups, ugroups, n_genes, n_cells, scale_max) {
+    if (inherits(data_own, 'sparseMatrix')) {
+        own_i <- data_own@i + 1L
+        own_j <- rep(seq_len(n_cells), diff(data_own@p))
+        if (split_scale) {
+            own_gr <- match(groups[own_j], ugroups)
+            own_mu <- mu[cbind(own_i, own_gr)]
+            own_sd <- sd[cbind(own_i, own_gr)]
+        } else {
+            own_mu <- mu[own_i]
+            own_sd <- sd[own_i]
+        }
+        exceed <- data_own@x > own_mu + scale_max * own_sd
+        if (split_scale) exceed <- exceed & valid[own_i]
+        if (any(exceed)) {
+            ei <- own_i[exceed]
+            z_vals <- (data_own@x[exceed] - own_mu[exceed]) / own_sd[exceed]
+            Matrix::sparseMatrix(
+                i = ei, j = own_j[exceed],
+                x = z_vals - scale_max,
+                dims = c(n_genes, n_cells))
+        } else {
+            NULL
+        }
+    } else {
+        if (split_scale) {
+            excess <- Matrix::sparseMatrix(
+                i = integer(0), j = integer(0),
+                dims = c(n_genes, n_cells))
+            for (gr in seq_along(group_idx)) {
+                cid <- group_idx[[gr]]
+                z_own <- (data_own[, cid, drop = FALSE] - mu[, gr]) / sd[, gr]
+                z_own[!valid, ] <- 0
+                exceed_mask <- z_own > scale_max
+                if (any(exceed_mask)) {
+                    excess[, cid] <- Matrix::Matrix(
+                        (z_own - scale_max) * exceed_mask, sparse = TRUE)
+                }
+            }
+            if (length(excess@x) == 0) NULL else excess
+        } else {
+            z_own <- (data_own - mu) / sd
+            exceed_mask <- z_own > scale_max
+            if (any(exceed_mask)) {
+                Matrix::Matrix((z_own - scale_max) * exceed_mask, sparse = TRUE)
+            } else {
+                NULL
+            }
+        }
+    }
+}
+
+# H0 scaling params + two-pass clipping excess
+.lazy_h0_scaling <- function(data_own, W, split_scale, group_idx,
+                             n_genes, n_cells, scale_max, verbose) {
+    if (verbose) message('Computing scaling params and clipping for H0')
+    chunk_sz <- 100L
+
+    # Pass 1: compute mu, ss, and per-gene max of H0 = data_own %*% W
+    if (split_scale) {
+        n_groups <- length(group_idx)
+        mu <- matrix(0, nrow = n_genes, ncol = n_groups)
+        ss <- matrix(0, nrow = n_genes, ncol = n_groups)
+        max_h0 <- matrix(-Inf, nrow = n_genes, ncol = n_groups)
+        for (ch_start in seq(1L, n_genes, by = chunk_sz)) {
+            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+            ri <- ch_start:ch_end
+            chunk <- as.matrix(data_own[ri, , drop = FALSE] %*% W)
+            for (gr in seq_along(group_idx)) {
+                cid <- group_idx[[gr]]
+                chunk_group <- chunk[, cid, drop = FALSE]
+                mu[ri, gr] <- rowMeans(chunk_group)
+                ss[ri, gr] <- rowSums(chunk_group * chunk_group)
+                max_h0[ri, gr] <- apply(chunk_group, 1, max)
+            }
+        }
+        sd <- matrix(0, nrow = n_genes, ncol = n_groups)
+        for (gr in seq_along(group_idx)) {
+            n_c <- as.double(length(group_idx[[gr]]))
+            sd[, gr] <- sqrt(pmax(
+                n_c / (n_c - 1) * (ss[, gr] / n_c - mu[, gr]^2), 0
+            ))
+        }
+        valid <- rowSums(sd == 0) == 0
+        sd[sd == 0] <- 1
+        thresh <- mu + scale_max * sd
+    } else {
+        mu <- numeric(n_genes)
+        ss <- numeric(n_genes)
+        max_h0 <- rep(-Inf, n_genes)
+        for (ch_start in seq(1L, n_genes, by = chunk_sz)) {
+            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+            ri <- ch_start:ch_end
+            chunk <- as.matrix(data_own[ri, , drop = FALSE] %*% W)
+            mu[ri] <- rowMeans(chunk)
+            ss[ri] <- rowSums(chunk * chunk)
+            max_h0[ri] <- apply(chunk, 1, max)
+        }
+        n_c <- as.double(n_cells)
+        sd <- sqrt(pmax(n_c / (n_c - 1) * (ss / n_c - mu * mu), 0))
+        sd[sd == 0] <- 1
+        thresh <- mu + scale_max * sd
+        valid <- NULL
+    }
+
+    # Identify genes that need clipping
+    if (split_scale) {
+        clip_genes <- which(valid & rowSums(max_h0 > thresh) > 0)
+    } else {
+        clip_genes <- which(max_h0 > thresh)
+    }
+    if (verbose) message('H0 genes requiring clipping: ', length(clip_genes),
+                         ' / ', n_genes)
+
+    # Pass 2: compute excess for clipped genes only
+    excess <- .lazy_h0_excess(data_own, W, mu, sd, split_scale, group_idx,
+                              clip_genes, chunk_sz, n_genes, n_cells, scale_max)
+
+    list(mu = mu, sd = sd, valid = valid, excess = excess)
+}
+
+.lazy_h0_excess <- function(data_own, W, mu, sd, split_scale, group_idx,
+                            clip_genes, chunk_sz, n_genes, n_cells, scale_max) {
+    if (length(clip_genes) == 0) return(NULL)
+
+    exc_cap <- max(1024L, length(clip_genes) * 10L)
+    exc_i <- integer(exc_cap)
+    exc_j <- integer(exc_cap)
+    exc_x <- numeric(exc_cap)
+    exc_n <- 0L
+
+    clip_chunks <- unique((clip_genes - 1L) %/% chunk_sz)
+    for (ch_idx in clip_chunks) {
+        ch_start <- ch_idx * chunk_sz + 1L
+        ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+        ri <- ch_start:ch_end
+        ri_clip <- ri[ri %in% clip_genes]
+        chunk <- as.matrix(data_own[ri_clip, , drop = FALSE] %*% W)
+        scan_idx <- if (split_scale) group_idx else list(seq_len(n_cells))
+        for (gr in seq_along(scan_idx)) {
+            cid <- scan_idx[[gr]]
+            if (split_scale) {
+                z_chunk <- (chunk[, cid, drop = FALSE] -
+                    mu[ri_clip, gr]) / sd[ri_clip, gr]
+            } else {
+                z_chunk <- (chunk - mu[ri_clip]) / sd[ri_clip]
+            }
+            wh <- which(z_chunk > scale_max, arr.ind = TRUE)
+            if (nrow(wh) > 0) {
+                new_n <- nrow(wh)
+                while (exc_n + new_n > length(exc_i)) {
+                    exc_cap <- exc_cap * 2L
+                    length(exc_i) <- exc_cap
+                    length(exc_j) <- exc_cap
+                    length(exc_x) <- exc_cap
+                }
+                idx <- seq(exc_n + 1L, exc_n + new_n)
+                exc_i[idx] <- ri_clip[wh[, 1]]
+                exc_j[idx] <- cid[wh[, 2]]
+                exc_x[idx] <- z_chunk[wh] - scale_max
+                exc_n <- exc_n + new_n
+            }
+        }
+    }
+
+    Matrix::sparseMatrix(
+        i = exc_i[1:exc_n], j = exc_j[1:exc_n],
+        x = exc_x[1:exc_n], dims = c(n_genes, n_cells))
+}
+
+# Lazy operator multiply (forward + adjoint)
 #' @export
 dim.BanksyLazy <- function(x) c(x$n_genes * 2L, x$n_cells)
 
+.as_base <- function(x) {
+    if (inherits(x, 'Matrix')) x <- as.matrix(x)
+    if (!is.matrix(x)) x <- as.matrix(x)
+    storage.mode(x) <- 'double'
+    x
+}
+
+.banksy_lazy_mult <- function(A, x, transpose = FALSE) {
+    if (inherits(x, 'BanksyLazy')) {
+        tmp <- A; A <- x; x <- tmp; transpose <- TRUE
+    }
+    x <- .as_base(x)
+    k <- ncol(x)
+
+    if (!transpose) {
+        .banksy_forward(A, x, k)
+    } else {
+        .banksy_adjoint(A, x, k)
+    }
+}
+
+.banksy_forward <- function(A, x, k) {
+    # A %*% x: x is n_cells x k
+    # clip(Z) %*% x = Z %*% x - excess %*% x
+    if (A$split_scale) {
+        own <- matrix(0, nrow = A$n_genes, ncol = k)
+        h0 <- matrix(0, nrow = A$n_genes, ncol = k)
+        for (gr in seq_along(A$group_idx)) {
+            cid <- A$group_idx[[gr]]
+            x_group <- x[cid, , drop = FALSE]
+            cs <- colSums(x_group)
+            own_group <- .as_base(A$gcm[, cid, drop = FALSE] %*% x_group)
+            own_group <- (own_group -
+                outer(A$mu[[1]][, gr], cs)) / A$sd[[1]][, gr]
+            if (!is.null(A$excess[[1]])) {
+                own_group <- own_group - .as_base(
+                    A$excess[[1]][, cid, drop = FALSE] %*% x_group)
+            }
+            own <- own + own_group
+
+            Wx <- .as_base(A$W[, cid, drop = FALSE] %*% x_group)
+            h0_group <- .as_base(A$gcm %*% Wx)
+            h0_group <- (h0_group -
+                outer(A$mu[[2]][, gr], cs)) / A$sd[[2]][, gr]
+            if (!is.null(A$excess[[2]])) {
+                h0_group <- h0_group - .as_base(
+                    A$excess[[2]][, cid, drop = FALSE] %*% x_group)
+            }
+            h0 <- h0 + h0_group
+        }
+        own[!A$valid[[1]], ] <- 0
+        h0[!A$valid[[2]], ] <- 0
+        own <- A$lam[1] * own
+        h0 <- A$lam[2] * h0
+    } else {
+        cs <- colSums(x)
+        own <- .as_base(A$gcm %*% x)
+        own <- A$lam[1] * (own - outer(A$mu[[1]], cs)) / A$sd[[1]]
+        if (!is.null(A$excess[[1]])) {
+            own <- own - A$lam[1] * .as_base(A$excess[[1]] %*% x)
+        }
+        Wx <- .as_base(A$W %*% x)
+        h0 <- .as_base(A$gcm %*% Wx)
+        h0 <- A$lam[2] * (h0 - outer(A$mu[[2]], cs)) / A$sd[[2]]
+        if (!is.null(A$excess[[2]])) {
+            h0 <- h0 - A$lam[2] * .as_base(A$excess[[2]] %*% x)
+        }
+    }
+    rbind(own, h0)
+}
+
+.banksy_adjoint <- function(A, x, k) {
+    # t(A) %*% x: x is (2*n_genes) x k
+    # t(clip(Z)) %*% x = t(Z) %*% x - t(excess) %*% x
+    ng <- A$n_genes
+    xo <- x[1:ng, , drop = FALSE]
+    xh <- x[(ng+1):(2*ng), , drop = FALSE]
+    if (A$split_scale) {
+        xo[!A$valid[[1]], ] <- 0
+        xh[!A$valid[[2]], ] <- 0
+        r <- matrix(0, nrow = A$n_cells, ncol = k)
+        for (gr in seq_along(A$group_idx)) {
+            cid <- A$group_idx[[gr]]
+            xo_s <- xo / A$sd[[1]][, gr]
+            xh_s <- xh / A$sd[[2]][, gr]
+            adj_o <- colSums(A$mu[[1]][, gr] * xo_s)
+            own <- .as_base(crossprod(
+                A$gcm[, cid, drop = FALSE], xo_s)) -
+                matrix(adj_o, length(cid), k, byrow = TRUE)
+            if (!is.null(A$excess[[1]])) {
+                own <- own - .as_base(crossprod(
+                    A$excess[[1]][, cid, drop = FALSE], xo))
+            }
+            adj_h <- colSums(A$mu[[2]][, gr] * xh_s)
+            ht <- .as_base(crossprod(A$gcm, xh_s))
+            ht <- .as_base(crossprod(
+                A$W[, cid, drop = FALSE], ht))
+            ht <- ht - matrix(adj_h, length(cid), k, byrow = TRUE)
+            if (!is.null(A$excess[[2]])) {
+                ht <- ht - .as_base(crossprod(
+                    A$excess[[2]][, cid, drop = FALSE], xh))
+            }
+            r[cid, ] <- A$lam[1] * own + A$lam[2] * ht
+        }
+    } else {
+        xo_s <- xo / A$sd[[1]]
+        xh_s <- xh / A$sd[[2]]
+        adj_o <- colSums(A$mu[[1]] * xo_s)
+        r <- A$lam[1] * (.as_base(crossprod(A$gcm, xo_s)) -
+             matrix(adj_o, A$n_cells, k, byrow = TRUE))
+        if (!is.null(A$excess[[1]])) {
+            r <- r - A$lam[1] * .as_base(crossprod(A$excess[[1]], xo))
+        }
+        adj_h <- colSums(A$mu[[2]] * xh_s)
+        ht <- .as_base(crossprod(A$gcm, xh_s))
+        ht <- .as_base(crossprod(A$W, ht))
+        ht <- ht - matrix(adj_h, A$n_cells, k, byrow = TRUE)
+        r <- r + A$lam[2] * ht
+        if (!is.null(A$excess[[2]])) {
+            r <- r - A$lam[2] * .as_base(crossprod(A$excess[[2]], xh))
+        }
+    }
+    r
+}
+
+# Standard path: materialize full BANKSY matrix as a Seurat assay
+.banksy_standard <- function(object, data_own, knn_list, M, lambda, group,
+                             split.scale, assay, slot, assay_name, verbose,
+                             chunk_size, parallel, num_cores) {
+    # Compute harmonics
+    center <- rep(TRUE, length(M))
+    center[1] <- FALSE
+    har <- Map(function(knn_df, M, center) {
+      x <- Banksy:::computeHarmonics(gcm=data_own,
+                                     knn_df=knn_df,
+                                     M=M, center=center,
+                                     verbose=verbose,
+                                     chunk_size=chunk_size,
+                                     parallel=parallel,
+                                     num_cores=num_cores)
+      rownames(x) <- paste0(rownames(x), '.m', M)
+      x
+    }, knn_list, M, center)
+
+    # Scale by lambdas
+    lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
+
+    # Merge with own expression (coerce to dense for Seurat operations)
+    if (verbose) message('Creating Banksy matrix')
+    data_own <- as.matrix(data_own)
+    data_banksy <- c(list(data_own), har)
+    if (verbose) message('Scaling BANKSY matrix. Do not call ScaleData on assay ', assay_name)
+    data_scaled <- lapply(data_banksy, fast_scaler,
+                          object, group, split.scale, verbose)
+
+    # Multiple by lambdas
+    data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
+    data_scaled <- Map(function(lam, mat) lam * mat, lambdas, data_scaled)
+
+    # Rbind
+    data_banksy <- do.call(rbind, data_banksy)
+    data_scaled <- do.call(rbind, data_scaled)
+
+    # Create an assay object
+    if (grepl(pattern = 'counts', x = slot)) {
+        banksy_assay <- Seurat::CreateAssayObject(counts = data_banksy)
+    } else {
+        banksy_assay <- Seurat::CreateAssayObject(data = data_banksy)
+    }
+
+    # Add assay to Seurat object and set as default
+    if (verbose) message('Setting default assay to ', assay_name)
+    object[[assay_name]] <- banksy_assay
+    DefaultAssay(object) <- assay_name
+    object <- SetAssayData(object, layer = 'scale.data', new.data = data_scaled,
+                           assay = assay_name)
+    object
+}
+
+# Helpers
 # Get own expression matrix from Seurat object
 get_data <- function(object, assay, slot, features, verbose) {
     # Fetch data from Seurat
