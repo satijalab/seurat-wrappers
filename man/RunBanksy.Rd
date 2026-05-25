@@ -28,6 +28,8 @@ RunBanksy(
   chunk_size = NULL,
   parallel = FALSE,
   num_cores = NULL,
+  lazy = FALSE,
+  npcs = 50L,
   verbose = TRUE
 )
 }
@@ -77,7 +79,8 @@ a vector of feature names}
  \item{rNN_gauss: radial nearest neighbors with Gaussian kernel}
 }}
 
-\item{assay_name}{(character) Name for Banksy assay in Seurat object}
+\item{assay_name}{(character) Name for output. When lazy=FALSE, names the
+BANKSY assay. When lazy=TRUE, names the dimensionality reduction.}
 
 \item{M}{(numeric) Advanced usage. Highest azimuthal harmonic}
 
@@ -92,10 +95,19 @@ parallel using bplapply. Not implemented for Windows.}
 \item{num_cores}{A integer scalar specifying the number of cores to use
 if parallel is TRUE.}
 
+\item{lazy}{(boolean) If TRUE, compute PCA directly without materializing
+the full BANKSY matrix. Enables analysis of very large datasets (millions
+of cells) that would otherwise exceed available memory. Currently only
+supported for M=0 (no AGF). Requires the irlba package.}
+
+\item{npcs}{(integer) Number of PCs to compute when lazy=TRUE (default 50)}
+
 \item{verbose}{(boolean) Print messages}
 }
 \value{
-A Seurat object with new assay holding a Banksy matrix
+A Seurat object. If lazy=FALSE, contains a new assay holding the
+  BANKSY matrix. If lazy=TRUE, contains a dimensionality reduction named
+  by assay_name with PCA embeddings computed on the BANKSY matrix.
 }
 \description{
 Run Banksy on a Seurat Object
