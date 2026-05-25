@@ -2,14 +2,14 @@
 title: "Running BANKSY with Seurat"
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 output:
-  github_document:
-    html_preview: true
-    toc: true
   html_document:
     df_print: kable
     theme: simplex
     toc: true
     toc_float: true
+  github_document:
+    html_preview: true
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -612,8 +612,7 @@ ImageDimPlot(xenium, size = 0.5, cols = pal) +
           panel.background = element_rect(fill = 'white'))
 ```
 
-<details>
-<summary>Equivalence with the standard workflow</summary>
+<details><summary>Equivalence with the standard workflow</summary>
 
 The standard workflow constructs the full BANKSY matrix `M` by vertically
 stacking the z-scored expression matrix and the z-scored neighborhood-smoothed
@@ -712,8 +711,7 @@ cat('Adjusted Rand Index:', round(ari, 4), '\n')
 
 For more information, visit https://github.com/prabhakarlab/Banksy. 
 
-<details>
-  <summary>Vignette runtime</summary>
+<details><summary>Vignette runtime</summary>
 
 ```{r echo=FALSE}
 Sys.time() - t0
@@ -722,8 +720,7 @@ Sys.time() - t0
 </details>
 
 
-<details>
-  <summary>Session info</summary>
+<details><summary>Session info</summary>
   
 ```{r, sess}
 sessionInfo()
