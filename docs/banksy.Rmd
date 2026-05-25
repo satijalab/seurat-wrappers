@@ -546,7 +546,8 @@ $O(\text{nnz}(\text{input}))$ (the number of non-zero entries in the sparse
 input), since only the sparse input and sparse weight matrix are held in memory.
 
 **Note**: `lazy=TRUE` currently supports M=0 only (no azimuthal Gabor
-filter).
+filter). When `group` is specified, `split.scale=TRUE` applies within-group
+scaling in the lazy workflow as in the standard workflow.
 
 This feature requires the development versions of Banksy and SeuratWrappers:
 
@@ -667,10 +668,11 @@ principal angles between the top-k subspaces from each path. A minimum cosine
 near 1 means the two subspaces are effectively identical:
 
 ```{r xenium_subspace, fig.align='center', fig.height=4, fig.width=6}
+Q1 <- qr.Q(qr(U1))
+Q2 <- qr.Q(qr(U2))
 subspace_cos <- sapply(seq_len(npcs), function(k) {
-    Q1 <- qr.Q(qr(U1[, 1:k, drop = FALSE]))
-    Q2 <- qr.Q(qr(U2[, 1:k, drop = FALSE]))
-    min(svd(crossprod(Q1, Q2))$d)
+    min(svd(crossprod(Q1[, 1:k, drop = FALSE],
+                      Q2[, 1:k, drop = FALSE]))$d)
 })
 
 plot(seq_len(npcs), subspace_cos, type = 'b', pch = 19, ylim = c(0.5, 1),
