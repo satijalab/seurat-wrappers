@@ -86,39 +86,71 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
     # Get data
     data_own <- get_data(object, assay, slot, features, verbose)
 
-    # Get locs
-    locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, group, verbose)
-    if (!is.null(group)) {
-        object <- AddMetaData(
-            object, metadata = locs,
-            col.name = paste0('staggered_', colnames(locs)))
-    }
-
-    # Compute neighbor matrix
-    knn_list <- lapply(k_geom, function(kg) {
-      Banksy:::computeNeighbors(locs,
-                                spatial_mode = spatial_mode, k_geom = kg, n = n,
-                                sigma=sigma, alpha=alpha, k_spatial=k_spatial,
-                                verbose=verbose)
-    })
-
     # Resolve harmonics
     M <- seq(0, max(Banksy:::getM(use_agf, M)))
 
-    if (!lazy && nrow(data_own) * ncol(data_own) > 1e8) {
-        message('Note: dataset is large (', nrow(data_own), ' features x ',
-                ncol(data_own), ' cells). Consider using lazy=TRUE for ',
-                'memory-efficient PCA without materializing the full BANKSY matrix.')
-    }
+    # Per-group lazy path: kNN per group on raw coordinates
+    if (lazy && !is.null(group)) {
+        locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own,
+                         group = NULL, verbose)
+        stag <- get_locs(object, dimx, dimy, dimz, ndim, data_own,
+                         group, verbose)
+        object <- AddMetaData(object, metadata = stag,
+                              col.name = paste0('staggered_', colnames(stag)))
 
-    if (lazy) {
+        groups_vec <- unlist(object[[group]])
+        ugroups <- unique(groups_vec)
+        group_idx <- lapply(ugroups, function(g) which(g == groups_vec))
+
+        if (verbose) {
+            message('Computing per-group neighbors')
+            for (gr in seq_along(group_idx))
+                message('  ', ugroups[gr], ': ', length(group_idx[[gr]]), ' cells')
+        }
+        group_knn <- future.apply::future_lapply(seq_along(group_idx), function(gr) {
+          cid <- group_idx[[gr]]
+          lapply(k_geom, function(kg)
+            Banksy:::computeNeighbors(
+              locs[cid, , drop = FALSE],
+              spatial_mode = spatial_mode, k_geom = kg,
+              n = n, sigma = sigma, alpha = alpha,
+              k_spatial = k_spatial, verbose = FALSE))
+        }, future.seed = TRUE)
+
         object <- .banksy_lazy_pca(
-            object, data_own, knn_list, M, lambda, group, split.scale,
-            assay, assay_name, npcs, scale_max, verbose)
+            object, data_own, NULL, M, lambda, group, split.scale,
+            assay, assay_name, npcs, scale_max, verbose,
+            group_knn = group_knn, group_idx = group_idx)
     } else {
-        object <- .banksy_standard(
-            object, data_own, knn_list, M, lambda, group, split.scale,
-            assay, slot, assay_name, verbose, chunk_size, parallel, num_cores)
+        locs <- get_locs(object, dimx, dimy, dimz, ndim, data_own, group, verbose)
+        if (!is.null(group)) {
+            object <- AddMetaData(
+                object, metadata = locs,
+                col.name = paste0('staggered_', colnames(locs)))
+        }
+
+        knn_list <- lapply(k_geom, function(kg) {
+          Banksy:::computeNeighbors(locs,
+                                    spatial_mode = spatial_mode, k_geom = kg,
+                                    n = n, sigma = sigma, alpha = alpha,
+                                    k_spatial = k_spatial, verbose = verbose)
+        })
+
+        if (!lazy && nrow(data_own) * ncol(data_own) > 1e8) {
+            message('Note: dataset is large (', nrow(data_own), ' features x ',
+                    ncol(data_own), ' cells). Consider using lazy=TRUE for ',
+                    'memory-efficient PCA without materializing the full BANKSY matrix.')
+        }
+
+        if (lazy) {
+            object <- .banksy_lazy_pca(
+                object, data_own, knn_list, M, lambda, group, split.scale,
+                assay, assay_name, npcs, scale_max, verbose)
+        } else {
+            object <- .banksy_standard(
+                object, data_own, knn_list, M, lambda, group, split.scale,
+                assay, slot, assay_name, verbose, chunk_size, parallel, num_cores)
+        }
     }
 
     # Log commands
@@ -129,28 +161,17 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
 # Lazy PCA path
 .banksy_lazy_pca <- function(object, data_own, knn_list, M, lambda, group,
                              split.scale, assay, assay_name, npcs, scale_max,
-                             verbose) {
+                             verbose,
+                             group_knn = NULL, group_idx = NULL) {
     # Guards
     if (max(M) > 0) stop('lazy=TRUE currently only supports M=0 (no AGF)')
-    if (!is.null(group) && !split.scale) {
-        if (verbose) warning('lazy=TRUE: group is used for spatial ',
-                             'staggering only; scaling is performed globally')
-    }
     SeuratWrappers:::CheckPackage(package = 'irlba', repository = 'CRAN')
 
     n_genes <- nrow(data_own)
     n_cells <- ncol(data_own)
     lambdas <- Banksy:::getLambdas(lambda, n_harmonics = 1)
-
-    # Determine split-scale grouping
+    has_groups <- !is.null(group_knn)
     split_scale <- !is.null(group) && split.scale
-    if (split_scale) {
-        groups <- unlist(object[[group]])
-        ugroups <- unique(groups)
-        group_idx <- lapply(ugroups, function(g) which(g == groups))
-    } else {
-        group_idx <- NULL
-    }
 
     # Validate npcs
     max_npcs <- min(2L * n_genes, n_cells) - 1L
@@ -162,38 +183,88 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
         stop('lazy=TRUE requires at least 3 genes and 6 cells')
     }
 
-    # Build sparse weight matrix
-    if (verbose) message('Building sparse weight matrix')
-    W <- Banksy:::.buildWeightMatrix(knn_list[[1]], n_cells)
+    if (has_groups) {
+        # Per-group decomposition
+        if (verbose) message('Building per-group weight matrices')
+        gcm_list <- lapply(group_idx, function(cid)
+            data_own[, cid, drop = FALSE])
+        W_list <- lapply(seq_along(group_idx), function(gr)
+            Banksy:::.buildWeightMatrix(group_knn[[gr]][[1]],
+                                        length(group_idx[[gr]])))
 
-    # Compute scaling parameters and clipping excess
-    own_result <- .lazy_own_scaling(data_own, split_scale, group_idx,
-                                    groups = if (split_scale) groups else NULL,
-                                    ugroups = if (split_scale) ugroups else NULL,
-                                    n_genes, n_cells, scale_max, verbose)
-    h0_result <- .lazy_h0_scaling(data_own, W, split_scale, group_idx,
-                                  n_genes, n_cells, scale_max, verbose)
+        groups <- if (split_scale) unlist(object[[group]]) else NULL
+        ugroups <- if (split_scale) unique(groups) else NULL
+        own_result <- .lazy_own_scaling(data_own, split_scale, group_idx,
+                                        groups, ugroups,
+                                        n_genes, n_cells, scale_max, verbose)
+        h0_result <- .lazy_h0_scaling_grouped(
+            gcm_list, W_list, split_scale, group_idx,
+            n_genes, n_cells, scale_max, verbose)
 
-    if (verbose) {
-        n_own_clip <- if (!is.null(own_result$excess)) length(own_result$excess@x) else 0
-        n_h0_clip <- if (!is.null(h0_result$excess)) length(h0_result$excess@x) else 0
-        message('Clipping corrections: own=', n_own_clip, ' H0=', n_h0_clip, ' entries')
+        if (verbose) {
+            n_own_clip <- if (!is.null(own_result$excess)) length(own_result$excess@x) else 0
+            n_h0_clip <- if (!is.null(h0_result$excess)) length(h0_result$excess@x) else 0
+            message('Clipping corrections: own=', n_own_clip,
+                    ' H0=', n_h0_clip, ' entries')
+        }
+
+        banksy_op <- structure(list(
+            gcm_list = gcm_list, W_list = W_list,
+            mu = list(own_result$mu, h0_result$mu),
+            sd = list(own_result$sd, h0_result$sd),
+            lam = lambdas,
+            excess = list(own_result$excess, h0_result$excess),
+            valid = list(own_result$valid, h0_result$valid),
+            has_groups = TRUE,
+            split_scale = split_scale,
+            group_idx = group_idx,
+            n_genes = n_genes, n_cells = n_cells
+        ), class = 'BanksyLazy')
+    } else {
+        # Single-matrix path
+        if (!is.null(group) && !split.scale) {
+            if (verbose) warning('lazy=TRUE: group is used for spatial ',
+                                 'staggering only; scaling is performed globally')
+        }
+
+        if (split_scale) {
+            groups <- unlist(object[[group]])
+            ugroups <- unique(groups)
+            group_idx <- lapply(ugroups, function(g) which(g == groups))
+        }
+
+        if (verbose) message('Building sparse weight matrix')
+        W <- Banksy:::.buildWeightMatrix(knn_list[[1]], n_cells)
+
+        own_result <- .lazy_own_scaling(data_own, split_scale, group_idx,
+                                        groups = if (split_scale) groups else NULL,
+                                        ugroups = if (split_scale) ugroups else NULL,
+                                        n_genes, n_cells, scale_max, verbose)
+        h0_result <- .lazy_h0_scaling(data_own, W, split_scale, group_idx,
+                                      n_genes, n_cells, scale_max, verbose)
+
+        if (verbose) {
+            n_own_clip <- if (!is.null(own_result$excess)) length(own_result$excess@x) else 0
+            n_h0_clip <- if (!is.null(h0_result$excess)) length(h0_result$excess@x) else 0
+            message('Clipping corrections: own=', n_own_clip,
+                    ' H0=', n_h0_clip, ' entries')
+        }
+
+        banksy_op <- structure(list(
+            gcm = data_own, W = W,
+            mu = list(own_result$mu, h0_result$mu),
+            sd = list(own_result$sd, h0_result$sd),
+            lam = lambdas,
+            excess = list(own_result$excess, h0_result$excess),
+            valid = list(own_result$valid, h0_result$valid),
+            has_groups = FALSE,
+            split_scale = split_scale,
+            group_idx = group_idx,
+            n_genes = n_genes, n_cells = n_cells
+        ), class = 'BanksyLazy')
     }
 
-    # Build operator struct
-    banksy_op <- structure(list(
-        gcm = data_own, W = W,
-        mu = list(own_result$mu, h0_result$mu),
-        sd = list(own_result$sd, h0_result$sd),
-        lam = lambdas,
-        excess = list(own_result$excess, h0_result$excess),
-        valid = list(own_result$valid, h0_result$valid),
-        split_scale = split_scale,
-        group_idx = group_idx,
-        n_genes = n_genes, n_cells = n_cells
-    ), class = 'BanksyLazy')
-
-    # Run irlba and store result
+    # Run irlba
     if (verbose) message('Computing BANKSY PCA (', npcs, ' PCs) via lazy operator')
     pca <- irlba::irlba(banksy_op, nv = npcs, mult = .banksy_lazy_mult)
 
@@ -450,9 +521,137 @@ RunBanksy <- function(object, lambda, assay='RNA', slot='data', use_agf=FALSE,
         }
     }
 
+    if (exc_n == 0L) return(NULL)
     Matrix::sparseMatrix(
         i = exc_i[1:exc_n], j = exc_j[1:exc_n],
         x = exc_x[1:exc_n], dims = c(n_genes, n_cells))
+}
+
+# Per-group H0 scaling: avoid materializing n_cells-wide dense intermediates
+.lazy_h0_scaling_grouped <- function(gcm_list, W_list, split_scale, group_idx,
+                                     n_genes, n_cells, scale_max, verbose) {
+    if (verbose) message('Computing scaling params and clipping for H0 (per-group)')
+    n_groups <- length(gcm_list)
+    target_bytes <- 2e9
+
+    # Per-group sufficient statistics (parallel across groups)
+    if (verbose) {
+        for (gr in seq_along(gcm_list)) {
+            n_g <- ncol(gcm_list[[gr]])
+            chunk_sz <- max(10L, as.integer(floor(target_bytes / (8 * n_g))))
+            message('  Group ', gr, ': ', n_g, ' cells, chunk_sz=', chunk_sz)
+        }
+    }
+    group_stats <- future.apply::future_lapply(seq_along(gcm_list), function(gr) {
+        n_g <- ncol(gcm_list[[gr]])
+        chunk_sz <- max(10L, as.integer(floor(target_bytes / (8 * n_g))))
+        mu_gr <- numeric(n_genes)
+        ss_gr <- numeric(n_genes)
+        max_gr <- rep(-Inf, n_genes)
+        for (ch_start in seq(1L, n_genes, by = chunk_sz)) {
+            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+            ri <- ch_start:ch_end
+            chunk <- as.matrix(
+                gcm_list[[gr]][ri, , drop = FALSE] %*% W_list[[gr]])
+            mu_gr[ri] <- rowMeans(chunk)
+            ss_gr[ri] <- rowSums(chunk * chunk)
+            max_gr[ri] <- apply(chunk, 1, max)
+        }
+        list(mu = mu_gr, ss = ss_gr, max_val = max_gr)
+    }, future.seed = TRUE)
+
+    mu_g <- matrix(0, nrow = n_genes, ncol = n_groups)
+    ss_g <- matrix(0, nrow = n_genes, ncol = n_groups)
+    max_g <- matrix(-Inf, nrow = n_genes, ncol = n_groups)
+    for (gr in seq_along(group_stats)) {
+        mu_g[, gr] <- group_stats[[gr]]$mu
+        ss_g[, gr] <- group_stats[[gr]]$ss
+        max_g[, gr] <- group_stats[[gr]]$max_val
+    }
+
+    # Derive mu, sd, valid
+    if (split_scale) {
+        mu <- mu_g
+        sd <- matrix(0, nrow = n_genes, ncol = n_groups)
+        for (gr in seq_along(group_idx)) {
+            n_c <- as.double(length(group_idx[[gr]]))
+            sd[, gr] <- sqrt(pmax(
+                n_c / (n_c - 1) * (ss_g[, gr] / n_c - mu[, gr]^2), 0
+            ))
+        }
+        valid <- rowSums(sd == 0) == 0
+        sd[sd == 0] <- 1
+        thresh <- mu + scale_max * sd
+        max_h0 <- max_g
+    } else {
+        # Combine per-group stats into global
+        n_g_vec <- vapply(group_idx, length, integer(1))
+        mu <- rowSums(sweep(mu_g, 2, n_g_vec, `*`)) / n_cells
+        ss <- rowSums(ss_g)
+        n_c <- as.double(n_cells)
+        sd <- sqrt(pmax(n_c / (n_c - 1) * (ss / n_c - mu * mu), 0))
+        sd[sd == 0] <- 1
+        thresh <- mu + scale_max * sd
+        max_h0 <- apply(max_g, 1, max)
+        valid <- NULL
+    }
+
+    # Identify genes that need clipping
+    if (split_scale) {
+        clip_genes <- which(valid & rowSums(max_g > thresh) > 0)
+    } else {
+        clip_genes <- which(max_h0 > thresh)
+    }
+    if (verbose) message('H0 genes requiring clipping: ', length(clip_genes),
+                         ' / ', n_genes)
+
+    # Compute excess for clipped genes
+    excess <- .lazy_h0_excess_grouped(
+        gcm_list, W_list, mu, sd, split_scale, group_idx,
+        clip_genes, n_genes, n_cells, scale_max, target_bytes)
+
+    list(mu = mu, sd = sd, valid = valid, excess = excess)
+}
+
+.lazy_h0_excess_grouped <- function(gcm_list, W_list, mu, sd, split_scale,
+                                    group_idx, clip_genes, n_genes, n_cells,
+                                    scale_max, target_bytes) {
+    if (length(clip_genes) == 0) return(NULL)
+
+    # Parallel across groups
+    group_exc <- future.apply::future_lapply(seq_along(gcm_list), function(gr) {
+        n_g <- ncol(gcm_list[[gr]])
+        chunk_sz <- max(10L, as.integer(floor(target_bytes / (8 * n_g))))
+        ei <- integer(0); ej <- integer(0); ex <- numeric(0)
+        clip_chunks <- unique((clip_genes - 1L) %/% chunk_sz)
+        for (ch_idx in clip_chunks) {
+            ch_start <- ch_idx * chunk_sz + 1L
+            ch_end <- min(ch_start + chunk_sz - 1L, n_genes)
+            ri <- ch_start:ch_end
+            ri_clip <- ri[ri %in% clip_genes]
+            chunk <- as.matrix(
+                gcm_list[[gr]][ri_clip, , drop = FALSE] %*% W_list[[gr]])
+            if (split_scale) {
+                z_chunk <- (chunk - mu[ri_clip, gr]) / sd[ri_clip, gr]
+            } else {
+                z_chunk <- (chunk - mu[ri_clip]) / sd[ri_clip]
+            }
+            wh <- which(z_chunk > scale_max, arr.ind = TRUE)
+            if (nrow(wh) > 0) {
+                ei <- c(ei, ri_clip[wh[, 1]])
+                ej <- c(ej, group_idx[[gr]][wh[, 2]])
+                ex <- c(ex, z_chunk[wh] - scale_max)
+            }
+        }
+        list(i = ei, j = ej, x = ex)
+    }, future.seed = TRUE)
+
+    all_i <- unlist(lapply(group_exc, `[[`, "i"))
+    all_j <- unlist(lapply(group_exc, `[[`, "j"))
+    all_x <- unlist(lapply(group_exc, `[[`, "x"))
+    if (length(all_i) == 0L) return(NULL)
+    Matrix::sparseMatrix(i = all_i, j = all_j, x = all_x,
+                         dims = c(n_genes, n_cells))
 }
 
 # Lazy operator multiply (forward + adjoint)
@@ -483,7 +682,55 @@ dim.BanksyLazy <- function(x) c(x$n_genes * 2L, x$n_cells)
 .banksy_forward <- function(A, x, k) {
     # A %*% x: x is n_cells x k
     # clip(Z) %*% x = Z %*% x - excess %*% x
-    if (A$split_scale) {
+    if (isTRUE(A$has_groups)) {
+        own <- matrix(0, nrow = A$n_genes, ncol = k)
+        h0 <- matrix(0, nrow = A$n_genes, ncol = k)
+        if (A$split_scale) {
+            for (gr in seq_along(A$group_idx)) {
+                cid <- A$group_idx[[gr]]
+                x_group <- x[cid, , drop = FALSE]
+                cs <- colSums(x_group)
+                own_group <- .as_base(A$gcm_list[[gr]] %*% x_group)
+                own_group <- (own_group -
+                    outer(A$mu[[1]][, gr], cs)) / A$sd[[1]][, gr]
+                if (!is.null(A$excess[[1]])) {
+                    own_group <- own_group - .as_base(
+                        A$excess[[1]][, cid, drop = FALSE] %*% x_group)
+                }
+                own <- own + own_group
+                Wx_g <- .as_base(A$W_list[[gr]] %*% x_group)
+                h0_group <- .as_base(A$gcm_list[[gr]] %*% Wx_g)
+                h0_group <- (h0_group -
+                    outer(A$mu[[2]][, gr], cs)) / A$sd[[2]][, gr]
+                if (!is.null(A$excess[[2]])) {
+                    h0_group <- h0_group - .as_base(
+                        A$excess[[2]][, cid, drop = FALSE] %*% x_group)
+                }
+                h0 <- h0 + h0_group
+            }
+            own[!A$valid[[1]], ] <- 0
+            h0[!A$valid[[2]], ] <- 0
+            own <- A$lam[1] * own
+            h0 <- A$lam[2] * h0
+        } else {
+            for (gr in seq_along(A$group_idx)) {
+                cid <- A$group_idx[[gr]]
+                x_group <- x[cid, , drop = FALSE]
+                own <- own + .as_base(A$gcm_list[[gr]] %*% x_group)
+                Wx_g <- .as_base(A$W_list[[gr]] %*% x_group)
+                h0 <- h0 + .as_base(A$gcm_list[[gr]] %*% Wx_g)
+            }
+            cs <- colSums(x)
+            own <- A$lam[1] * (own - outer(A$mu[[1]], cs)) / A$sd[[1]]
+            h0 <- A$lam[2] * (h0 - outer(A$mu[[2]], cs)) / A$sd[[2]]
+            if (!is.null(A$excess[[1]])) {
+                own <- own - A$lam[1] * .as_base(A$excess[[1]] %*% x)
+            }
+            if (!is.null(A$excess[[2]])) {
+                h0 <- h0 - A$lam[2] * .as_base(A$excess[[2]] %*% x)
+            }
+        }
+    } else if (A$split_scale) {
         own <- matrix(0, nrow = A$n_genes, ncol = k)
         h0 <- matrix(0, nrow = A$n_genes, ncol = k)
         for (gr in seq_along(A$group_idx)) {
@@ -498,7 +745,6 @@ dim.BanksyLazy <- function(x) c(x$n_genes * 2L, x$n_cells)
                     A$excess[[1]][, cid, drop = FALSE] %*% x_group)
             }
             own <- own + own_group
-
             Wx <- .as_base(A$W[, cid, drop = FALSE] %*% x_group)
             h0_group <- .as_base(A$gcm %*% Wx)
             h0_group <- (h0_group -
@@ -536,7 +782,56 @@ dim.BanksyLazy <- function(x) c(x$n_genes * 2L, x$n_cells)
     ng <- A$n_genes
     xo <- x[1:ng, , drop = FALSE]
     xh <- x[(ng+1):(2*ng), , drop = FALSE]
-    if (A$split_scale) {
+    if (isTRUE(A$has_groups)) {
+        r <- matrix(0, nrow = A$n_cells, ncol = k)
+        if (A$split_scale) {
+            xo[!A$valid[[1]], ] <- 0
+            xh[!A$valid[[2]], ] <- 0
+            for (gr in seq_along(A$group_idx)) {
+                cid <- A$group_idx[[gr]]
+                n_g <- length(cid)
+                xo_s <- xo / A$sd[[1]][, gr]
+                xh_s <- xh / A$sd[[2]][, gr]
+                adj_o <- colSums(A$mu[[1]][, gr] * xo_s)
+                own <- .as_base(crossprod(A$gcm_list[[gr]], xo_s)) -
+                    matrix(adj_o, n_g, k, byrow = TRUE)
+                if (!is.null(A$excess[[1]])) {
+                    own <- own - .as_base(crossprod(
+                        A$excess[[1]][, cid, drop = FALSE], xo))
+                }
+                adj_h <- colSums(A$mu[[2]][, gr] * xh_s)
+                ht_g <- .as_base(crossprod(A$gcm_list[[gr]], xh_s))
+                ht_g <- .as_base(crossprod(A$W_list[[gr]], ht_g))
+                ht_g <- ht_g - matrix(adj_h, n_g, k, byrow = TRUE)
+                if (!is.null(A$excess[[2]])) {
+                    ht_g <- ht_g - .as_base(crossprod(
+                        A$excess[[2]][, cid, drop = FALSE], xh))
+                }
+                r[cid, ] <- A$lam[1] * own + A$lam[2] * ht_g
+            }
+        } else {
+            xo_s <- xo / A$sd[[1]]
+            xh_s <- xh / A$sd[[2]]
+            adj_o <- colSums(A$mu[[1]] * xo_s)
+            adj_h <- colSums(A$mu[[2]] * xh_s)
+            for (gr in seq_along(A$group_idx)) {
+                cid <- A$group_idx[[gr]]
+                n_g <- length(cid)
+                own <- .as_base(crossprod(A$gcm_list[[gr]], xo_s)) -
+                    matrix(adj_o, n_g, k, byrow = TRUE)
+                ht_g <- .as_base(crossprod(A$gcm_list[[gr]], xh_s))
+                ht_g <- .as_base(crossprod(A$W_list[[gr]], ht_g))
+                ht_g <- ht_g - matrix(adj_h, n_g, k, byrow = TRUE)
+                r[cid, ] <- A$lam[1] * own + A$lam[2] * ht_g
+            }
+            if (!is.null(A$excess[[1]])) {
+                r <- r - A$lam[1] * .as_base(crossprod(A$excess[[1]], xo))
+            }
+            if (!is.null(A$excess[[2]])) {
+                r <- r - A$lam[2] * .as_base(crossprod(A$excess[[2]], xh))
+            }
+        }
+    } else if (A$split_scale) {
         xo[!A$valid[[1]], ] <- 0
         xh[!A$valid[[2]], ] <- 0
         r <- matrix(0, nrow = A$n_cells, ncol = k)
@@ -701,10 +996,12 @@ get_locs <- function(object, dimx, dimy, dimz, ndim, data_own, group, verbose) {
         if (verbose) message('Staggering locations by ', group)
         locs[,1] = locs[,1] + abs(min(locs[,1]))
         max_x = max(locs[,1]) * 2
-        n_groups = length(unique(unlist(object[[group]])))
-        shift = seq(from = 0, length.out = n_groups, by = max_x)
-        shift_order = match(unique(unlist(object[[group]])), names(table(object[[group]])))
-        locs[, 1] = locs[, 1] + rep(shift, table(object[[group]])[shift_order])
+        groups_vec <- unlist(object[[group]])
+        ugroups <- unique(groups_vec)
+        shift <- setNames(
+            seq(from = 0, length.out = length(ugroups), by = max_x),
+            ugroups)
+        locs[, 1] = locs[, 1] + shift[groups_vec]
     }
 
     return(locs)
