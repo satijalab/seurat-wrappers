@@ -33,6 +33,7 @@ Remotes: welch-lab/liger,
 Depends:
     R (>= 3.5.0)
 biocViews:
+LinkingTo: Rcpp
 Imports:
     BiocManager,
     cowplot,
@@ -40,6 +41,7 @@ Imports:
     igraph,
     Matrix,
     methods,
+    Rcpp,
     remotes,
     rsvd,
     Seurat (>= 5.0.0),
@@ -47,6 +49,7 @@ Imports:
     utils,
     rlang
 Collate:
+    'RcppExports.R'
     'internal.R'
     'alevin.R'
     'alra.R'

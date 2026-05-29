@@ -1,6 +1,8 @@
 #' @importFrom BiocManager install
 #' @importFrom remotes install_github
 #' @importFrom Seurat IsGlobal Reductions
+#' @importFrom Rcpp sourceCpp
+#' @useDynLib SeuratWrappers, .registration = TRUE
 #'
 NULL
 
