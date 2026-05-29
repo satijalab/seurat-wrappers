@@ -25,6 +25,12 @@ RunBanksy(
   spatial_mode = "kNN_median",
   assay_name = "BANKSY",
   M = NULL,
+  chunk_size = NULL,
+  parallel = FALSE,
+  num_cores = NULL,
+  lazy = FALSE,
+  npcs = 50L,
+  scale_max = 10,
   verbose = TRUE
 )
 }
@@ -74,14 +80,39 @@ a vector of feature names}
  \item{rNN_gauss: radial nearest neighbors with Gaussian kernel}
 }}
 
-\item{assay_name}{(character) Name for Banksy assay in Seurat object}
+\item{assay_name}{(character) Name for output. When lazy=FALSE, names the
+BANKSY assay. When lazy=TRUE, names the dimensionality reduction.}
 
 \item{M}{(numeric) Advanced usage. Highest azimuthal harmonic}
+
+\item{chunk_size}{A integer scalar specifying the number of rows / genes of
+the neighborhood cell matrix to compute. Must be less than floor of
+2e31-1 / number of cells. This is automatically computed but can be
+specified.}
+
+\item{parallel}{A logical scalar specifying whether to compute chunks in
+parallel using bplapply. Not implemented for Windows.}
+
+\item{num_cores}{A integer scalar specifying the number of cores to use
+if parallel is TRUE.}
+
+\item{lazy}{(boolean) If TRUE, compute PCA directly without materializing
+the full BANKSY matrix. Enables analysis of very large datasets (millions
+of cells) that would otherwise exceed available memory. Currently only
+supported for M=0 (no AGF). Supports within-group scaling with
+\code{split.scale=TRUE}. Requires the irlba package.}
+
+\item{npcs}{(integer) Number of PCs to compute when lazy=TRUE (default 50)}
+
+\item{scale_max}{(numeric) Maximum absolute z-score for clipping when
+lazy=TRUE. Matches Seurat's FastRowScale default of 10.}
 
 \item{verbose}{(boolean) Print messages}
 }
 \value{
-A Seurat object with new assay holding a Banksy matrix
+A Seurat object. If lazy=FALSE, contains a new assay holding the
+  BANKSY matrix. If lazy=TRUE, contains a dimensionality reduction named
+  by assay_name with PCA embeddings computed on the BANKSY matrix.
 }
 \description{
 Run Banksy on a Seurat Object
