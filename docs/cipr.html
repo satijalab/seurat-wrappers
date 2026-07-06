@@ -448,6 +448,7 @@ pbmc$unnamed_clusters &lt;- Idents(pbmc)</code></pre>
 <div id="find-differentially-expressed-genes" class="section level2">
 <h2>Find differentially expressed genes</h2>
 <p><strong>This is the step where we generate the input for CIPR’s log fold change (logFC) comparison methods.</strong></p>
+<pre class="r"><code>allmarkers <- FindAllMarkers(pbmc)</code></pre>
 </div>
 <div id="calculate-average-gene-expression-per-cluster" class="section level2">
 <h2>Calculate average gene expression per cluster</h2>
