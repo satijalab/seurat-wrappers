@@ -2441,10 +2441,8 @@ and sparse weight matrix are held in memory.</p>
 only (no azimuthal Gabor filter). When <code>group</code> is specified,
 <code>split.scale=TRUE</code> applies within-group scaling in the lazy
 workflow as in the standard workflow.</p>
-<p>This feature requires the development versions of Banksy and
-SeuratWrappers:</p>
-<pre class="r"><code>devtools::install_github(&#39;prabhakarlab/Banksy@feat-sparse-matmul&#39;)
-devtools::install_github(&#39;jleechung/seurat-wrappers@feat-sparse-matmul&#39;)</code></pre>
+<p>This feature requires the development version of Banksy:</p>
+<pre class="r"><code>devtools::install_github(&#39;prabhakarlab/Banksy&#39;)</code></pre>
 <p>We demonstrate this with a 10X Xenium mouse brain dataset (~37k
 cells), performing domain segmentation with
 <code>lambda = 0.8</code>.</p>
