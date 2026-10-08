@@ -1,0 +1,127 @@
+---
+title: "Running LocalMAP on a Seurat Object"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: false
+    toc: false
+  html_document:
+    toc: false
+    df_print: paged
+---
+
+This vignette demonstrates how to run **LocalMAP** on a Seurat object. LocalMAP is a
+variant of PaCMAP that adds a local graph-adjustment stage in phase 3: further-pair
+partners are resampled to points that are already close in the low-dimensional
+embedding (within `low_dist_thres`), and the nearest-neighbour gradient term is
+scaled by `low_dist_thres / (2 * sqrt(d_ij))`. Compared with base PaCMAP this
+tightens local structure while retaining the same global scaffold.
+
+If you use LocalMAP, please cite:
+
+> *Dimension Reduction with Locally Adjusted Graphs*
+>
+> Yingfan Wang, Yiyang Sun, Haiyang Huang and Cynthia Rudin
+>
+> Preprint, 2024
+>
+> GitHub: https://github.com/YingfanWang/PaCMAP
+
+and the original PaCMAP references linked from the [PaCMAP vignette](pacmap.Rmd).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10
+)
+```
+
+## Prerequisites
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [pacmapr](https://github.com/williamsyy/pacmap-for-R) — native R + Rcpp implementation of PaCMAP and LocalMAP.
+
+To install `pacmapr` directly:
+
+```{r install_pacmapr, eval=FALSE}
+# install.packages("remotes")
+remotes::install_github("williamsyy/pacmap-for-R", subdir = "pacmapr")
+```
+
+No Python, conda, or `reticulate` installation is required.
+
+```{r packages}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+```
+
+### LocalMAP on PBMC3k
+
+```{r localmap, cache=TRUE, cache.lazy=TRUE}
+InstallData("pbmc3k")
+pbmc3k.final <- LoadData("pbmc3k", type = "pbmc3k.final")
+
+pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
+pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
+
+# Run LocalMAP on the Seurat object.
+pbmc3k.final <- RunLocalMAP(
+  object   = pbmc3k.final,
+  features = VariableFeatures(pbmc3k.final)
+)
+```
+
+```{r explore, fig.width=6}
+features.plot <- c("CD3D", "MS4A1", "CD8A", "GZMK", "GZMB", "FCGR3A")
+DimPlot(object = pbmc3k.final, reduction = "localmap")
+```
+
+```{r explore2, fig.height=10}
+pbmc3k.final <- NormalizeData(pbmc3k.final, verbose = FALSE)
+FeaturePlot(pbmc3k.final, features.plot, ncol = 2, reduction = "localmap")
+```
+
+You can also run LocalMAP on the dims of an existing reduction:
+
+```{r localmap_dim, cache=TRUE, cache.lazy=TRUE}
+pbmc3k.final <- RunLocalMAP(object = pbmc3k.final, dims = 2:5)
+DimPlot(object = pbmc3k.final, reduction = "localmap")
+```
+
+### Tuning `low_dist_thres`
+
+`low_dist_thres` (default 10, per Wang et al.) is the LocalMAP-specific knob. It
+controls (a) the low-D distance below which further-pair partners are resampled in
+phase 3, and (b) the strength of the NN-gradient scaling. Smaller values push the
+embedding to tighten local clusters more aggressively; larger values behave more
+like base PaCMAP.
+
+```{r localmap_thres, eval=FALSE}
+tight <- RunLocalMAP(
+  object         = pbmc3k.final,
+  features       = VariableFeatures(pbmc3k.final),
+  low_dist_thres = 3,
+  reduction.name = "localmap_tight"
+)
+loose <- RunLocalMAP(
+  object         = pbmc3k.final,
+  features       = VariableFeatures(pbmc3k.final),
+  low_dist_thres = 30,
+  reduction.name = "localmap_loose"
+)
+```
+
+### Notes on defaults
+
+Wrapper defaults match the reference implementation:
+
+* `num_iters = 250L` — expands to `c(100, 100, 250)` = 450 total iterations.
+* `n.neighbors = NULL` — auto-selected: 10 for `n ≤ 10 000`, otherwise `round(10 + 15 * (log10(n) - 4))`.
+* `distance_method = "euclidean"`, `MN_ratio = 0.5`, `FP_ratio = 2`.
+* `apply_pca = TRUE`, `init = "random"`.
+* `low_dist_thres = 10`.
+* `n_threads = NULL` — uses `parallel::detectCores() - 1L`.
