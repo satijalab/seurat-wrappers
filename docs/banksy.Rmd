@@ -549,11 +549,10 @@ input), since only the sparse input and sparse weight matrix are held in memory.
 filter). When `group` is specified, `split.scale=TRUE` applies within-group
 scaling in the lazy workflow as in the standard workflow.
 
-This feature requires the development versions of Banksy and SeuratWrappers:
+This feature requires the development version of Banksy:
 
 ```{r install_dev, eval=FALSE}
-devtools::install_github('prabhakarlab/Banksy@feat-sparse-matmul')
-devtools::install_github('jleechung/seurat-wrappers@feat-sparse-matmul')
+devtools::install_github('prabhakarlab/Banksy')
 ```
 
 We demonstrate this with a 10X Xenium mouse brain dataset (~37k cells),

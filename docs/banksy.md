@@ -758,12 +758,10 @@ held in memory.
 filter). When `group` is specified, `split.scale=TRUE` applies
 within-group scaling in the lazy workflow as in the standard workflow.
 
-This feature requires the development versions of Banksy and
-SeuratWrappers:
+This feature requires the development version of Banksy:
 
 ``` r
-devtools::install_github('prabhakarlab/Banksy@feat-sparse-matmul')
-devtools::install_github('jleechung/seurat-wrappers@feat-sparse-matmul')
+devtools::install_github('prabhakarlab/Banksy')
 ```
 
 We demonstrate this with a 10X Xenium mouse brain dataset (~37k cells),
