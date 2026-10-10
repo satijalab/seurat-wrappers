@@ -7,6 +7,10 @@
 VeloPlot(object, reduction = NULL, ...)
 }
 \arguments{
+\item{object}{Seurat object}
+
+\item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
+
 \item{...}{Extra parameters passed on to \code{\link[velocyto.R]{show.velocity.on.embedding.cor}}}
 }
 \value{

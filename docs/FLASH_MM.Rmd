@@ -1,0 +1,189 @@
+---
+title: "Running FLASH-MM on Seurat objects for differential expression analysis"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+  html_document:
+    df_print: kable
+    theme: united
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+This vignette demonstrates how to run FLASH-MM on Seurat objects for single-cell differential expression (DE) analysis. For demonstration purposes, we will use the interferon-beta stimulated human PBMC dataset (ifnb) to perform DE analysis within the same cell type across conditions, as described in the Seurat [differential expression testing](https://satijalab.org/seurat/articles/de_vignette) vignette.
+
+FLASH-MM is a fast and scalable DE analysis method based on linear mixed-effects models, which help address intra-subject correlation and inter-subject variability in single-cell RNA-seq data. See [FLASHMM vignette](https://cran.r-project.org/package=FLASHMM) for details. If you find FLASH-MM useful for your publication, please cite:
+
+> *FLASH-MM: fast and scalable single-cell differential expression analysis using linear mixed-effects models*
+>
+> Changjiang Xu, Delaram Pouyabahar, Veronique Voisin, Hamed Heydari & Gary D. Bader
+>
+> Nature Communications 17, 2026
+>
+> doi: [10.1038/s41467-026-69063-2](https://doi.org/10.1038/s41467-026-69063-2)
+> 
+> GitHub: https://github.com/BaderLab/FLASHMM
+
+
+Prerequisites to install:
+
+* [Seurat](https://satijalab.org/seurat/install)
+* [SeuratWrappers](https://github.com/satijalab/seurat-wrappers)
+* [SeuratData](https://github.com/satijalab/seurat-data)
+* [FLASHMM](https://cran.r-project.org/package=FLASHMM)
+
+
+```{r echo = TRUE, results = "hide", message = FALSE}
+library(Seurat)
+library(SeuratData)
+library(SeuratWrappers)
+library(FLASHMM)
+```
+
+
+## Dataset: interferon-stimulated and control PBMC
+
+The interferon-beta stimulated human PBMCs dataset (ifnb) is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
+ 
+```{r ifnb, echo = TRUE}
+InstallData("ifnb")
+ifnb <- LoadData("ifnb")
+ifnb
+
+#download donor (sample) information from the Github repo of the source data
+info_repo <- "https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/"
+ctrl <- read.table(url(paste0(info_repo, "ye1.ctrl.8.10.sm.best")), head = T, stringsAsFactors = F)
+stim <- read.table(url(paste0(info_repo, "ye2.stim.8.10.sm.best")), head = T, stringsAsFactors = F)
+info <- rbind(ctrl, stim)
+
+#rename the cell IDs by substituting the '-' into '.'
+info$BARCODE <- gsub("-", ".", info$BARCODE)
+#only keep the cells with high-confidence sample ID (singlets, SNG)
+info <- info[grep("SNG", info$BEST), ]
+#remove cells with duplicated IDs in both ctrl and stim groups
+info <- info[!duplicated(info$BARCODE) & !duplicated(info$BARCODE, fromLast = T), ]
+
+#add the sample IDs to Seurat Object ifnb
+rownames(info) <- info$BARCODE
+ifnb <- AddMetaData(ifnb, metadata = info[,"BEST", drop=F], col.name = "donor_id")
+#remove cells without donor IDs (cells that couldn't be mapped to a donor)
+ifnb <- subset(ifnb, subset = !is.na(donor_id))
+dim(ifnb)
+
+```
+
+
+## Preprocessing: filtration and normalization.
+
+The standard pre-processing workflow for scRNA-seq data in Seurat, including filtration and normalization, is described in [Seurat - Guided Clustering Tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial).
+
+```{r prep, echo = TRUE}
+#We filter cells that have unique feature counts over 2,500 or less than 200
+ifnb <- subset(ifnb, subset = nFeature_RNA > 200 & nFeature_RNA < 2500)
+
+#We normalize the data using the log-normalization method, i.e., log(1 + 10000*counts/library.size).
+ifnb <- NormalizeData(ifnb, normalization.method = "LogNormalize", scale.factor = 10000)
+
+```
+
+
+## Differential expression analysis using FLASH-MM
+
+In this example, we are interested in identifying what genes change in different conditions for cells of the same type.
+
+### Filtering cell types and genes 
+
+We filter out the cell types with a low number of cells and the genes expressed very lowly.
+
+```{r DEA-filtering}
+#add log(library-size) to Seurat Object
+ifnb <- AddMetaData(ifnb, metadata = log(colSums(ifnb[["RNA"]]$counts)), col.name = "loglib")
+
+#rename "seurat_annotations" as "celltype"
+colnames(ifnb@meta.data)[grep("annotations", colnames(ifnb@meta.data))] <- "celltype"
+
+#filtering out cell types with a low number of cells
+min_cells <- 100
+celltype_counts <- table(ifnb$celltype)
+keep_types <- names(celltype_counts)[celltype_counts >= min_cells]
+ifnb <- subset(ifnb, subset = celltype %in% keep_types)
+
+#keep genes expressed in at least 5 cells in each cell-type and treatment
+celltype_trt <- paste0(ifnb@meta.data$celltype, ifnb@meta.data$stim)
+gene_counts_celltypes <- do.call(cbind,
+		tapply(1:ncol(ifnb), celltype_trt, 
+		function(i) rowSums(ifnb[["RNA"]]$counts[, i] > 0)))
+				
+nCells <- 5
+keep_genes <- rownames(gene_counts_celltypes)[apply(gene_counts_celltypes >= nCells, 1, all)]
+ifnb <- subset(ifnb, features = keep_genes)
+dim(ifnb)	
+
+```
+
+
+### Model design: fixed and random effect formulas
+
+We define a fixed-effects model to capture systematic effects of logarithm of the library size (loglib) , cell type (celltype), and the interaction between cell type and IFN stimulation (stim), while a random-effects model is included to account for variability between donors (donor_id). The fixed and random effect variables in the model formulas cannot contain special characters such as hyphen `'-'` and empty `' '`. We rename the donor (sample) IDs by substituting `'-'` with `''`, and the cell-types by substituting `' '` with `'.'`.
+
+```{r DEA-design}
+ifnb@meta.data$donor_id <- gsub("\\-", "", ifnb@meta.data$donor_id)
+ifnb@meta.data$celltype <- gsub(" ", ".", ifnb@meta.data$celltype)
+
+#fixed-effects formula
+fixed <- as.formula(~ 0 + loglib + celltype + celltype:stim)
+
+#random-effects formulas
+random <- as.formula(~ 0 + donor_id)
+
+```
+
+
+### Fitting LMMs by RunFLASHMM
+
+We run FLASHMM on the Seurat object ifnb using the fixed and random effects we specified, with is.counts = FALSE since we are working with normalized data. 
+
+```{r DEA-fittingLMM}
+
+#use normalized data
+t0 <- Sys.time()
+fit <- RunFLASHMM(ifnb, fixed, random, is.counts = FALSE, verbose = FALSE) 
+difftime(Sys.time(), t0)
+
+#p-values
+fit$p[, 1:3]
+```
+
+
+### Fitting LMMs with multiple random-effects components
+
+To perform differential expression analysis between treatments (control versus interferon-beta stimulation) across all cell types, we model donor ID and cell type as random effects, as defined below.
+
+```{r DEA-fittingLMM2}
+#fixed-effects formula
+fixed <- as.formula(~ loglib + stim)
+
+#Two random-effects components
+random <- list(~ 0 + donor_id, ~ 0 + celltype)
+
+t0 <- Sys.time()
+fit <- RunFLASHMM(ifnb, fixed, random, is.counts = FALSE, verbose = FALSE) 
+difftime(Sys.time(), t0)
+
+#p-values
+fit$p[, 1:4]	
+
+```

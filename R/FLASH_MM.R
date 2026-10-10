@@ -1,0 +1,71 @@
+#' @include internal.R
+#'
+NULL
+
+#' Run FLASH-MM on a Seurat object to fit linear mixed-effects models for single-cell differential expression analysis. See [FLASHMM vignette](https://cran.r-project.org/package=FLASHMM) for details.
+#'
+#' @param object a Seurat object including (1) object[["RNA"]]$counts and/or object[["RNA"]]$data, the genes-by-cells expression matrix of raw counts and/or normalized data, and (2) object@meta.data, the metadata with all fixed and random effect variables.
+#' @param fixed a one-sided model formula used to create the fixed-effects design matrix by model.matrix function.
+#' @param random a one-sided formula specifying a model with a single random-effects component or a list of one-sided formulas specifying multiple random-effects components, used to create the random-effects design matrix.
+#' @param is.counts a logical scalar indicating whether Y is a matrix of raw counts or processed values (e.g., log-transformed or normalized). If Y contains raw counts, it will be log-transformed as log2(1 + Y).
+#' @param method a character string, either "REML" or "ML". Defaults to "REML". If ‘REML’, the model is fit using REML; otherwise, using ML.
+#' @param nBlocks the number of blocks into which large datasets are subdivided to reduce memory usage when computing summary statistics. The default value, nBlocks = ceiling((ncol(Y) * 1e-08) * nrow(Y)), may not be adequate. If encountering the error: vector memory limit reached, you should increase the nBlocks value to avoid the issue.
+#' @param theta0 a vector of initial values of the variance components, (s1, ...,sk, s_(k+1)), si = sigma_i^2, the i-th variance component. s_(k+1) = sigma^2, the variance component of model residual error.
+#' @param max.iter the maximal number of iterations for the iterative algorithm.
+#' @param epsilon positive convergence tolerance. If the absolute value of the first partial derivative of log likelihood is less than epsilon, the iterations converge.
+#' @param output.cov a logical scalar. If TRUE, output an array of the covariance matrices for the estimated coefficients, cov.beta.
+#' @param output.FIM a logical scalar. If TRUE, output an array of the Fisher information matrices (FIM) for fixed effects (FIM.beta) and variance components (FIM.theta).
+#' @param output.RE a logical scalar. If TRUE, output the best linear unbiased prediction (BLUP) of the random effects.
+#' @param output.SS a logical scalar. If TURE, output list(XX, XY, ZX, ZY, ZZ, Ynorm, n), a list of the summary-level data (summary statistics), defined by XX=t(X)\%*\%X, XY=t(Y\%*\%X), ZX=t(Z)\%*\%X, ZY=t(Z)\%*\%Y, ZZ=t(Z)\%*\%Z, Ynorm=rowSums(Y*Y), and n=nrow(X), which can also be computed using the sslmm function.
+#' @param verbose a logical scalar. If TRUE, print the number of features for which LMM fitting did not converge (abs(dlogL) > epsilon).
+#'
+#' @return A list containing the following components:
+#'    \item{method}{the method, either REML or ML, for estimating the LMM parameters (fixed effects and variance components).}
+#'    \item{epsilon}{convergence tolerance.}
+#'    \item{dlogL}{first partial derivatives of log-likelihoods for each feature.}
+#'    \item{logLik}{maximum log-likelihoods for ML method or maximum log-restricted-likelihood for REML method.}
+#'    \item{niter}{numbers of iterations for each feature.}
+#'    \item{coef}{a matrix of estimated coefficients (fixed effects or beta), each column corresponds to a feature and each row one covariate.}
+#'    \item{se}{a matrix of standard errors of the estimated coefficients.}
+#'    \item{t}{a matrix of t-values for the fixed effects, equal to coef/se.}
+#'    \item{p}{a matrix of two-sided p-values for the t-tests of the fixed effects.}
+#'    \item{df}{degrees of freedom for the t-statistics (values).}
+#'    \item{cov}{a array of covariance matrices of the estimated coefficients (fixed effects).}
+#'    \item{theta}{a matrix of the estimated variance components, each column corresponds to a feature and each row one variance component. The last row is the variance component of the residual error.}
+#'    \item{se.theta}{standard errors of the estimated theta.}
+#'	  \item{FIM.beta}{the Fisher information matrices (FIM) for fixed effects.}
+#'	  \item{FIM.theta}{the Fisher information matrices (FIM) for variance components.}
+#'    \item{RE}{a matrix of the best linear unbiased prediction (BLUP) of random effects.}
+#'    \item{summary_data}{a list of the summary-level data (summary statistics).}
+#'
+#' @author Changjiang Xu, Delaram Pouyabahar, Veronique Voisin, Gary D. Bader
+#' @references Xu, C., Pouyabahar, D., Voisin, V. et al. FLASH-MM: fast and scalable single-cell differential expression analysis using linear mixed-effects models. Nat Commun 17, 2384 (2026). https://doi.org/10.1038/s41467-026-69063-2
+#' @seealso \code{\link[FLASHMM]{flashmm}}
+#' 
+#' @importFrom MASS ginv
+#' @importFrom stats pt
+#' @import Matrix
+#' 
+#' @importFrom Seurat DefaultAssay Tool GetAssayData Tool<- CreateAssayObject
+#' DefaultAssay<-
+#'
+#' @rdname RunFLASHMM
+#' 
+#' @export
+RunFLASHMM <- function(object, fixed, random, is.counts = FALSE, method = c("REML", "ML"), nBlocks = NULL, theta0 = NULL, max.iter = 50, epsilon = 1e-5, output.cov = TRUE, output.FIM = FALSE, output.RE = FALSE, output.SS = FALSE, verbose = FALSE)
+{
+SeuratWrappers:::CheckPackage(package = "FLASHMM", repository = "cran")
+stopifnot(class(object) == "Seurat")
+if (is.counts) {
+	message('Use the raw counts: object[["RNA"]]$counts.')
+} else {
+	message('Use the normalized data: object[["RNA"]]$data.')	
+}
+
+#object@assays$RNA$counts
+#object[["RNA"]]$counts	
+#object@meta.data
+
+FLASHMM::flashmm({if (is.counts) object[["RNA"]]$counts else object[["RNA"]]$data}, 
+fixed = fixed, random = random, metadata = object[[]], is.counts = is.counts, method = method, nBlocks = nBlocks, theta0 = theta0, max.iter = max.iter, epsilon = epsilon, output.cov = output.cov, output.FIM = output.FIM, output.RE = output.RE, output.SS = output.SS, verbose = verbose)
+}
