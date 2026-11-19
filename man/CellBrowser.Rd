@@ -58,7 +58,9 @@ unless the matrix is bigger than R's maximum matrix size.}
 \item{meta.fields.names}{vector meta field names to show in UI. Must have
 same length as meta.fields. Default is meta.fields.}
 
-\item{matrix.slot}{matrix to use, default is 'counts'}
+\item{matrix.slot}{matrix to export, default is 'counts'. Can also be a comma-separated
+list, e.g. 'counts,scale.data', in which case the output filenames have
+a prefix to distinguish them.}
 
 \item{markers.n}{if no markers were supplied, FindAllMarkers is run.
 This parameter indicates how many markers to calculate, default is 100}
