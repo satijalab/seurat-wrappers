@@ -1,0 +1,204 @@
+---
+title: "Removing ambient RNA from a Seurat object with Decant"
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  github_document:
+    html_preview: true
+    toc: true
+    toc_depth: 3
+  html_document:
+    df_print: kable
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10
+)
+```
+
+```{r install_decant, include=FALSE}
+if (!requireNamespace("Decant", quietly = TRUE)) {
+  remotes::install_github(repo = "kroy3/Decant", dependencies = TRUE, upgrade = FALSE)
+}
+```
+
+This vignette demonstrates how to remove ambient RNA from a Seurat object with
+Decant. If you use Decant, please cite:
+
+> *Decant: benchmark-first ambient RNA decontamination for single-cell RNA-seq*
+>
+> Kushal Raj Roy
+>
+> R package, 2026
+>
+> GitHub: https://github.com/kroy3/Decant
+>
+> Documentation: https://decant.readthedocs.io
+
+# Overview
+
+In droplet-based single-cell RNA-seq, every droplet also captures some
+cell-free ("ambient") RNA released by lysed cells. Each cell's counts are a
+mixture of its own transcripts and this soup, so marker genes of abundant
+cell types leak into all the others. Decant measures the soup from the empty
+droplets of the raw (unfiltered) matrix, estimates the contamination fraction
+of each cell from genes its cluster does not express, and removes ambient
+counts from each cell.
+
+Two properties matter for downstream use:
+
+* the corrected counts never exceed the raw counts and are never negative:
+  correction only removes counts, it cannot create expression;
+* counts too high to be ambient (for example in doublets or rare high
+  expressers) are kept rather than removed.
+
+Decant needs the raw droplet matrix (Cell Ranger's `raw_feature_bc_matrix`)
+in addition to the filtered cells.
+
+# Load data
+
+We use the 10x Genomics 1k PBMC dataset (v3 chemistry), which provides both
+the filtered and the raw feature-barcode matrices.
+
+```{r packages}
+library(Seurat)
+library(Decant)
+library(ggplot2)
+```
+
+```{r download}
+base <- "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_1k_v3/pbmc_1k_v3_"
+dir <- file.path(tempdir(), "pbmc_1k_v3")
+for (which in c("filtered", "raw")) {
+  tgz <- file.path(dir, paste0(which, ".tar.gz"))
+  dir.create(dir, showWarnings = FALSE)
+  if (!file.exists(tgz)) {
+    download.file(paste0(base, which, "_feature_bc_matrix.tar.gz"), tgz, mode = "wb")
+  }
+  untar(tgz, exdir = dir)
+}
+filtered_dir <- file.path(dir, "filtered_feature_bc_matrix")
+raw_dir <- file.path(dir, "raw_feature_bc_matrix")
+```
+
+# Standard Seurat processing
+
+Decant uses the object's cluster identities to estimate contamination, so we
+first cluster the cells as usual.
+
+```{r seurat}
+pbmc <- CreateSeuratObject(Read10X(filtered_dir), min.cells = 3, min.features = 200)
+pbmc <- subset(pbmc, subset = nFeature_RNA < 5000)
+pbmc <- NormalizeData(pbmc)
+pbmc <- FindVariableFeatures(pbmc)
+pbmc <- ScaleData(pbmc)
+pbmc <- RunPCA(pbmc, verbose = FALSE)
+pbmc <- FindNeighbors(pbmc, dims = 1:15)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+pbmc <- RunUMAP(pbmc, dims = 1:15)
+```
+
+```{r umap, fig.width=6, fig.height=5}
+DimPlot(pbmc, label = TRUE) + NoLegend()
+```
+
+# Run Decant
+
+`RunDecant()` reads the raw matrix, takes the droplets with 1 to 100 UMIs as
+the soup, estimates each cell's contamination fraction and writes the
+corrected counts to a new assay, `Decant`.
+
+```{r run_decant}
+pbmc <- RunDecant(pbmc, raw = raw_dir)
+pbmc
+```
+
+Each cell's estimated contamination fraction is stored in `decant_rho`:
+
+```{r rho}
+summary(pbmc$decant_rho)
+```
+
+```{r rho_plot, fig.width=8, fig.height=4}
+VlnPlot(pbmc, features = "decant_rho", pt.size = 0) + NoLegend()
+```
+
+This is a clean sample: the median cell has well under 1% ambient RNA.
+
+Per-cluster diagnostics are stored in the object's `Misc` slot. A cluster
+flagged `low_power` has too few genes that it clearly does not express (and
+that are abundant enough in the soup) to estimate its own contamination; it
+borrows the evidence-weighted value of the clusters that do. With low
+contamination and closely related immune cell types, as here, most clusters
+borrow.
+
+```{r diagnostics}
+diag <- Misc(pbmc, "decant")$rho_diagnostics
+diag[, c("cluster", "n_cells", "rho", "n_absent_genes", "low_power", "borrowed")]
+```
+
+# Effect of the correction
+
+The monocyte marker *LYZ* is one of the most abundant genes in the soup. Its
+mean count per cell, by cluster, before and after correction: the small
+ambient counts in the other clusters are removed, while the monocyte
+clusters keep nearly all of theirs.
+
+```{r lyz, fig.height=4}
+lyz <- data.frame(
+  cluster = Idents(pbmc),
+  raw = FetchData(pbmc, vars = "rna_LYZ", layer = "counts")[, 1],
+  decant = FetchData(pbmc, vars = "decant_LYZ", layer = "counts")[, 1]
+)
+aggregate(cbind(raw, decant) ~ cluster, data = lyz, FUN = mean)
+```
+
+```{r lyz_plot, fig.height=4}
+VlnPlot(pbmc, features = c("rna_LYZ", "decant_LYZ"), layer = "counts", pt.size = 0, ncol = 2)
+```
+
+Correction only removes counts:
+
+```{r bounds}
+raw_counts <- LayerData(pbmc, assay = "RNA", layer = "counts")
+dec_counts <- LayerData(pbmc, assay = "Decant", layer = "counts")
+c(min = min(dec_counts), above_raw = sum(dec_counts > raw_counts),
+  share_removed = 1 - sum(dec_counts) / sum(raw_counts))
+```
+
+# Downstream analysis
+
+The `Decant` assay holds counts; normalize it before use, and use it as the
+default assay for marker detection or differential expression.
+
+```{r downstream}
+pbmc <- NormalizeData(pbmc, assay = "Decant")
+DefaultAssay(pbmc) <- "Decant"
+markers <- FindMarkers(pbmc, ident.1 = levels(Idents(pbmc))[1], max.cells.per.ident = 200)
+head(markers)
+```
+
+# Notes and limitations
+
+* Decant's contamination estimate relies on genes that a cluster does not
+  express. In a sample of a single cell type, or when the soup closely
+  resembles every cluster, contamination cannot be estimated from the counts;
+  Decant warns, and a value from an independent source can be supplied with
+  `RunDecant(pbmc, raw = raw_dir, rho = ...)`.
+* Benchmarks against SoupX, DecontX and CellBender, including the cases where
+  Decant removes less ambient RNA than DecontX, are documented at
+  https://github.com/kroy3/Decant/blob/main/validation/BENCHMARK.md.
+* For several samples, pass a named list of raw matrices and the meta.data
+  column naming each cell's sample:
+  `RunDecant(obj, raw = list(s1 = dir1, s2 = dir2), sample_col = "sample")`.
+
+# Session information
+
+```{r session_info}
+sessionInfo()
+```
